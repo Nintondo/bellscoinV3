@@ -81,7 +81,7 @@ BOOST_FIXTURE_TEST_CASE(coinstatsindex_initial_sync, TestChain100Setup)
 BOOST_FIXTURE_TEST_CASE(coinstatsindex_unclean_shutdown, TestChain100Setup)
 {
     Chainstate& chainstate = Assert(m_node.chainman)->ActiveChainstate();
-    const CChainParams& params = Params();
+    const CChainParams& params = GlobParams();
     {
         CoinStatsIndex index{interfaces::MakeChain(m_node), 1 << 20};
         BOOST_REQUIRE(index.Init());

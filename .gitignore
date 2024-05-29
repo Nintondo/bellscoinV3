@@ -2,18 +2,20 @@
 
 *.exe
 *.pdb
-src/bitcoin
-src/bitcoind
-src/bitcoin-cli
-src/bitcoin-gui
-src/bitcoin-node
-src/bitcoin-tx
-src/bitcoin-util
-src/bitcoin-chainstate
-src/bitcoin-wallet
+
+src/bench/bench_bells
+src/bells
+src/bellsd
+src/bells-cli
+src/bells-gui
+src/bells-node
+src/bells-tx
+src/bells-util
+src/bells-chainstate
+src/bells-wallet
 src/test/fuzz/fuzz
-src/test/test_bitcoin
-src/qt/test/test_bitcoin-qt
+src/test/test_bells
+src/qt/test/test_bells-qt
 
 # autoreconf
 Makefile.in
@@ -50,11 +52,11 @@ src/qt/forms/ui_*.h
 
 src/qt/test/moc*.cpp
 
-src/qt/bitcoin-qt.config
-src/qt/bitcoin-qt.creator
-src/qt/bitcoin-qt.creator.user
-src/qt/bitcoin-qt.files
-src/qt/bitcoin-qt.includes
+src/qt/bells-qt.config
+src/qt/bells-qt.creator
+src/qt/bells-qt.creator.user
+src/qt/bells-qt.files
+src/qt/bells-qt.includes
 
 .deps
 .dirstamp
@@ -92,15 +94,15 @@ src/qt/bitcoin-qt.includes
 *.qm
 Makefile
 !depends/Makefile
-src/qt/bitcoin-qt
-Bitcoin-Qt.app
+src/qt/bells-qt
+Bells-Qt.app
 
 # Qt Creator
 Makefile.am.user
 
 # Unit-tests
 Makefile.test
-bitcoin-qt_test
+bells-qt_test
 
 # Resources cpp
 qrc_*.cpp
@@ -150,3 +152,10 @@ dist/
 /guix-build-*
 
 /ci/scratch/
+src/bitcoin-cli
+src/bitcoin-tx
+src/bitcoin-util
+src/bitcoin-wallet
+src/bitcoind
+src/qt/bitcoin-qt
+src/test/test_bitcoin

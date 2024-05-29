@@ -31,7 +31,11 @@
 #include <variant>
 #include <vector>
 
+namespace node
+{
 class JSONRPCRequest;
+}
+
 enum ServiceFlags : uint64_t;
 enum class OutputType;
 enum class TransactionError;
@@ -396,10 +400,10 @@ class RPCHelpMan
 {
 public:
     RPCHelpMan(std::string name, std::string description, std::vector<RPCArg> args, RPCResults results, RPCExamples examples);
-    using RPCMethodImpl = std::function<UniValue(const RPCHelpMan&, const JSONRPCRequest&)>;
+    using RPCMethodImpl = std::function<UniValue(const RPCHelpMan&, const node::JSONRPCRequest&)>;
     RPCHelpMan(std::string name, std::string description, std::vector<RPCArg> args, RPCResults results, RPCExamples examples, RPCMethodImpl fun);
 
-    UniValue HandleRequest(const JSONRPCRequest& request) const;
+    UniValue HandleRequest(const node::JSONRPCRequest& request) const;
     /**
      * Helper to get a request argument.
      * This function only works during m_fun(), i.e. it should only be used in
@@ -454,7 +458,7 @@ private:
     const std::vector<RPCArg> m_args;
     const RPCResults m_results;
     const RPCExamples m_examples;
-    mutable const JSONRPCRequest* m_req{nullptr}; // A pointer to the request for the duration of m_fun()
+    mutable const node::JSONRPCRequest* m_req{nullptr}; // A pointer to the request for the duration of m_fun()
     template <typename R>
     R ArgValue(size_t i) const;
 };

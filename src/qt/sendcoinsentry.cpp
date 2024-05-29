@@ -94,7 +94,7 @@ void SendCoinsEntry::clear()
     ui->messageTextLabel->hide();
     ui->messageLabel->hide();
 
-    // update the display unit, to not use the default ("BTC")
+    // update the display unit, to not use the default ("BEL")
     updateDisplayUnit();
 }
 

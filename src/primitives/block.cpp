@@ -7,10 +7,23 @@
 
 #include <hash.h>
 #include <tinyformat.h>
+#include <crypto/common.h>
+#include <crypto/scrypt.h>
 
-uint256 CBlockHeader::GetHash() const
+#define BEGIN(a)            ((char*)&(a))
+#define END(a)              ((char*)&((&(a))[1]))
+
+void CBlockHeader::SetAuxpow (std::unique_ptr<CAuxPow> apow)
 {
-    return (CHashWriter{PROTOCOL_VERSION} << *this).GetHash();
+    if (apow != nullptr)
+    {
+        auxpow.reset(apow.release());
+        SetAuxpowVersion(true);
+    } else
+    {
+        auxpow.reset();
+        SetAuxpowVersion(false);
+    }
 }
 
 std::string CBlock::ToString() const

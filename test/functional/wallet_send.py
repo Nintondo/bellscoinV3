@@ -13,7 +13,7 @@ from test_framework.messages import (
     ser_compact_size,
     WITNESS_SCALE_FACTOR,
 )
-from test_framework.test_framework import BitcoinTestFramework
+from test_framework.test_framework import BellscoinTestFramework
 from test_framework.util import (
     assert_equal,
     assert_fee_amount,
@@ -24,7 +24,7 @@ from test_framework.util import (
 from test_framework.wallet_util import generate_keypair
 
 
-class WalletSendTest(BitcoinTestFramework):
+class WalletSendTest(BellscoinTestFramework):
     def add_options(self, parser):
         self.add_wallet_options(parser)
 

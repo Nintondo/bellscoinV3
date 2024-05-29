@@ -36,7 +36,7 @@ BOOST_FIXTURE_TEST_CASE(txindex_initial_sync, TestChain100Setup)
     IndexWaitSynced(txindex);
 
     // Check that txindex excludes genesis block transactions.
-    const CBlock& genesis_block = Params().GenesisBlock();
+    const CBlock& genesis_block = GlobParams().GenesisBlock();
     for (const auto& txn : genesis_block.vtx) {
         BOOST_CHECK(!txindex.FindTx(txn->GetHash(), block_hash, tx_disk));
     }

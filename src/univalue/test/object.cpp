@@ -435,7 +435,7 @@ void univalue_readwrite()
     BOOST_CHECK(!v.read("{true: 1}"));
     BOOST_CHECK(!v.read("{[1]: 1}"));
     BOOST_CHECK(!v.read("{{\"a\": \"a\"}: 1}"));
-    // BTC addresses should fail parsing
+    // BEL addresses should fail parsing
     BOOST_CHECK(!v.read("175tWpb8K1S7NmH4Zx6rewF9WQrcZv245W"));
     BOOST_CHECK(!v.read("3J98t1WpEZ73CNmQviecrnyiWrnqRhWNL"));
 

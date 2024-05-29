@@ -44,7 +44,7 @@ struct RPCFuzzTestingSetup : public TestingSetup {
 
     void CallRPC(const std::string& rpc_method, const std::vector<std::string>& arguments)
     {
-        JSONRPCRequest request;
+        node::JSONRPCRequest request;
         request.context = &m_node;
         request.strMethod = rpc_method;
         try {
@@ -149,6 +149,9 @@ const std::vector<std::string> RPC_COMMANDS_SAFE_FOR_FUZZING{
     "gettxout",
     "gettxoutsetinfo",
     "gettxspendingprevout",
+    "getauxblock",
+    "createauxblock",
+    "submitauxblock",
     "help",
     "invalidateblock",
     "joinpsbts",
@@ -263,7 +266,7 @@ std::string ConsumeScalarRPCArgument(FuzzedDataProvider& fuzzed_data_provider)
             if (!opt_block_header) {
                 return;
             }
-            DataStream data_stream{};
+            CDataStream data_stream{SER_NETWORK, PROTOCOL_VERSION};
             data_stream << *opt_block_header;
             r = HexStr(data_stream);
         },

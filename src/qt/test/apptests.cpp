@@ -66,7 +66,7 @@ void AppTests::appTests()
         // and fails to handle returned nulls
         // (https://bugreports.qt.io/browse/QTBUG-49686).
         QWARN("Skipping AppTests on mac build with 'minimal' platform set due to Qt bugs. To run AppTests, invoke "
-              "with 'QT_QPA_PLATFORM=cocoa test_bitcoin-qt' on mac, or else use a linux or windows build.");
+              "with 'QT_QPA_PLATFORM=cocoa test_bells-qt' on mac, or else use a linux or windows build.");
         return;
     }
 #endif
@@ -74,7 +74,7 @@ void AppTests::appTests()
     qRegisterMetaType<interfaces::BlockAndHeaderTipInfo>("interfaces::BlockAndHeaderTipInfo");
     m_app.parameterSetup();
     QVERIFY(m_app.createOptionsModel(/*resetSettings=*/true));
-    QScopedPointer<const NetworkStyle> style(NetworkStyle::instantiate(Params().GetChainType()));
+    QScopedPointer<const NetworkStyle> style(NetworkStyle::instantiate(GlobParams().GetChainType()));
     m_app.setupPlatformStyle();
     m_app.createWindow(style.data());
     connect(&m_app, &BitcoinApplication::windowShown, this, &AppTests::guiTests);

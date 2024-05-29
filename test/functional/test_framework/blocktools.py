@@ -76,7 +76,7 @@ def create_block(hashprev=None, coinbase=None, ntime=None, *, version=None, tmpl
     if tmpl and not tmpl.get('bits') is None:
         block.nBits = struct.unpack('>I', bytes.fromhex(tmpl['bits']))[0]
     else:
-        block.nBits = 0x207fffff  # difficulty retargeting is disabled in REGTEST chainparams
+        block.nBits = 0x200f0f0f  # difficulty retargeting is disabled in REGTEST chainparams
     if coinbase is None:
         coinbase = create_coinbase(height=tmpl['height'])
     block.vtx.append(coinbase)

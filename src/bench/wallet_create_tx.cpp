@@ -97,7 +97,7 @@ static void WalletCreateTx(benchmark::Bench& bench, const OutputType output_type
     const auto dest{getNewDestination(wallet, output_type)};
 
     // Generate chain; each coinbase will have two outputs to fill-up the wallet
-    const auto& params = Params();
+    const auto& params = GlobParams();
     const CScript coinbase_out{GetScriptForDestination(dest)};
     unsigned int chain_size = 5000; // 5k blocks means 10k UTXO for the wallet (minus 200 due COINBASE_MATURITY)
     for (unsigned int i = 0; i < chain_size; ++i) {
@@ -113,7 +113,7 @@ static void WalletCreateTx(benchmark::Bench& bench, const OutputType output_type
 
     CAmount target = 0;
     if (preset_inputs) {
-        // Select inputs, each has 49 BTC
+        // Select inputs, each has 49 BEL
         wallet::CoinFilterParams filter_coins;
         filter_coins.max_count = preset_inputs->num_of_internal_inputs;
         const auto& res = WITH_LOCK(wallet.cs_wallet,
@@ -157,7 +157,7 @@ static void AvailableCoins(benchmark::Bench& bench, const std::vector<OutputType
     }
 
     // Generate chain; each coinbase will have two outputs to fill-up the wallet
-    const auto& params = Params();
+    const auto& params = GlobParams();
     unsigned int chain_size = 1000;
     for (unsigned int i = 0; i < chain_size / dest_wallet.size(); ++i) {
         for (const auto& dest : dest_wallet) {

@@ -368,6 +368,13 @@ public:
     bool UndoReadFromDisk(CBlockUndo& blockundo, const CBlockIndex& index) const;
 
     void CleanupBlockRevFiles() const;
+
+    template<typename T>
+    bool ReadBlockOrHeader(T& block, const FlatFilePos& pos) const;
+    bool ReadBlockHeaderFromDisk(CBlockHeader& block, const CBlockIndex* pindex) const;
+    
+    template<typename T>
+    bool ReadBlockOrHeader(T& block, const CBlockIndex& pindex) const;
 };
 
 void ImportBlocks(ChainstateManager& chainman, std::vector<fs::path> vImportFiles);

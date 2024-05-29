@@ -157,7 +157,7 @@ std::vector<UniValue> JSONRPCProcessBatchReply(const UniValue& in)
     return batch;
 }
 
-void JSONRPCRequest::parse(const UniValue& valRequest)
+void node::JSONRPCRequest::parse(const UniValue& valRequest)
 {
     // Parse request
     if (!valRequest.isObject())

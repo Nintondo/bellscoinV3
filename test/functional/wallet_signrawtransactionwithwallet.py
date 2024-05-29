@@ -10,7 +10,7 @@ from test_framework.blocktools import (
 from test_framework.address import (
     script_to_p2wsh,
 )
-from test_framework.test_framework import BitcoinTestFramework
+from test_framework.test_framework import BellscoinTestFramework
 from test_framework.util import (
     assert_equal,
     assert_raises_rpc_error,
@@ -37,7 +37,7 @@ from decimal import (
 RAW_TX = '020000000156b958f78e3f24e0b2f4e4db1255426b0902027cb37e3ddadb52e37c3557dddb0000000000ffffffff01c0a6b929010000001600149a2ee8c77140a053f36018ac8124a6ececc1668a00000000'
 
 
-class SignRawTransactionWithWalletTest(BitcoinTestFramework):
+class SignRawTransactionWithWalletTest(BellscoinTestFramework):
     def add_options(self, parser):
         self.add_wallet_options(parser)
 

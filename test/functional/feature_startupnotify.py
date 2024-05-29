@@ -3,7 +3,7 @@
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test -startupnotify."""
-from test_framework.test_framework import BitcoinTestFramework
+from test_framework.test_framework import BellscoinTestFramework
 from test_framework.util import (
     assert_equal,
 )
@@ -12,7 +12,7 @@ NODE_DIR = "node0"
 FILE_NAME = "test.txt"
 
 
-class StartupNotifyTest(BitcoinTestFramework):
+class StartupNotifyTest(BellscoinTestFramework):
     def set_test_params(self):
         self.num_nodes = 1
 

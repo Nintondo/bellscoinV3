@@ -8,15 +8,21 @@
 #include <map>
 #include <string>
 #include <optional>
+// BELLS
+#include <core_io.h>
 
 struct bilingual_str;
 class FillableSigningProvider;
 class UniValue;
+class uint256;
 struct CMutableTransaction;
 class Coin;
 class COutPoint;
 class SigningProvider;
-
+class CTransaction;
+class Chainstate;
+// BELLS
+class CTxUndo;
 /**
  * Sign a transaction with the given keystore and previous transactions
  *
@@ -47,5 +53,6 @@ void AddOutputs(CMutableTransaction& rawTx, const UniValue& outputs_in);
 
 /** Create a transaction from univalue parameters */
 CMutableTransaction ConstructTransaction(const UniValue& inputs_in, const UniValue& outputs_in, const UniValue& locktime, std::optional<bool> rbf);
-
+// BELLS
+void TxToJSON(const CTransaction& tx, const uint256 hashBlock, UniValue& entry, Chainstate& active_chainstate, const CTxUndo* txundo = nullptr, TxVerbosity verbosity = TxVerbosity::SHOW_DETAILS);
 #endif // BITCOIN_RPC_RAWTRANSACTION_UTIL_H

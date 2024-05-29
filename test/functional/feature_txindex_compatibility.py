@@ -9,12 +9,12 @@ Previous releases are required by this test, see test/README.md.
 
 import shutil
 
-from test_framework.test_framework import BitcoinTestFramework
+from test_framework.test_framework import BellscoinTestFramework
 from test_framework.util import assert_raises_rpc_error
 from test_framework.wallet import MiniWallet
 
 
-class TxindexCompatibilityTest(BitcoinTestFramework):
+class TxindexCompatibilityTest(BellscoinTestFramework):
     def set_test_params(self):
         self.num_nodes = 2
         self.extra_args = [

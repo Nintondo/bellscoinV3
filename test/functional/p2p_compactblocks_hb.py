@@ -4,11 +4,11 @@
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test compact blocks HB selection logic."""
 
-from test_framework.test_framework import BitcoinTestFramework
+from test_framework.test_framework import BellscoinTestFramework
 from test_framework.util import assert_equal
 
 
-class CompactBlocksConnectionTest(BitcoinTestFramework):
+class CompactBlocksConnectionTest(BellscoinTestFramework):
     """Test class for verifying selection of HB peer connections."""
 
     def set_test_params(self):

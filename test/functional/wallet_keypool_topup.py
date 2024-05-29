@@ -13,13 +13,13 @@ Two nodes. Node1 is under test. Node0 is providing transactions and generating b
 import shutil
 
 from test_framework.blocktools import COINBASE_MATURITY
-from test_framework.test_framework import BitcoinTestFramework
+from test_framework.test_framework import BellscoinTestFramework
 from test_framework.util import (
     assert_equal,
 )
 
 
-class KeypoolRestoreTest(BitcoinTestFramework):
+class KeypoolRestoreTest(BellscoinTestFramework):
     def add_options(self, parser):
         self.add_wallet_options(parser)
 

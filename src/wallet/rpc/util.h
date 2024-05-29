@@ -14,7 +14,11 @@
 #include <string>
 #include <vector>
 
+
+namespace node
+{
 class JSONRPCRequest;
+}
 class UniValue;
 struct bilingual_str;
 
@@ -31,13 +35,13 @@ static const RPCResult RESULT_LAST_PROCESSED_BLOCK { RPCResult::Type::OBJ, "last
 };
 
 /**
- * Figures out what wallet, if any, to use for a JSONRPCRequest.
+ * Figures out what wallet, if any, to use for a node::JSONRPCRequest.
  *
- * @param[in] request JSONRPCRequest that wishes to access a wallet
+ * @param[in] request node::JSONRPCRequest that wishes to access a wallet
  * @return nullptr if no wallet should be used, or a pointer to the CWallet
  */
-std::shared_ptr<CWallet> GetWalletForJSONRPCRequest(const JSONRPCRequest& request);
-bool GetWalletNameFromJSONRPCRequest(const JSONRPCRequest& request, std::string& wallet_name);
+std::shared_ptr<CWallet> GetWalletForJSONRPCRequest(const node::JSONRPCRequest& request);
+bool GetWalletNameFromJSONRPCRequest(const node::JSONRPCRequest& request, std::string& wallet_name);
 
 void EnsureWalletIsUnlocked(const CWallet&);
 WalletContext& EnsureWalletContext(const std::any& context);

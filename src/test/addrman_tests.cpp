@@ -943,7 +943,7 @@ BOOST_AUTO_TEST_CASE(addrman_evictionworks)
 static auto AddrmanToStream(const AddrMan& addrman)
 {
     DataStream ssPeersIn{};
-    ssPeersIn << Params().MessageStart();
+    ssPeersIn << GlobParams().MessageStart();
     ssPeersIn << addrman;
     return ssPeersIn;
 }
@@ -1001,7 +1001,7 @@ BOOST_AUTO_TEST_CASE(load_addrman)
 static auto MakeCorruptPeersDat()
 {
     DataStream s{};
-    s << ::Params().MessageStart();
+    s << ::GlobParams().MessageStart();
 
     unsigned char nVersion = 1;
     s << nVersion;

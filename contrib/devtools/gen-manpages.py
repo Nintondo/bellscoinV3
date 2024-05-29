@@ -13,7 +13,7 @@ BINARIES = [
 'src/bitcoin-tx',
 'src/bitcoin-wallet',
 'src/bitcoin-util',
-'src/qt/bitcoin-qt',
+'src/qt/bellscoin-qt',
 ]
 
 # Paths to external utilities.

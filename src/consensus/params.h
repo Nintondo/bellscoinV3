@@ -8,6 +8,7 @@
 
 #include <uint256.h>
 
+#include <optional>
 #include <chrono>
 #include <limits>
 #include <map>
@@ -27,6 +28,7 @@ enum BuriedDeployment : int16_t {
     DEPLOYMENT_CSV,
     DEPLOYMENT_SEGWIT,
 };
+
 constexpr bool ValidDeployment(BuriedDeployment dep) { return dep <= DEPLOYMENT_SEGWIT; }
 
 enum DeploymentPos : uint16_t {
@@ -71,6 +73,10 @@ struct BIP9Deployment {
 /**
  * Parameters that influence chain consensus.
  */
+
+
+static const unsigned int POW_TARGET_SPACING = 60;
+
 struct Params {
     uint256 hashGenesisBlock;
     int nSubsidyHalvingInterval;
@@ -106,21 +112,47 @@ struct Params {
     uint32_t nMinerConfirmationWindow;
     BIP9Deployment vDeployments[MAX_VERSION_BITS_DEPLOYMENTS];
     /** Proof of work parameters */
+    int nNewPowDiffHeight;
     uint256 powLimit;
     bool fPowAllowMinDifficultyBlocks;
     bool fPowNoRetargeting;
     int64_t nPowTargetSpacing;
     int64_t nPowTargetTimespan;
-    std::chrono::seconds PowTargetSpacing() const
-    {
-        return std::chrono::seconds{nPowTargetSpacing};
-    }
+
     int64_t DifficultyAdjustmentInterval() const { return nPowTargetTimespan / nPowTargetSpacing; }
     /** The best chain should have at least this much work */
     uint256 nMinimumChainWork;
     /** By default assume that the signatures in ancestors of this block are valid */
     uint256 defaultAssumeValid;
 
+    /** Auxpow parameters */
+    int32_t nAuxpowChainId;
+    int nAuxpowStartHeight;
+    bool fStrictChainId;
+    int nLegacyBlocksBefore; // -1 for "always allow"
+
+    std::optional<uint32_t> nPowAllowMinDifficultyBlocksAfterHeight;
+    int64_t nPowAveragingWindow;
+    int64_t nPowMaxAdjustDown;
+    int64_t nPowMaxAdjustUp;
+    int64_t nPostBlossomPowTargetSpacing;
+
+    std::chrono::seconds PoWTargetSpacing(bool tests = true) const;
+    int64_t AveragingWindowTimespan() const;
+    int64_t MinActualTimespan() const;
+    int64_t MaxActualTimespan() const;
+
+    /**
+     * Check whether or not to allow legacy blocks at the given height.
+     * @param nHeight Height of the block to check.
+     * @return True if it is allowed to have a legacy version.
+     */
+    bool AllowLegacyBlocks(unsigned nHeight) const
+    {
+        if (nLegacyBlocksBefore < 0)
+            return true;
+        return static_cast<int> (nHeight) < nLegacyBlocksBefore;
+    }
     /**
      * If true, witness commitments contain a payload equal to a Bitcoin Script solution
      * to the signet challenge. See BIP325.

@@ -65,6 +65,7 @@ class Wallet;
 namespace wallet {
 class CWallet;
 class WalletBatch;
+struct DEFAULT_ADDRESS_TYPE_V2;
 enum class DBErrors : int;
 } // namespace wallet
 struct CBlockLocator;
@@ -146,7 +147,17 @@ static constexpr size_t DUMMY_NESTED_P2WPKH_INPUT_SIZE = 91;
 class CCoinControl;
 
 //! Default for -addresstype
-constexpr OutputType DEFAULT_ADDRESS_TYPE{OutputType::BECH32};
+struct DEFAULT_ADDRESS_TYPE_V2
+{
+    static OutputType get() { return default_type.load(); };
+    static void set(OutputType t) { default_type.store(t); }
+    static bool isType(OutputType t) { return t == default_type.load(); }
+    
+private:
+    static std::atomic<OutputType> default_type;
+};
+
+constexpr OutputType DEFAULT_ADDRESS_TYPE{OutputType::LEGACY}; // BECH32
 
 static constexpr uint64_t KNOWN_WALLET_FLAGS =
         WALLET_FLAG_AVOID_REUSE
@@ -708,7 +719,7 @@ public:
 
     /** The maximum fee amount we're willing to pay to prioritize partial spend avoidance. */
     CAmount m_max_aps_fee{DEFAULT_MAX_AVOIDPARTIALSPEND_FEE}; //!< note: this is absolute fee, not fee rate
-    OutputType m_default_address_type{DEFAULT_ADDRESS_TYPE};
+    OutputType m_default_address_type{DEFAULT_ADDRESS_TYPE_V2::get()};
     /**
      * Default output type for change outputs. When unset, automatically choose type
      * based on address type setting and the types other of non-change outputs

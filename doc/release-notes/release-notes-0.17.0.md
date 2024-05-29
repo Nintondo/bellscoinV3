@@ -19,7 +19,7 @@ How to Upgrade
 If you are running an older version, shut it down. Wait until it has completely
 shut down (which might take a few minutes for older versions), then run the
 installer (on Windows) or just copy over `/Applications/Bitcoin-Qt` (on Mac)
-or `bitcoind`/`bitcoin-qt` (on Linux).
+or `bitcoind`/`bellscoin-qt` (on Linux).
 
 If your node has a txindex, the txindex db will be migrated the first time you run 0.17.0 or newer, which may take up to a few hours. Your node will not be functional until this migration completes.
 
@@ -633,7 +633,7 @@ Support for Python 2 has been discontinued for all test files and tools.
 - #13659 `90b1c7e` add missing leveldb defines (theuni)
 - #13368 `c0f1569` Update gitian-build.sh for docker (achow101)
 - #13171 `19d8ca5` Change gitian-descriptors to use bionic instead (ken2812221)
-- #13604 `75bea05` Add depends 32-bit arm support for bitcoin-qt (TheCharlatan)
+- #13604 `75bea05` Add depends 32-bit arm support for bellscoin-qt (TheCharlatan)
 - #13623 `9cdb19f` Migrate gitian-build.sh to python (ken2812221)
 - #13689 `8c36432` disable Werror when building zmq (greenaddress)
 - #13617 `cf7f9ae` release: Require macos 10.10+ (fanquake)
@@ -641,7 +641,7 @@ Support for Python 2 has been discontinued for all test files and tools.
 - #13095 `415f2bf` update `ax_boost_chrono`/`unit_test_framework` (fanquake)
 - #13732 `e8ffec6` Fix Qt's rcc determinism (Fuzzbawls)
 - #13782 `8284f1d` Fix osslsigncode compile issue in gitian-build (ken2812221)
-- #13696 `2ab7208` Add aarch64 qt depends support for cross compiling bitcoin-qt (TheCharlatan)
+- #13696 `2ab7208` Add aarch64 qt depends support for cross compiling bellscoin-qt (TheCharlatan)
 - #13705 `b413ba0` Add format string linter (practicalswift)
 - #14000 `48c8459` fix qt determinism (theuni)
 - #14018 `3e4829a` Bugfix: NSIS: Exclude `Makefile*` from docs (luke-jr)

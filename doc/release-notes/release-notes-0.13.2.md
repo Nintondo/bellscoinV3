@@ -111,7 +111,7 @@ git merge commit are mentioned.
 - #8972 `6f86b53` Make warnings label selectable (jonasschnelli) (MarcoFalke)
 - #9185 `6d70a73` Fix coincontrol sort issue (jonasschnelli)
 - #9094 `5f3a12c` Use correct conversion function for boost::path datadir (laanwj)
-- #8908 `4a974b2` Update bitcoin-qt.desktop (s-matthew-english)
+- #8908 `4a974b2` Update bellscoin-qt.desktop (s-matthew-english)
 - #9190 `dc46b10` Plug many memory leaks (laanwj)
 
 ### Wallet

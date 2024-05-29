@@ -7,7 +7,7 @@
 import random
 import threading
 
-from test_framework.test_framework import BitcoinTestFramework
+from test_framework.test_framework import BellscoinTestFramework
 from test_framework.util import get_rpc_proxy
 from test_framework.wallet import MiniWallet
 
@@ -25,7 +25,7 @@ class LongpollThread(threading.Thread):
     def run(self):
         self.node.getblocktemplate({'longpollid': self.longpollid, 'rules': ['segwit']})
 
-class GetBlockTemplateLPTest(BitcoinTestFramework):
+class GetBlockTemplateLPTest(BellscoinTestFramework):
     def set_test_params(self):
         self.num_nodes = 2
         self.supports_cli = False

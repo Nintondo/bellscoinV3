@@ -102,8 +102,12 @@ class HashWriter
 {
 private:
     CSHA256 ctx;
+    int nTxVersion{0};
+    const int nVersion;
+    const int nType;
 
 public:
+    HashWriter(int nTypeIn=SER_GETHASH, int nVersionIn=PROTOCOL_VERSION) : nVersion(nVersionIn), nType(nTypeIn) {}
     void write(Span<const std::byte> src)
     {
         ctx.Write(UCharCast(src.data()), src.size());
@@ -144,14 +148,17 @@ public:
         ::Serialize(*this, obj);
         return *this;
     }
+
+    int GetVersion() const { return 1; }
 };
 
 class CHashWriter : public HashWriter
 {
 private:
-    const int nVersion;
+    int nVersion{0};
 
 public:
+    CHashWriter(int nTypeIn, int nVersionIn) : HashWriter(nTypeIn, nVersionIn) {}
     CHashWriter(int nVersionIn) : nVersion{nVersionIn} {}
 
     int GetVersion() const { return nVersion; }
@@ -223,6 +230,15 @@ public:
 
 /** Single-SHA256 a 32-byte input (represented as uint256). */
 [[nodiscard]] uint256 SHA256Uint256(const uint256& input);
+
+/** Compute the 256-bit hash of an object's serialization. */
+template<typename T>
+uint256 SerializeHash(const T& obj, int nType=SER_GETHASH, int nVersion=PROTOCOL_VERSION)
+{
+    CHashWriter ss(nType, nVersion);
+    ss << obj;
+    return ss.GetHash();
+}
 
 unsigned int MurmurHash3(unsigned int nHashSeed, Span<const unsigned char> vDataToHash);
 

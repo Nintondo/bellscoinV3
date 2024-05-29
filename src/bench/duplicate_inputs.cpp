@@ -19,7 +19,7 @@ static void DuplicateInputs(benchmark::Bench& bench)
 
     const CScript SCRIPT_PUB{CScript(OP_TRUE)};
 
-    const CChainParams& chainparams = Params();
+    const CChainParams& chainparams = GlobParams();
 
     CBlock block{};
     CMutableTransaction coinbaseTx{};

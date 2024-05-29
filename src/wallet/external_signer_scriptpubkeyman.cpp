@@ -43,9 +43,9 @@ bool ExternalSignerScriptPubKeyMan::SetupDescriptor(std::unique_ptr<Descriptor> 
 
 ExternalSigner ExternalSignerScriptPubKeyMan::GetExternalSigner() {
     const std::string command = gArgs.GetArg("-signer", "");
-    if (command == "") throw std::runtime_error(std::string(__func__) + ": restart bitcoind with -signer=<cmd>");
+    if (command == "") throw std::runtime_error(std::string(__func__) + ": restart bellscoind with -signer=<cmd>");
     std::vector<ExternalSigner> signers;
-    ExternalSigner::Enumerate(command, signers, Params().GetChainTypeString());
+    ExternalSigner::Enumerate(command, signers, GlobParams().GetChainTypeString());
     if (signers.empty()) throw std::runtime_error(std::string(__func__) + ": No external signers found");
     // TODO: add fingerprint argument instead of failing in case of multiple signers.
     if (signers.size() > 1) throw std::runtime_error(std::string(__func__) + ": More than one external signer found. Please connect only one at a time.");

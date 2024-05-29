@@ -22,7 +22,7 @@ CTxMemPool::Options MemPoolOptionsForTest(const NodeContext& node)
         // chainparams.DefaultConsistencyChecks for tests
         .check_ratio = 1,
     };
-    const auto result{ApplyArgsManOptions(*node.args, ::Params(), mempool_opts)};
+    const auto result{ApplyArgsManOptions(*node.args, ::GlobParams(), mempool_opts)};
     Assert(result);
     return mempool_opts;
 }

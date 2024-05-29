@@ -239,7 +239,7 @@ static bool rest_headers(const std::any& context,
 
     switch (rf) {
     case RESTResponseFormat::BINARY: {
-        DataStream ssHeader{};
+        CDataStream ssHeader(SER_NETWORK, PROTOCOL_VERSION);
         for (const CBlockIndex *pindex : headers) {
             ssHeader << pindex->GetBlockHeader();
         }
@@ -251,7 +251,7 @@ static bool rest_headers(const std::any& context,
     }
 
     case RESTResponseFormat::HEX: {
-        DataStream ssHeader{};
+        CDataStream ssHeader(SER_NETWORK, PROTOCOL_VERSION);
         for (const CBlockIndex *pindex : headers) {
             ssHeader << pindex->GetBlockHeader();
         }
@@ -584,7 +584,7 @@ static bool rest_chaininfo(const std::any& context, HTTPRequest* req, const std:
 
     switch (rf) {
     case RESTResponseFormat::JSON: {
-        JSONRPCRequest jsonRequest;
+        node::JSONRPCRequest jsonRequest;
         jsonRequest.context = context;
         jsonRequest.params = UniValue(UniValue::VARR);
         UniValue chainInfoObject = getblockchaininfo().HandleRequest(jsonRequest);
@@ -611,7 +611,7 @@ static bool rest_deploymentinfo(const std::any& context, HTTPRequest* req, const
 
     switch (rf) {
     case RESTResponseFormat::JSON: {
-        JSONRPCRequest jsonRequest;
+        node::JSONRPCRequest jsonRequest;
         jsonRequest.context = context;
         jsonRequest.params = UniValue(UniValue::VARR);
 

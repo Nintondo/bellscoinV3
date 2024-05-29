@@ -6,13 +6,13 @@
 import time
 from pathlib import Path
 
-from test_framework.test_framework import BitcoinTestFramework
+from test_framework.test_framework import BellscoinTestFramework
 from test_framework.util import (
     assert_equal,
     assert_raises_rpc_error,
 )
 
-class DisconnectBanTest(BitcoinTestFramework):
+class DisconnectBanTest(BellscoinTestFramework):
     def set_test_params(self):
         self.num_nodes = 2
         self.supports_cli = False

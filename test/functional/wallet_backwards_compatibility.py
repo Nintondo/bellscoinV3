@@ -18,7 +18,7 @@ import os
 import shutil
 
 from test_framework.blocktools import COINBASE_MATURITY
-from test_framework.test_framework import BitcoinTestFramework
+from test_framework.test_framework import BellscoinTestFramework
 from test_framework.descriptors import descsum_create
 
 from test_framework.util import (
@@ -27,7 +27,7 @@ from test_framework.util import (
 )
 
 
-class BackwardsCompatibilityTest(BitcoinTestFramework):
+class BackwardsCompatibilityTest(BellscoinTestFramework):
     def add_options(self, parser):
         self.add_wallet_options(parser)
 
@@ -266,7 +266,7 @@ class BackwardsCompatibilityTest(BitcoinTestFramework):
         if self.options.descriptors:
             self.log.info("Test descriptor wallet incompatibility on:")
             for node in legacy_only_nodes:
-                # RPC loadwallet failure causes bitcoind to exit in <= 0.17, in addition to the RPC
+                # RPC loadwallet failure causes bellscoind to exit in <= 0.17, in addition to the RPC
                 # call failure, so the following test won't work:
                 # assert_raises_rpc_error(-4, "Wallet loading failed.", node_v17.loadwallet, 'w3')
                 if self.major_version_less_than(node, 18):

@@ -29,6 +29,6 @@ FUZZ_TARGET(signet, .init = initialize_signet)
     if (!block) {
         return;
     }
-    (void)CheckSignetBlockSolution(*block, Params().GetConsensus());
+    (void)CheckSignetBlockSolution(*block, GlobParams().GetConsensus());
     (void)SignetTxs::Create(*block, ConsumeScript(fuzzed_data_provider));
 }

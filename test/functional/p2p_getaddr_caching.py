@@ -10,7 +10,7 @@ from test_framework.p2p import (
     P2PInterface,
     p2p_lock
 )
-from test_framework.test_framework import BitcoinTestFramework
+from test_framework.test_framework import BellscoinTestFramework
 from test_framework.util import (
     assert_equal,
     p2p_port,
@@ -40,7 +40,7 @@ class AddrReceiver(P2PInterface):
         return self.received_addrs is not None
 
 
-class AddrTest(BitcoinTestFramework):
+class AddrTest(BellscoinTestFramework):
     def set_test_params(self):
         self.num_nodes = 1
         # Use some of the remaining p2p ports for the onion binds.

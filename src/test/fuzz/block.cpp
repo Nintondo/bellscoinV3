@@ -35,7 +35,7 @@ FUZZ_TARGET(block, .init = initialize_block)
     } catch (const std::ios_base::failure&) {
         return;
     }
-    const Consensus::Params& consensus_params = Params().GetConsensus();
+    const Consensus::Params& consensus_params = GlobParams().GetConsensus();
     BlockValidationState validation_state_pow_and_merkle;
     const bool valid_incl_pow_and_merkle = CheckBlock(block, validation_state_pow_and_merkle, consensus_params, /* fCheckPOW= */ true, /* fCheckMerkleRoot= */ true);
     assert(validation_state_pow_and_merkle.IsValid() || validation_state_pow_and_merkle.IsInvalid() || validation_state_pow_and_merkle.IsError());

@@ -47,7 +47,7 @@ FUZZ_TARGET(p2p_transport_serialization, .init = initialize_p2p_transport_serial
 
     auto header_bytes_remaining = CMessageHeader::HEADER_SIZE;
     if (magic_bytes_assist) {
-        auto msg_start = Params().MessageStart();
+        auto msg_start = GlobParams().MessageStart();
         for (size_t i = 0; i < CMessageHeader::MESSAGE_SIZE_SIZE; ++i) {
             mutable_msg_bytes.push_back(msg_start[i]);
         }

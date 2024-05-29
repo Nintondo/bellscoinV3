@@ -7,10 +7,10 @@
 
 from test_framework.messages import msg_getheaders, msg_getblocks, MAX_LOCATOR_SZ
 from test_framework.p2p import P2PInterface
-from test_framework.test_framework import BitcoinTestFramework
+from test_framework.test_framework import BellscoinTestFramework
 
 
-class InvalidLocatorTest(BitcoinTestFramework):
+class InvalidLocatorTest(BellscoinTestFramework):
     def set_test_params(self):
         self.num_nodes = 1
 

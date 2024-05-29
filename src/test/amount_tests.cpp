@@ -64,10 +64,11 @@ BOOST_AUTO_TEST_CASE(GetFeeTest)
     BOOST_CHECK_EQUAL(feeRate.GetFee(8), CAmount(-1)); // Special case: returns -1 instead of 0
     BOOST_CHECK_EQUAL(feeRate.GetFee(9), CAmount(-1));
 
+
     // check alternate constructor
     feeRate = CFeeRate(1000);
     altFeeRate = CFeeRate(feeRate);
-    BOOST_CHECK_EQUAL(feeRate.GetFee(100), altFeeRate.GetFee(100));
+    BOOST_CHECK_EQUAL(feeRate.GetFee(1000), altFeeRate.GetFee(1000));
 
     // Check full constructor
     BOOST_CHECK(CFeeRate(CAmount(-1), 0) == CFeeRate(0));
@@ -84,7 +85,7 @@ BOOST_AUTO_TEST_CASE(GetFeeTest)
     BOOST_CHECK(CFeeRate(CAmount(26), 789) == CFeeRate(32));
     BOOST_CHECK(CFeeRate(CAmount(27), 789) == CFeeRate(34));
     // Maximum size in bytes, should not crash
-    CFeeRate(MAX_MONEY, std::numeric_limits<uint32_t>::max()).GetFeePerK();
+    CFeeRate(21000000*COIN, std::numeric_limits<uint64_t>::max()).GetFeePerK();
 }
 
 BOOST_AUTO_TEST_CASE(BinaryOperatorTest)
@@ -99,7 +100,7 @@ BOOST_AUTO_TEST_CASE(BinaryOperatorTest)
     BOOST_CHECK(a <= a);
     BOOST_CHECK(b >= a);
     BOOST_CHECK(b >= b);
-    // a should be 0.00000002 BTC/kvB now
+    // a should be 0.00000002 BEL/kvB now
     a += a;
     BOOST_CHECK(a == b);
 }
@@ -108,8 +109,8 @@ BOOST_AUTO_TEST_CASE(ToStringTest)
 {
     CFeeRate feeRate;
     feeRate = CFeeRate(1);
-    BOOST_CHECK_EQUAL(feeRate.ToString(), "0.00000001 BTC/kvB");
-    BOOST_CHECK_EQUAL(feeRate.ToString(FeeEstimateMode::BTC_KVB), "0.00000001 BTC/kvB");
+    BOOST_CHECK_EQUAL(feeRate.ToString(), "0.00000001 BEL/kvB");
+    BOOST_CHECK_EQUAL(feeRate.ToString(FeeEstimateMode::BTC_KVB), "0.00000001 BEL/kvB");
     BOOST_CHECK_EQUAL(feeRate.ToString(FeeEstimateMode::SAT_VB), "0.001 sat/vB");
 }
 

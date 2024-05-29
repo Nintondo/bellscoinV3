@@ -112,7 +112,7 @@ FUZZ_TARGET(utxo_total_supply)
     }
     current_block->hashMerkleRoot = BlockMerkleRoot(*current_block);
     assert(!MineBlock(node, current_block).IsNull());
-    circulation += GetBlockSubsidy(ActiveHeight(), Params().GetConsensus());
+    circulation += GetBlockSubsidy(ActiveHeight(), GlobParams().GetConsensus());
 
     assert(ActiveHeight() == 1);
     UpdateUtxoStats();
@@ -151,7 +151,7 @@ FUZZ_TARGET(utxo_total_supply)
                         assert(current_block->vtx.at(0)->vin.at(0).scriptSig == duplicate_coinbase_script);
                     }
 
-                    circulation += GetBlockSubsidy(ActiveHeight(), Params().GetConsensus());
+                    circulation += GetBlockSubsidy(ActiveHeight(), GlobParams().GetConsensus());
                 }
 
                 UpdateUtxoStats();

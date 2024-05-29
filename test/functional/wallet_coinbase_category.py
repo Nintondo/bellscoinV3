@@ -7,12 +7,12 @@
 Tests listtransactions, listsinceblock, and gettransaction.
 """
 
-from test_framework.test_framework import BitcoinTestFramework
+from test_framework.test_framework import BellscoinTestFramework
 from test_framework.util import (
     assert_array_result
 )
 
-class CoinbaseCategoryTest(BitcoinTestFramework):
+class CoinbaseCategoryTest(BellscoinTestFramework):
     def add_options(self, parser):
         self.add_wallet_options(parser)
 

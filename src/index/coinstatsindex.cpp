@@ -115,7 +115,7 @@ CoinStatsIndex::CoinStatsIndex(std::unique_ptr<interfaces::Chain> chain, size_t 
 bool CoinStatsIndex::CustomAppend(const interfaces::BlockInfo& block)
 {
     CBlockUndo block_undo;
-    const CAmount block_subsidy{GetBlockSubsidy(block.height, Params().GetConsensus())};
+    const CAmount block_subsidy{GetBlockSubsidy(block.height, GlobParams().GetConsensus())};
     m_total_subsidy += block_subsidy;
 
     // Ignore genesis block
@@ -403,7 +403,7 @@ bool CoinStatsIndex::ReverseBlock(const CBlock& block, const CBlockIndex* pindex
     CBlockUndo block_undo;
     std::pair<uint256, DBVal> read_out;
 
-    const CAmount block_subsidy{GetBlockSubsidy(pindex->nHeight, Params().GetConsensus())};
+    const CAmount block_subsidy{GetBlockSubsidy(pindex->nHeight, GlobParams().GetConsensus())};
     m_total_subsidy -= block_subsidy;
 
     // Ignore genesis block

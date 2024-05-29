@@ -9,6 +9,8 @@
 
 #include <cstdlib>
 #include <stdint.h>
+#include <string.h>
+
 
 /** A hasher class for HMAC-SHA-256. */
 class CHMAC_SHA256
@@ -21,6 +23,10 @@ public:
     static const size_t OUTPUT_SIZE = 32;
 
     CHMAC_SHA256(const unsigned char* key, size_t keylen);
+    void Copy(CHMAC_SHA256* dest)
+    {
+        memcpy(dest, this, sizeof(CHMAC_SHA256));
+    }
     CHMAC_SHA256& Write(const unsigned char* data, size_t len)
     {
         inner.Write(data, len);

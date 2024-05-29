@@ -55,13 +55,13 @@ static int AppInitUtil(ArgsManager& args, int argc, char* argv[])
 
     if (HelpRequested(args) || args.IsArgSet("-version")) {
         // First part of help message is specific to this utility
-        std::string strUsage = PACKAGE_NAME " bitcoin-util utility version " + FormatFullVersion() + "\n";
+        std::string strUsage = PACKAGE_NAME " bells-util utility version " + FormatFullVersion() + "\n";
 
         if (args.IsArgSet("-version")) {
             strUsage += FormatParagraph(LicenseInfo());
         } else {
             strUsage += "\n"
-                "Usage:  bitcoin-util [options] [commands]  Do stuff\n";
+                "Usage:  bells-util [options] [commands]  Do stuff\n";
             strUsage += "\n" + args.GetHelpMessage();
         }
 
@@ -74,7 +74,7 @@ static int AppInitUtil(ArgsManager& args, int argc, char* argv[])
         return EXIT_SUCCESS;
     }
 
-    // Check for chain settings (Params() calls are only valid after this clause)
+    // Check for chain settings (GlobParams() calls are only valid after this clause)
     try {
         SelectParams(args.GetChainType());
     } catch (const std::exception& e) {
@@ -99,7 +99,7 @@ static void grind_task(uint32_t nBits, CBlockHeader header, uint32_t offset, uin
     while (!found && header.nNonce < finish) {
         const uint32_t next = (finish - header.nNonce < 5000*step) ? finish : header.nNonce + 5000*step;
         do {
-            if (UintToArith256(header.GetHash()) <= target) {
+            if (UintToArith256(header.GetPoWHash()) <= target) {
                 if (!found.exchange(true)) {
                     proposed_nonce = header.nNonce;
                 }
@@ -143,7 +143,7 @@ static int Grind(const std::vector<std::string>& args, std::string& strPrint)
         return EXIT_FAILURE;
     }
 
-    DataStream ss{};
+    CDataStream ss(SER_NETWORK, PROTOCOL_VERSION);
     ss << header;
     strPrint = HexStr(ss);
     return EXIT_SUCCESS;

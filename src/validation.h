@@ -360,6 +360,8 @@ bool TestBlockValidity(BlockValidationState& state,
 /** Check with the proof of work on each blockheader matches the value in nBits */
 bool HasValidProofOfWork(const std::vector<CBlockHeader>& headers, const Consensus::Params& consensusParams);
 
+bool HasValidProofOfWorkTests(const std::vector<CBlockHeader>& headers, const Consensus::Params& consensusParams);
+
 /** Return the sum of the work on a given set of headers */
 arith_uint256 CalculateHeadersWork(const std::vector<CBlockHeader>& headers);
 

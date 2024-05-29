@@ -10,6 +10,7 @@
 #include <kernel/mempool_persist.h>
 
 #include <arith_uint256.h>
+#include <auxpow.h>
 #include <chain.h>
 #include <checkqueue.h>
 #include <clientversion.h>
@@ -60,6 +61,7 @@
 #include <util/translation.h>
 #include <validationinterface.h>
 #include <warnings.h>
+#include <wallet/wallet.h>
 
 #include <algorithm>
 #include <cassert>
@@ -70,6 +72,13 @@
 #include <string>
 #include <tuple>
 #include <utility>
+#include <logging.h>
+
+#include <boost/random/uniform_int.hpp>
+#include <boost/random/mersenne_twister.hpp>
+
+#include <boost/random/uniform_int.hpp>
+#include <boost/random/mersenne_twister.hpp>
 
 using kernel::CCoinsStats;
 using kernel::CoinStatsHashType;
@@ -1635,16 +1644,168 @@ PackageMempoolAcceptResult ProcessNewPackage(Chainstate& active_chainstate, CTxM
     return result;
 }
 
+//////////////////////////////////////////////////////////////////////////////
+//
+// CBlock and CBlockIndex
+//
+bool CheckProofOfWork(const CBlockHeader& block, const Consensus::Params& params)
+{
+    /* Except for legacy blocks with full version 1, ensure that
+       the chain ID is correct.  Legacy blocks are not allowed since
+       the merge-mining start, which is checked in AcceptBlockHeader
+       where the height is known.  */
+    const int32_t &nChainID = block.GetChainId();
+    if (!block.IsLegacy() && params.fStrictChainId) {
+        if(nChainID > 0) {
+            if(nChainID != params.nAuxpowChainId)
+                return error("%s : block does not have our chain ID"
+                        " (got %d, expected %d, full nVersion %d)",
+                        __func__, nChainID,
+                        params.nAuxpowChainId, block.nVersion);
+        } else if(block.auxpow) {
+                return error("%s : block does not have our old chain ID"
+                        " (got full nVersion %d)",
+                        __func__, block.nVersion);
+        }
+    }
+
+    /* If there is no auxpow, just check the block hash.  */
+    if (!block.auxpow)
+    {
+        if (block.IsAuxpow())
+            return error("%s : no auxpow on block with auxpow version",
+                         __func__);
+
+        if (!CheckProofOfWork(block.GetPoWHash(), block.nBits, params))
+        {
+            return error("%s : non-AUX proof of work failed", __func__);
+        }
+
+        return true;
+    }
+
+    /* We have auxpow.  Check it.  */
+    if (!block.IsAuxpow())
+        return error("%s : auxpow on block with non-auxpow version", __func__);
+
+    if (!block.auxpow->check(block.GetHash(), block.GetChainId(), params))
+        return error("%s : AUX POW is not valid", __func__);
+    if (!CheckProofOfWork(block.auxpow->getParentBlockHash(), block.nBits, params))
+        return error("%s : AUX proof of work failed", __func__);
+
+
+    return true;
+}
+
+bool CheckProofOfWorkTests(const CBlockHeader& block, const Consensus::Params& params)
+{
+    /* Except for legacy blocks with full version 1, ensure that
+       the chain ID is correct.  Legacy blocks are not allowed since
+       the merge-mining start, which is checked in AcceptBlockHeader
+       where the height is known.  */
+    const int32_t &nChainID = block.GetChainId();
+    if (!block.IsLegacy() && params.fStrictChainId) {
+        if(nChainID > 0) {
+            if(nChainID != params.nAuxpowChainId)
+                return error("%s : block does not have our chain ID"
+                        " (got %d, expected %d, full nVersion %d)",
+                        __func__, nChainID,
+                        params.nAuxpowChainId, block.nVersion);
+        } else if(block.auxpow) {
+                return error("%s : block does not have our old chain ID"
+                        " (got full nVersion %d)",
+                        __func__, block.nVersion);
+        }
+    }
+
+    /* If there is no auxpow, just check the block hash.  */
+    if (!block.auxpow)
+    {
+        if (block.IsAuxpow())
+            return error("%s : no auxpow on block with auxpow version",
+                         __func__);
+
+        if (!CheckProofOfWorkTests(block.GetPoWHash(), block.nBits, params))
+        {
+            return error("%s : non-AUX proof of work failed", __func__);
+        }
+
+        return true;
+    }
+
+    /* We have auxpow.  Check it.  */
+    if (!block.IsAuxpow())
+        return error("%s : auxpow on block with non-auxpow version", __func__);
+
+    if (!block.auxpow->check(block.GetHash(), block.GetChainId(), params))
+        return error("%s : AUX POW is not valid", __func__);
+    if (!CheckProofOfWork(block.auxpow->getParentBlockHash(), block.nBits, params))
+        return error("%s : AUX proof of work failed", __func__);
+
+
+    return true;
+}
+
+int static generateMTRandom(unsigned int s, int range)
+{
+    boost::mt19937 gen(s);
+    boost::uniform_int<> dist(1, range);
+    return dist(gen);
+}
+
+
 CAmount GetBlockSubsidy(int nHeight, const Consensus::Params& consensusParams)
 {
-    int halvings = nHeight / consensusParams.nSubsidyHalvingInterval;
-    // Force block reward to zero when right shift is undefined.
-    if (halvings >= 64)
-        return 0;
+    CAmount nSubsidy = 2 * COIN;
 
-    CAmount nSubsidy = 50 * COIN;
-    // Subsidy is cut in half every 210,000 blocks which will occur approximately every 4 years.
-    nSubsidy >>= halvings;
+    if(nHeight < 101) {
+        nSubsidy = 2 * COIN; //first 100 blocks have minimal rewards
+    } else {
+
+        int rand = generateMTRandom(nHeight, 1000);
+        if (nHeight < 129600) {
+            if(rand >= 990) {
+                nSubsidy = 10000 * COIN;
+            } else if (rand >= 940) {
+                nSubsidy = 1000 * COIN;
+            } else if (rand >= 840) {
+                nSubsidy = 500 * COIN;
+            } else if (rand >= 700) {
+                nSubsidy = 250 * COIN;
+            } else if (rand >= 500) {
+                nSubsidy = 100 * COIN;
+            } else if (rand <= 499) {
+                nSubsidy = 50 * COIN;
+            }
+        } else if(nHeight < 259200) {
+            if (rand >= 990) {
+                nSubsidy = 5000 * COIN;
+            } else if (rand >= 940) {
+                nSubsidy = 500 * COIN;
+            } else if (rand >= 840) {
+                nSubsidy = 250 * COIN;
+            } else if (rand >= 700) {
+                nSubsidy = 125 * COIN;
+            } else if (rand >= 500) {
+                nSubsidy = 50 * COIN;
+            } else if (rand <= 499) {
+                nSubsidy = 25 * COIN;
+            }
+        } else if(nHeight < 518400) {
+            if (rand >= 990) {
+                nSubsidy = 500 * COIN;
+            } else if (rand >= 940) {
+                nSubsidy = 50 * COIN;
+            } else if (rand >= 840) {
+                nSubsidy = 25 * COIN;
+            } else if (rand >= 500) {
+                nSubsidy = 10 * COIN;
+            } else if (rand <= 499) {
+                nSubsidy = 5 * COIN;
+            }
+        }
+    }
+
     return nSubsidy;
 }
 
@@ -2086,7 +2247,7 @@ public:
     {
         return pindex->nHeight >= params.MinBIP9WarningHeight &&
                ((pindex->nVersion & VERSIONBITS_TOP_MASK) == VERSIONBITS_TOP_BITS) &&
-               ((pindex->nVersion >> m_bit) & 1) != 0 &&
+               ((pindex->GetBaseVersion() >> m_bit) & 1) != 0 &&
                ((m_chainman.m_versionbitscache.ComputeBlockVersion(pindex->pprev, params) >> m_bit) & 1) == 0;
     }
 };
@@ -2323,6 +2484,12 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
     int nLockTimeFlags = 0;
     if (DeploymentActiveAt(*pindex, m_chainman, Consensus::DEPLOYMENT_CSV)) {
         nLockTimeFlags |= LOCKTIME_VERIFY_SEQUENCE;
+    }
+
+    if (wallet::DEFAULT_ADDRESS_TYPE_V2::isType(OutputType::LEGACY)) {
+        if(DeploymentActiveAt(*pindex, m_chainman, Consensus::DEPLOYMENT_SEGWIT)) {
+            wallet::DEFAULT_ADDRESS_TYPE_V2::set(OutputType::BECH32);
+        }
     }
 
     // Get the script flags for this block
@@ -3615,7 +3782,7 @@ void ChainstateManager::ReceivedBlockTransactions(const CBlock& block, CBlockInd
 static bool CheckBlockHeader(const CBlockHeader& block, BlockValidationState& state, const Consensus::Params& consensusParams, bool fCheckPOW = true)
 {
     // Check proof of work matches claimed amount
-    if (fCheckPOW && !CheckProofOfWork(block.GetHash(), block.nBits, consensusParams))
+    if (fCheckPOW && !CheckProofOfWork(block, consensusParams))
         return state.Invalid(BlockValidationResult::BLOCK_INVALID_HEADER, "high-hash", "proof of work failed");
 
     return true;
@@ -3631,7 +3798,9 @@ bool CheckBlock(const CBlock& block, BlockValidationState& state, const Consensu
     // Check that the header is valid (particularly PoW).  This is mostly
     // redundant with the call in AcceptBlockHeader.
     if (!CheckBlockHeader(block, state, consensusParams, fCheckPOW))
+    {
         return false;
+    }
 
     // Signet only: check block solution
     if (consensusParams.signet_blocks && fCheckPOW && !CheckSignetBlockSolution(block, consensusParams)) {
@@ -3737,7 +3906,13 @@ std::vector<unsigned char> ChainstateManager::GenerateCoinbaseCommitment(CBlock&
 bool HasValidProofOfWork(const std::vector<CBlockHeader>& headers, const Consensus::Params& consensusParams)
 {
     return std::all_of(headers.cbegin(), headers.cend(),
-            [&](const auto& header) { return CheckProofOfWork(header.GetHash(), header.nBits, consensusParams);});
+            [&](const auto& header) { return CheckProofOfWork(header, consensusParams);});
+}
+
+bool HasValidProofOfWorkTests(const std::vector<CBlockHeader>& headers, const Consensus::Params& consensusParams)
+{
+    return std::all_of(headers.cbegin(), headers.cend(),
+            [&](const auto& header) { return CheckProofOfWorkTests(header, consensusParams);});
 }
 
 arith_uint256 CalculateHeadersWork(const std::vector<CBlockHeader>& headers)
@@ -3791,12 +3966,23 @@ static bool ContextualCheckBlockHeader(const CBlockHeader& block, BlockValidatio
         return state.Invalid(BlockValidationResult::BLOCK_TIME_FUTURE, "time-too-new", "block timestamp too far in the future");
     }
 
+    const auto& baseVer = block.GetBaseVersion();
+    // TODO: enable version check on historical blocks
+
     // Reject blocks with outdated version
-    if ((block.nVersion < 2 && DeploymentActiveAfter(pindexPrev, chainman, Consensus::DEPLOYMENT_HEIGHTINCB)) ||
-        (block.nVersion < 3 && DeploymentActiveAfter(pindexPrev, chainman, Consensus::DEPLOYMENT_DERSIG)) ||
-        (block.nVersion < 4 && DeploymentActiveAfter(pindexPrev, chainman, Consensus::DEPLOYMENT_CLTV))) {
-            return state.Invalid(BlockValidationResult::BLOCK_INVALID_HEADER, strprintf("bad-version(0x%08x)", block.nVersion),
-                                 strprintf("rejected nVersion=0x%08x block", block.nVersion));
+    // if ((baseVer < 2 && DeploymentActiveAfter(pindexPrev, chainman, Consensus::DEPLOYMENT_HEIGHTINCB)) ||
+    //     (baseVer < 3 && DeploymentActiveAfter(pindexPrev, chainman, Consensus::DEPLOYMENT_DERSIG)) ||
+    //     (baseVer < 4 && DeploymentActiveAfter(pindexPrev, chainman, Consensus::DEPLOYMENT_CLTV))) {
+    //         return state.Invalid(BlockValidationResult::BLOCK_INVALID_HEADER, strprintf("bad-version(0x%08x)", baseVer),
+    //                              strprintf("rejected nVersion=0x%08x block", baseVer));
+    // }
+
+    const int32_t& nChainID = block.GetChainId();
+    if(nHeight > consensusParams.nAuxpowStartHeight)
+    {
+        if((!CPureBlockHeader::IsValidBaseVersion(baseVer) || (nChainID > 0 && nChainID != consensusParams.nAuxpowChainId)))
+                return state.Invalid(BlockValidationResult::BLOCK_INVALID_HEADER, strprintf("bad-version(0x%08x)", baseVer),
+                                    strprintf("rejected nVersion=0x%08x block", block.nVersion));
     }
 
     return true;
@@ -4022,7 +4208,7 @@ bool ChainstateManager::ProcessNewBlockHeaders(const std::vector<CBlockHeader>& 
     if (NotifyHeaderTip(*this)) {
         if (IsInitialBlockDownload() && ppindex && *ppindex) {
             const CBlockIndex& last_accepted{**ppindex};
-            const int64_t blocks_left{(GetTime() - last_accepted.GetBlockTime()) / GetConsensus().nPowTargetSpacing};
+            const int64_t blocks_left{(GetTime() - last_accepted.GetBlockTime()) / GetConsensus().PoWTargetSpacing().count()};
             const double progress{100.0 * last_accepted.nHeight / (last_accepted.nHeight + blocks_left)};
             LogPrintf("Synchronizing blockheaders, height: %d (~%.2f%%)\n", last_accepted.nHeight, progress);
         }
@@ -4048,7 +4234,7 @@ void ChainstateManager::ReportHeadersPresync(const arith_uint256& work, int64_t 
     bool initial_download = IsInitialBlockDownload();
     GetNotifications().headerTip(GetSynchronizationState(initial_download), height, timestamp, /*presync=*/true);
     if (initial_download) {
-        const int64_t blocks_left{(GetTime() - timestamp) / GetConsensus().nPowTargetSpacing};
+        const int64_t blocks_left{(GetTime() - timestamp) / GetConsensus().PoWTargetSpacing().count()};
         const double progress{100.0 * height / (height + blocks_left)};
         LogPrintf("Pre-synchronizing blockheaders, height: %d (~%.2f%%)\n", height, progress);
     }

@@ -245,7 +245,7 @@ public:
         std::vector<ExternalSigner> signers = {};
         const std::string command = args().GetArg("-signer", "");
         if (command == "") return {};
-        ExternalSigner::Enumerate(command, signers, Params().GetChainTypeString());
+        ExternalSigner::Enumerate(command, signers, GlobParams().GetChainTypeString());
         std::vector<std::unique_ptr<interfaces::ExternalSigner>> result;
         result.reserve(signers.size());
         for (auto& signer : signers) {
@@ -318,7 +318,7 @@ public:
     }
     UniValue executeRpc(const std::string& command, const UniValue& params, const std::string& uri) override
     {
-        JSONRPCRequest req;
+        node::JSONRPCRequest req;
         req.context = m_context;
         req.params = params;
         req.strMethod = command;
@@ -381,7 +381,7 @@ public:
     {
         return MakeSignalHandler(::uiInterface.NotifyBlockTip_connect([fn](SynchronizationState sync_state, const CBlockIndex* block) {
             fn(sync_state, BlockTip{block->nHeight, block->GetBlockTime(), block->GetBlockHash()},
-                GuessVerificationProgress(Params().TxData(), block));
+                GuessVerificationProgress(GlobParams().TxData(), block));
         }));
     }
     std::unique_ptr<Handler> handleNotifyHeaderTip(NotifyHeaderTipFn fn) override
@@ -476,7 +476,7 @@ class RpcHandlerImpl : public Handler
 public:
     explicit RpcHandlerImpl(const CRPCCommand& command) : m_command(command), m_wrapped_command(&command)
     {
-        m_command.actor = [this](const JSONRPCRequest& request, UniValue& result, bool last_handler) {
+        m_command.actor = [this](const node::JSONRPCRequest& request, UniValue& result, bool last_handler) {
             if (!m_wrapped_command) return false;
             try {
                 return m_wrapped_command->actor(request, result, last_handler);

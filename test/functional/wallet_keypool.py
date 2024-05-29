@@ -7,11 +7,11 @@
 import time
 from decimal import Decimal
 
-from test_framework.test_framework import BitcoinTestFramework
+from test_framework.test_framework import BellscoinTestFramework
 from test_framework.util import assert_equal, assert_raises_rpc_error
 from test_framework.wallet_util import WalletUnlock
 
-class KeyPoolTest(BitcoinTestFramework):
+class KeyPoolTest(BellscoinTestFramework):
     def add_options(self, parser):
         self.add_wallet_options(parser)
 

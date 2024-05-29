@@ -85,7 +85,10 @@ struct KeyOriginInfo;
 
 using interfaces::FoundBlock;
 
+
 namespace wallet {
+
+std::atomic<OutputType> DEFAULT_ADDRESS_TYPE_V2::default_type{OutputType::LEGACY};
 
 bool AddWalletSetting(interfaces::Chain& chain, const std::string& wallet_name)
 {
@@ -3135,7 +3138,7 @@ bool CWallet::AttachChain(const std::shared_ptr<CWallet>& walletInstance, interf
             // Wallet is assumed to be from another chain, if genesis block in the active
             // chain differs from the genesis block known to the wallet.
             if (chain.getBlockHash(0) != locator.vHave.back()) {
-                error = Untranslated("Wallet files should not be reused across chains. Restart bitcoind with -walletcrosschain to override.");
+                error = Untranslated("Wallet files should not be reused across chains. Restart bellscoind with -walletcrosschain to override.");
                 return false;
             }
         }

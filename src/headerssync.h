@@ -25,6 +25,8 @@ struct CompressedHeader {
     uint32_t nTime{0};
     uint32_t nBits{0};
     uint32_t nNonce{0};
+    
+    std::shared_ptr<CAuxPow> auxpow;
 
     CompressedHeader()
     {
@@ -38,6 +40,7 @@ struct CompressedHeader {
         nTime = header.nTime;
         nBits = header.nBits;
         nNonce = header.nNonce;
+        auxpow = header.auxpow;
     }
 
     CBlockHeader GetFullHeader(const uint256& hash_prev_block) {
@@ -48,6 +51,7 @@ struct CompressedHeader {
         ret.nTime = nTime;
         ret.nBits = nBits;
         ret.nNonce = nNonce;
+        ret.auxpow = auxpow;
         return ret;
     };
 };

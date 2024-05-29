@@ -30,9 +30,9 @@ std::optional<ConfigError> InitConfig(ArgsManager& args, SettingsAbortFn setting
         // possible for the config file to cause another configuration to be
         // used, though. Specifying a conf= option in the config file causes a
         // parse error, and specifying a datadir= location containing another
-        // bitcoin.conf file just ignores the other file.)
+        // bells.conf file just ignores the other file.)
         const fs::path orig_datadir_path{args.GetDataDirBase()};
-        const fs::path orig_config_path{AbsPathForConfigVal(args, args.GetPathArg("-conf", BITCOIN_CONF_FILENAME), /*net_specific=*/false)};
+        const fs::path orig_config_path{AbsPathForConfigVal(args, args.GetPathArg("-conf", BELLSCOIN_CONF_FILENAME), /*net_specific=*/false)};
 
         std::string error;
         if (!args.ReadConfigFiles(error, true)) {
@@ -62,9 +62,9 @@ std::optional<ConfigError> InitConfig(ArgsManager& args, SettingsAbortFn setting
             fs::create_directories(net_path / "wallets");
         }
 
-        // Show an error or warning if there is a bitcoin.conf file in the
+        // Show an error or warning if there is a bells.conf file in the
         // datadir that is being ignored.
-        const fs::path base_config_path = base_path / BITCOIN_CONF_FILENAME;
+        const fs::path base_config_path = base_path / BELLSCOIN_CONF_FILENAME;
         if (fs::exists(base_config_path) && !fs::equivalent(orig_config_path, base_config_path)) {
             const std::string cli_config_path = args.GetArg("-conf", "");
             const std::string config_source = cli_config_path.empty()
@@ -78,7 +78,7 @@ std::optional<ConfigError> InitConfig(ArgsManager& args, SettingsAbortFn setting
                 "includeconf= to include any other configuration files.\n"
                 "- Set allowignoredconf=1 option to treat this condition as a warning, not an error.",
                 fs::quoted(fs::PathToString(base_path)),
-                fs::quoted(BITCOIN_CONF_FILENAME),
+                fs::quoted(BELLSCOIN_CONF_FILENAME),
                 fs::quoted(fs::PathToString(orig_config_path)),
                 config_source);
             if (args.GetBoolArg("-allowignoredconf", false)) {

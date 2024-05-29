@@ -39,7 +39,7 @@ static RPCHelpMan gettxoutproof()
             RPCResult::Type::STR, "data", "A string that is a serialized, hex-encoded data for the proof."
         },
         RPCExamples{""},
-        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+        [&](const RPCHelpMan& self, const node::JSONRPCRequest& request) -> UniValue
         {
             std::set<uint256> setTxids;
             UniValue txids = request.params[0].get_array();
@@ -111,7 +111,7 @@ static RPCHelpMan gettxoutproof()
                 throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Not all transactions found in specified or retrieved block");
             }
 
-            DataStream ssMB{};
+            CDataStream ssMB(SER_NETWORK, PROTOCOL_VERSION | SERIALIZE_TRANSACTION_NO_WITNESS);
             CMerkleBlock mb(block, setTxids);
             ssMB << mb;
             std::string strHex = HexStr(ssMB);
@@ -135,9 +135,9 @@ static RPCHelpMan verifytxoutproof()
             }
         },
         RPCExamples{""},
-        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+        [&](const RPCHelpMan& self, const node::JSONRPCRequest& request) -> UniValue
         {
-            DataStream ssMB{ParseHexV(request.params[0], "proof")};
+            CDataStream ssMB(ParseHexV(request.params[0], "proof"), SER_NETWORK, PROTOCOL_VERSION | SERIALIZE_TRANSACTION_NO_WITNESS);
             CMerkleBlock merkleBlock;
             ssMB >> merkleBlock;
 

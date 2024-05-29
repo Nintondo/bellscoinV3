@@ -4,7 +4,7 @@
 # file COPYING or https://www.opensource.org/licenses/mit-license.php.
 
 
-from test_framework.test_framework import BitcoinTestFramework
+from test_framework.test_framework import BellscoinTestFramework
 from test_framework.address import (
     ADDRESS_BCRT1_UNSPENDABLE,
     ADDRESS_BCRT1_UNSPENDABLE_DESCRIPTOR,
@@ -15,7 +15,7 @@ from test_framework.util import (
 from test_framework.wallet_util import generate_keypair
 
 
-class WalletBlankTest(BitcoinTestFramework):
+class WalletBlankTest(BellscoinTestFramework):
     def set_test_params(self):
         self.num_nodes = 1
 

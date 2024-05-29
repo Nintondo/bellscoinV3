@@ -19,7 +19,7 @@ How to Upgrade
 If you are running an older version, shut it down. Wait until it has
 completely shut down (which might take a few minutes for older
 versions), then run the installer (on Windows) or just copy over
-`/Applications/Bitcoin-Qt` (on Mac) or `bitcoind`/`bitcoin-qt` (on
+`/Applications/Bitcoin-Qt` (on Mac) or `bitcoind`/`bellscoin-qt` (on
 Linux).
 
 The first time you run version 0.15.0 or newer, your chainstate database
@@ -717,7 +717,7 @@ Changes for particular platforms
 - #14554 Remove unused `adjustedTime` parameter (hebasto)
 - #14228 Enable system tray icon by default if available (hebasto)
 - #14608 Remove the "Pay only required fee…" checkbox (hebasto)
-- #14521 qt, docs: Fix `bitcoin-qt -version` output formatting (hebasto)
+- #14521 qt, docs: Fix `bellscoin-qt -version` output formatting (hebasto)
 - #13966 When private key is disabled, only show watch-only balance (ken2812221)
 - #14828 Remove hidden columns in coin control dialog (promag)
 - #14783 Fix `boost::signals2::no_slots_error` in early calls to InitWarning (promag)

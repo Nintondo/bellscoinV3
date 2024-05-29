@@ -21,7 +21,7 @@ from test_framework.blocktools import (
 from test_framework.messages import (
     MAX_BIP125_RBF_SEQUENCE,
 )
-from test_framework.test_framework import BitcoinTestFramework
+from test_framework.test_framework import BellscoinTestFramework
 from test_framework.util import (
     assert_equal,
     assert_fee_amount,
@@ -48,7 +48,7 @@ def get_change_address(tx, node):
     txout_addresses = [txout['scriptPubKey']['address'] for txout in tx_details["vout"]]
     return [address for address in txout_addresses if node.getaddressinfo(address)["ischange"]]
 
-class BumpFeeTest(BitcoinTestFramework):
+class BumpFeeTest(BellscoinTestFramework):
     def add_options(self, parser):
         self.add_wallet_options(parser)
 

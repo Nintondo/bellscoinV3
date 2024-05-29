@@ -11,6 +11,7 @@ class CRPCCommand;
 
 namespace wallet {
 Span<const CRPCCommand> GetWalletRPCCommands();
+Span<const CRPCCommand> RegisterAuxRPCCommands();
 } // namespace wallet
 
 #endif // BITCOIN_WALLET_RPC_WALLET_H

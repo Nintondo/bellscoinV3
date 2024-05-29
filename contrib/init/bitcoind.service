@@ -1,11 +1,11 @@
 # It is not recommended to modify this file in-place, because it will
 # be overwritten during package upgrades. If you want to add further
 # options or overwrite existing ones then use
-# $ systemctl edit bitcoind.service
+# $ systemctl edit bellscoind.service
 # See "man systemd.service" for details.
 
 # Note that almost all daemon options could be specified in
-# /etc/bitcoin/bitcoin.conf, but keep in mind those explicitly
+# /etc/bitcoin/bellscoin.conf, but keep in mind those explicitly
 # specified as arguments in ExecStart= will override those in the
 # config file.
 
@@ -18,9 +18,9 @@ After=network-online.target
 Wants=network-online.target
 
 [Service]
-ExecStart=/usr/bin/bitcoind -pid=/run/bitcoind/bitcoind.pid \
+ExecStart=/usr/bin/bellscoind -pid=/run/bellscoind/bellscoind.pid \
                             -conf=/etc/bitcoin/bitcoin.conf \
-                            -datadir=/var/lib/bitcoind \
+                            -datadir=/var/lib/bellscoind \
                             -startupnotify='systemd-notify --ready' \
                             -shutdownnotify='systemd-notify --stopping'
 
@@ -33,7 +33,7 @@ ExecStartPre=/bin/chgrp bitcoin /etc/bitcoin
 
 Type=notify
 NotifyAccess=all
-PIDFile=/run/bitcoind/bitcoind.pid
+PIDFile=/run/bellscoind/bellscoind.pid
 
 Restart=on-failure
 TimeoutStartSec=infinity
@@ -46,16 +46,16 @@ TimeoutStopSec=600
 User=bitcoin
 Group=bitcoin
 
-# /run/bitcoind
-RuntimeDirectory=bitcoind
+# /run/bellscoind
+RuntimeDirectory=bellscoind
 RuntimeDirectoryMode=0710
 
 # /etc/bitcoin
 ConfigurationDirectory=bitcoin
 ConfigurationDirectoryMode=0710
 
-# /var/lib/bitcoind
-StateDirectory=bitcoind
+# /var/lib/bellscoind
+StateDirectory=bellscoind
 StateDirectoryMode=0710
 
 # Hardening measures

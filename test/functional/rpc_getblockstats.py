@@ -8,7 +8,7 @@
 #
 
 from test_framework.blocktools import COINBASE_MATURITY
-from test_framework.test_framework import BitcoinTestFramework
+from test_framework.test_framework import BellscoinTestFramework
 from test_framework.util import (
     assert_equal,
     assert_raises_rpc_error,
@@ -18,7 +18,7 @@ import os
 
 TESTSDIR = os.path.dirname(os.path.realpath(__file__))
 
-class GetblockstatsTest(BitcoinTestFramework):
+class GetblockstatsTest(BellscoinTestFramework):
 
     start_height = 101
     max_stat_pos = 2

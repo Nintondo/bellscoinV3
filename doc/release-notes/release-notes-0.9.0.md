@@ -15,7 +15,7 @@ How to Upgrade
 If you are running an older version, shut it down. Wait until it has completely
 shut down (which might take a few minutes for older versions), uninstall all
 earlier versions of Bitcoin, then run the installer (on Windows) or just copy
-over /Applications/Bitcoin-Qt (on Mac) or bitcoind/bitcoin-qt (on Linux).
+over /Applications/Bitcoin-Qt (on Mac) or bitcoind/bellscoin-qt (on Linux).
 
 If you are upgrading from version 0.7.2 or earlier, the first time you run
 0.9.0 your blockchain files will be re-indexed, which will take anywhere from 
@@ -305,7 +305,7 @@ GUI:
   notifications
 - OS X: Added NSHighResolutionCapable flag to Info.plist for better font
   rendering on Retina displays.
-- OS X: Fix bitcoin-qt startup crash when clicking dock icon
+- OS X: Fix bellscoin-qt startup crash when clicking dock icon
 - Linux: Fix Gnome bitcoin: URI handler
 
 Miscellaneous:

@@ -59,7 +59,7 @@ bool ParseIncludeWatchonly(const UniValue& include_watchonly, const CWallet& wal
     return include_watchonly.get_bool();
 }
 
-bool GetWalletNameFromJSONRPCRequest(const JSONRPCRequest& request, std::string& wallet_name)
+bool GetWalletNameFromJSONRPCRequest(const node::JSONRPCRequest& request, std::string& wallet_name)
 {
     if (URL_DECODE && request.URI.substr(0, WALLET_ENDPOINT_BASE.size()) == WALLET_ENDPOINT_BASE) {
         // wallet endpoint was used
@@ -69,9 +69,10 @@ bool GetWalletNameFromJSONRPCRequest(const JSONRPCRequest& request, std::string&
     return false;
 }
 
-std::shared_ptr<CWallet> GetWalletForJSONRPCRequest(const JSONRPCRequest& request)
+std::shared_ptr<CWallet> GetWalletForJSONRPCRequest(const node::JSONRPCRequest& request)
 {
-    CHECK_NONFATAL(request.mode == JSONRPCRequest::EXECUTE);
+    CHECK_NONFATAL(request.mode == node::JSONRPCRequest::EXECUTE);
+    
     WalletContext& context = EnsureWalletContext(request.context);
 
     std::string wallet_name;
@@ -83,7 +84,10 @@ std::shared_ptr<CWallet> GetWalletForJSONRPCRequest(const JSONRPCRequest& reques
 
     size_t count{0};
     auto wallet = GetDefaultWallet(context, count);
-    if (wallet) return wallet;
+    if (wallet)
+    {
+        return wallet;
+    } 
 
     if (count == 0) {
         throw JSONRPCError(

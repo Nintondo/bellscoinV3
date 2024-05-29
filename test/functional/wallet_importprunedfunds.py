@@ -11,7 +11,7 @@ from test_framework.messages import (
     CMerkleBlock,
     from_hex,
 )
-from test_framework.test_framework import BitcoinTestFramework
+from test_framework.test_framework import BellscoinTestFramework
 from test_framework.util import (
     assert_equal,
     assert_raises_rpc_error,
@@ -19,7 +19,7 @@ from test_framework.util import (
 from test_framework.wallet_util import generate_keypair
 
 
-class ImportPrunedFundsTest(BitcoinTestFramework):
+class ImportPrunedFundsTest(BellscoinTestFramework):
     def add_options(self, parser):
         self.add_wallet_options(parser)
 

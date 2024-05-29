@@ -9,12 +9,12 @@ Test that wallet correctly tracks transactions that have been conflicted by bloc
 
 from decimal import Decimal
 
-from test_framework.test_framework import BitcoinTestFramework
+from test_framework.test_framework import BellscoinTestFramework
 from test_framework.util import (
         assert_equal,
 )
 
-class TxConflicts(BitcoinTestFramework):
+class TxConflicts(BellscoinTestFramework):
     def add_options(self, parser):
         self.add_wallet_options(parser)
 

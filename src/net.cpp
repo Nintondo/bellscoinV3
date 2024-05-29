@@ -154,7 +154,7 @@ uint16_t GetListenPort()
     }
 
     // Otherwise, if -port= is provided, use that. Otherwise use the default port.
-    return static_cast<uint16_t>(gArgs.GetIntArg("-port", Params().GetDefaultPort()));
+    return static_cast<uint16_t>(gArgs.GetIntArg("-port", GlobParams().GetDefaultPort()));
 }
 
 // Determine the "best" local address for a particular peer.
@@ -682,8 +682,8 @@ bool CNode::ReceiveMsgBytes(Span<const uint8_t> msg_bytes, bool& complete)
 V1Transport::V1Transport(const NodeId node_id, int nTypeIn, int nVersionIn) noexcept :
     m_node_id(node_id), hdrbuf(nTypeIn, nVersionIn), vRecv(nTypeIn, nVersionIn)
 {
-    assert(std::size(Params().MessageStart()) == std::size(m_magic_bytes));
-    m_magic_bytes = Params().MessageStart();
+    assert(std::size(GlobParams().MessageStart()) == std::size(m_magic_bytes));
+    m_magic_bytes = GlobParams().MessageStart();
     LOCK(m_recv_mutex);
     Reset();
 }
@@ -1055,7 +1055,7 @@ void V2Transport::ProcessReceivedMaybeV1Bytes() noexcept
     // of a v2 public key. BIP324 specifies that a mismatch with this 16-byte string should trigger
     // sending of the key.
     std::array<uint8_t, V1_PREFIX_LEN> v1_prefix = {0, 0, 0, 0, 'v', 'e', 'r', 's', 'i', 'o', 'n', 0, 0, 0, 0, 0};
-    std::copy(std::begin(Params().MessageStart()), std::end(Params().MessageStart()), v1_prefix.begin());
+    std::copy(std::begin(GlobParams().MessageStart()), std::end(GlobParams().MessageStart()), v1_prefix.begin());
     Assume(m_recv_buffer.size() <= v1_prefix.size());
     if (!std::equal(m_recv_buffer.begin(), m_recv_buffer.end(), v1_prefix.begin())) {
         // Mismatch with v1 prefix, so we can assume a v2 connection.

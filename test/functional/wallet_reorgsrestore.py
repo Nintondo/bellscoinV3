@@ -16,12 +16,12 @@ disconnected.
 from decimal import Decimal
 import shutil
 
-from test_framework.test_framework import BitcoinTestFramework
+from test_framework.test_framework import BellscoinTestFramework
 from test_framework.util import (
         assert_equal,
 )
 
-class ReorgsRestoreTest(BitcoinTestFramework):
+class ReorgsRestoreTest(BellscoinTestFramework):
     def add_options(self, parser):
         self.add_wallet_options(parser)
 

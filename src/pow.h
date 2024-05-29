@@ -7,19 +7,44 @@
 #define BITCOIN_POW_H
 
 #include <consensus/params.h>
-
+#include <arith_uint256.h>
 #include <stdint.h>
 
 class CBlockHeader;
 class CBlockIndex;
 class uint256;
+class arith_uint256;
 
-unsigned int GetNextWorkRequired(const CBlockIndex* pindexLast, const CBlockHeader *pblock, const Consensus::Params&);
-unsigned int CalculateNextWorkRequired(const CBlockIndex* pindexLast, int64_t nFirstBlockTime, const Consensus::Params&);
+unsigned int GetNextWorkRequired(const CBlockIndex* pindexLast, 
+                                    const CBlockHeader *pblock, 
+                                    const Consensus::Params& params);
+
+unsigned int CalculateNextWorkRequired(const Consensus::Params& params,
+                                    int64_t nFirstBlockTime, 
+                                    const CBlockIndex* pindexLast = nullptr, 
+                                    arith_uint256 bnAvg = arith_uint256(),
+                                    int64_t nLastBlockTime = 0,
+                                    int nextHeight = 0);
+
+unsigned int GetNextWorkRequiredOld(const CBlockIndex* pindexLast, 
+                                    const CBlockHeader *pblock, 
+                                    const Consensus::Params& params);
+unsigned int CalculateNextWorkRequiredOld(const CBlockIndex* pindexLast, 
+                                    int64_t nFirstBlockTime, 
+                                    const Consensus::Params& params);
+
+unsigned int GetNextWorkRequiredNew(const CBlockIndex* pindexLast, 
+                                    const CBlockHeader *pblock, 
+                                    const Consensus::Params& params);
+unsigned int CalculateNextWorkRequiredNew(arith_uint256 bnAvg,
+                                    int64_t nLastBlockTime, 
+                                    int64_t nFirstBlockTime,
+                                    const Consensus::Params& params);
 
 /** Check whether a block hash satisfies the proof-of-work requirement specified by nBits */
 bool CheckProofOfWork(uint256 hash, unsigned int nBits, const Consensus::Params&);
 
+bool CheckProofOfWorkTests(uint256 hash, unsigned int nBits, const Consensus::Params& params, bool wtf = true);
 /**
  * Return false if the proof-of-work requirement specified by new_nbits at a
  * given height is not possible, given the proof-of-work on the prior block as

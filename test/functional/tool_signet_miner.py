@@ -11,7 +11,7 @@ import time
 
 from test_framework.key import ECKey
 from test_framework.script_util import key_to_p2wpkh_script
-from test_framework.test_framework import BitcoinTestFramework
+from test_framework.test_framework import BellscoinTestFramework
 from test_framework.util import assert_equal
 from test_framework.wallet_util import bytes_to_wif
 
@@ -19,7 +19,7 @@ from test_framework.wallet_util import bytes_to_wif
 CHALLENGE_PRIVATE_KEY = (42).to_bytes(32, 'big')
 
 
-class SignetMinerTest(BitcoinTestFramework):
+class SignetMinerTest(BellscoinTestFramework):
     def add_options(self, parser):
         self.add_wallet_options(parser)
 

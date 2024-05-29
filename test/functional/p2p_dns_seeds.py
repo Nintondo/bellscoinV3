@@ -7,10 +7,10 @@
 import itertools
 
 from test_framework.p2p import P2PInterface
-from test_framework.test_framework import BitcoinTestFramework
+from test_framework.test_framework import BellscoinTestFramework
 
 
-class P2PDNSSeeds(BitcoinTestFramework):
+class P2PDNSSeeds(BellscoinTestFramework):
     def set_test_params(self):
         self.setup_clean_chain = True
         self.num_nodes = 1
@@ -50,7 +50,7 @@ class P2PDNSSeeds(BitcoinTestFramework):
             extra_args=["-forcednsseed=1", f"-connect={fakeaddr}"],
         )
 
-        # Restore default bitcoind settings
+        # Restore default bellscoind settings
         self.restart_node(0)
 
     def existing_outbound_connections_test(self):
@@ -86,7 +86,7 @@ class P2PDNSSeeds(BitcoinTestFramework):
         self.log.info("Check that we query DNS seeds if -forcednsseed param is set")
 
         with self.nodes[0].assert_debug_log(expected_msgs=["Loading addresses from DNS seed"], timeout=12):
-            # -dnsseed defaults to 1 in bitcoind, but 0 in the test framework,
+            # -dnsseed defaults to 1 in bellscoind, but 0 in the test framework,
             # so pass it explicitly here
             self.restart_node(0, ["-forcednsseed", "-dnsseed=1"])
 

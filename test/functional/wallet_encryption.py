@@ -6,7 +6,7 @@
 
 import time
 
-from test_framework.test_framework import BitcoinTestFramework
+from test_framework.test_framework import BellscoinTestFramework
 from test_framework.util import (
     assert_raises_rpc_error,
     assert_equal,
@@ -14,7 +14,7 @@ from test_framework.util import (
 from test_framework.wallet_util import WalletUnlock
 
 
-class WalletEncryptionTest(BitcoinTestFramework):
+class WalletEncryptionTest(BellscoinTestFramework):
     def add_options(self, parser):
         self.add_wallet_options(parser)
 

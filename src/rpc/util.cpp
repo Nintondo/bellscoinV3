@@ -142,12 +142,12 @@ std::string ShellQuoteIfNeeded(const std::string& s)
 
 std::string HelpExampleCli(const std::string& methodname, const std::string& args)
 {
-    return "> bitcoin-cli " + methodname + " " + args + "\n";
+    return "> bells-cli " + methodname + " " + args + "\n";
 }
 
 std::string HelpExampleCliNamed(const std::string& methodname, const RPCArgList& args)
 {
-    std::string result = "> bitcoin-cli -named " + methodname;
+    std::string result = "> bells-cli -named " + methodname;
     for (const auto& argpair: args) {
         const auto& value = argpair.second.isStr()
                 ? argpair.second.get_str()
@@ -591,16 +591,16 @@ std::string RPCExamples::ToDescriptionString() const
     return m_examples.empty() ? m_examples : "\nExamples:\n" + m_examples;
 }
 
-UniValue RPCHelpMan::HandleRequest(const JSONRPCRequest& request) const
+UniValue RPCHelpMan::HandleRequest(const node::JSONRPCRequest& request) const
 {
-    if (request.mode == JSONRPCRequest::GET_ARGS) {
+    if (request.mode == node::JSONRPCRequest::GET_ARGS) {
         return GetArgMap();
     }
     /*
      * Check if the given request is valid according to this command or if
      * the user is asking for help information, and throw help when appropriate.
      */
-    if (request.mode == JSONRPCRequest::GET_HELP || !IsValidNumArgs(request.params.size())) {
+    if (request.mode == node::JSONRPCRequest::GET_HELP || !IsValidNumArgs(request.params.size())) {
         throw std::runtime_error(ToString());
     }
     UniValue arg_mismatch{UniValue::VOBJ};
@@ -644,7 +644,7 @@ UniValue RPCHelpMan::HandleRequest(const JSONRPCRequest& request) const
 }
 
 using CheckFn = void(const RPCArg&);
-static const UniValue* DetailMaybeArg(CheckFn* check, const std::vector<RPCArg>& params, const JSONRPCRequest* req, size_t i)
+static const UniValue* DetailMaybeArg(CheckFn* check, const std::vector<RPCArg>& params, const node::JSONRPCRequest* req, size_t i)
 {
     CHECK_NONFATAL(i < params.size());
     const UniValue& arg{CHECK_NONFATAL(req)->params[i]};

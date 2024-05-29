@@ -6,7 +6,7 @@
 
 from test_framework.descriptors import descsum_create
 from test_framework.psbt import PSBT, PSBT_IN_SHA256
-from test_framework.test_framework import BitcoinTestFramework
+from test_framework.test_framework import BellscoinTestFramework
 from test_framework.util import assert_equal
 
 
@@ -202,7 +202,7 @@ DESCS_PRIV = [
 ]
 
 
-class WalletMiniscriptTest(BitcoinTestFramework):
+class WalletMiniscriptTest(BellscoinTestFramework):
     def add_options(self, parser):
         self.add_wallet_options(parser, legacy=False)
         self.rpc_timeout = 480

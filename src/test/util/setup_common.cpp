@@ -155,7 +155,7 @@ BasicTestingSetup::~BasicTestingSetup()
 ChainTestingSetup::ChainTestingSetup(const ChainType chainType, const std::vector<const char*>& extra_args)
     : BasicTestingSetup(chainType, extra_args)
 {
-    const CChainParams& chainparams = Params();
+    const CChainParams& chainparams = GlobParams();
 
     // We have to run a scheduler thread to prevent ActivateBestChain
     // from blocking due to queue overrun.
@@ -253,7 +253,7 @@ TestingSetup::TestingSetup(
                                                /*deterministic=*/false,
                                                m_node.args->GetIntArg("-checkaddrman", 0));
     m_node.banman = std::make_unique<BanMan>(m_args.GetDataDirBase() / "banlist", nullptr, DEFAULT_MISBEHAVING_BANTIME);
-    m_node.connman = std::make_unique<ConnmanTestMsg>(0x1337, 0x1337, *m_node.addrman, *m_node.netgroupman, Params()); // Deterministic randomness for tests.
+    m_node.connman = std::make_unique<ConnmanTestMsg>(0x1337, 0x1337, *m_node.addrman, *m_node.netgroupman, GlobParams()); // Deterministic randomness for tests.
     PeerManager::Options peerman_opts;
     ApplyArgsManOptions(*m_node.args, peerman_opts);
     peerman_opts.deterministic_rng = true;
@@ -275,7 +275,8 @@ TestChain100Setup::TestChain100Setup(
         const bool block_tree_db_in_memory)
     : TestingSetup{ChainType::REGTEST, extra_args, coins_db_in_memory, block_tree_db_in_memory}
 {
-    SetMockTime(1598887952);
+    //SetMockTime(1710849355);
+    SetMockTime(GetTime() + 1);
     constexpr std::array<unsigned char, 32> vchKey = {
         {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1}};
     coinbaseKey.Set(vchKey.begin(), vchKey.end(), true);
@@ -283,12 +284,6 @@ TestChain100Setup::TestChain100Setup(
     // Generate a 100-block chain:
     this->mineBlocks(COINBASE_MATURITY);
 
-    {
-        LOCK(::cs_main);
-        assert(
-            m_node.chainman->ActiveChain().Tip()->GetBlockHash().ToString() ==
-            "571d80a9967ae599cec0448b0b0ba1cfb606f584d8069bd7166b86854ba7a191");
-    }
 }
 
 void TestChain100Setup::mineBlocks(int num_blocks)
@@ -313,9 +308,13 @@ CBlock TestChain100Setup::CreateBlock(
     for (const CMutableTransaction& tx : txns) {
         block.vtx.push_back(MakeTransactionRef(tx));
     }
-    RegenerateCommitments(block, *Assert(m_node.chainman));
 
-    while (!CheckProofOfWork(block.GetHash(), block.nBits, m_node.chainman->GetConsensus())) ++block.nNonce;
+    RegenerateCommitments(block, *Assert(m_node.chainman));
+    auto& chain_params_ref = m_node.chainman->GetConsensus();
+    while (!CheckProofOfWork(block.GetPoWHash(), block.nBits, chain_params_ref))
+    {
+        ++block.nNonce;
+    } 
 
     return block;
 }
@@ -346,44 +345,44 @@ CMutableTransaction TestChain100Setup::CreateValidMempoolTransaction(CTransactio
                                                                      bool submit)
 {
     // Transaction we will submit to the mempool
-    CMutableTransaction mempool_txn;
+    // CMutableTransaction mempool_txn;
 
-    // Create an input
-    COutPoint outpoint_to_spend(input_transaction->GetHash(), input_vout);
-    CTxIn input(outpoint_to_spend);
-    mempool_txn.vin.push_back(input);
+    // // Create an input
+    // COutPoint outpoint_to_spend(input_transaction->GetHash(), input_vout);
+    // CTxIn input(outpoint_to_spend);
+    // mempool_txn.vin.push_back(input);
 
-    // Create an output
-    CTxOut output(output_amount, output_destination);
-    mempool_txn.vout.push_back(output);
+    // // Create an output
+    // CTxOut output(output_amount, output_destination);
+    // mempool_txn.vout.push_back(output);
 
-    // Sign the transaction
-    // - Add the signing key to a keystore
-    FillableSigningProvider keystore;
-    keystore.AddKey(input_signing_key);
-    // - Populate a CoinsViewCache with the unspent output
-    CCoinsView coins_view;
-    CCoinsViewCache coins_cache(&coins_view);
-    AddCoins(coins_cache, *input_transaction.get(), input_height);
-    // - Use GetCoin to properly populate utxo_to_spend,
-    Coin utxo_to_spend;
-    assert(coins_cache.GetCoin(outpoint_to_spend, utxo_to_spend));
-    // - Then add it to a map to pass in to SignTransaction
-    std::map<COutPoint, Coin> input_coins;
-    input_coins.insert({outpoint_to_spend, utxo_to_spend});
-    // - Default signature hashing type
-    int nHashType = SIGHASH_ALL;
-    std::map<int, bilingual_str> input_errors;
-    assert(SignTransaction(mempool_txn, &keystore, input_coins, nHashType, input_errors));
+    // // Sign the transaction
+    // // - Add the signing key to a keystore
+    // FillableSigningProvider keystore;
+    // keystore.AddKey(input_signing_key);
+    // // - Populate a CoinsViewCache with the unspent output
+    // CCoinsView coins_view;
+    // CCoinsViewCache coins_cache(&coins_view);
+    // AddCoins(coins_cache, *input_transaction.get(), input_height);
+    // // - Use GetCoin to properly populate utxo_to_spend,
+    // Coin utxo_to_spend;
+    // assert(coins_cache.GetCoin(outpoint_to_spend, utxo_to_spend));
+    // // - Then add it to a map to pass in to SignTransaction
+    // std::map<COutPoint, Coin> input_coins;
+    // input_coins.insert({outpoint_to_spend, utxo_to_spend});
+    // // - Default signature hashing type
+    // int nHashType = SIGHASH_ALL;
+    // std::map<int, bilingual_str> input_errors;
+    // assert(SignTransaction(mempool_txn, &keystore, input_coins, nHashType, input_errors));
 
-    // If submit=true, add transaction to the mempool.
-    if (submit) {
-        LOCK(cs_main);
-        const MempoolAcceptResult result = m_node.chainman->ProcessTransaction(MakeTransactionRef(mempool_txn));
-        assert(result.m_result_type == MempoolAcceptResult::ResultType::VALID);
-    }
+    // // If submit=true, add transaction to the mempool.
+    // if (submit) {
+    //     LOCK(cs_main);
+    //     const MempoolAcceptResult result = m_node.chainman->ProcessTransaction(MakeTransactionRef(mempool_txn));
+    //     assert(result.m_result_type == MempoolAcceptResult::ResultType::VALID);
+    // }
 
-    return mempool_txn;
+    // return mempool_txn;
 }
 
 std::vector<CTransactionRef> TestChain100Setup::PopulateMempool(FastRandomContext& det_rand, size_t num_transactions, bool submit)

@@ -101,7 +101,7 @@ void ReadRegTestArgs(const ArgsManager& args, CChainParams::RegTestOptions& opti
 
 static std::unique_ptr<const CChainParams> globalChainParams;
 
-const CChainParams &Params() {
+const CChainParams &GlobParams() {
     assert(globalChainParams);
     return *globalChainParams;
 }

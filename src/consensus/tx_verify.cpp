@@ -31,7 +31,10 @@ bool IsFinalTx(const CTransaction &tx, int nBlockHeight, int64_t nBlockTime)
     // IsFinalTx() to return false here:
     for (const auto& txin : tx.vin) {
         if (!(txin.nSequence == CTxIn::SEQUENCE_FINAL))
+        {
+            printf("%d == %d", txin.nSequence, CTxIn::SEQUENCE_FINAL);
             return false;
+        }
     }
     return true;
 }

@@ -8,10 +8,10 @@
 import os
 import stat
 
-from test_framework.test_framework import BitcoinTestFramework
+from test_framework.test_framework import BellscoinTestFramework
 
 
-class PosixFsPermissionsTest(BitcoinTestFramework):
+class PosixFsPermissionsTest(BellscoinTestFramework):
     def set_test_params(self):
         self.setup_clean_chain = True
         self.num_nodes = 1

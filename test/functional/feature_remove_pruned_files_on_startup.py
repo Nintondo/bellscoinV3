@@ -5,9 +5,9 @@
 """Test removing undeleted pruned blk files on startup."""
 
 import os
-from test_framework.test_framework import BitcoinTestFramework
+from test_framework.test_framework import BellscoinTestFramework
 
-class FeatureRemovePrunedFilesOnStartupTest(BitcoinTestFramework):
+class FeatureRemovePrunedFilesOnStartupTest(BellscoinTestFramework):
     def set_test_params(self):
         self.num_nodes = 1
         self.extra_args = [["-fastprune", "-prune=1"]]

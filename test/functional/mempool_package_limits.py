@@ -7,7 +7,7 @@ from test_framework.blocktools import COINBASE_MATURITY
 from test_framework.messages import (
     WITNESS_SCALE_FACTOR,
 )
-from test_framework.test_framework import BitcoinTestFramework
+from test_framework.test_framework import BellscoinTestFramework
 from test_framework.util import (
     assert_equal,
 )
@@ -38,7 +38,7 @@ def check_package_limits(func):
     return func_wrapper
 
 
-class MempoolPackageLimitsTest(BitcoinTestFramework):
+class MempoolPackageLimitsTest(BellscoinTestFramework):
     def set_test_params(self):
         self.num_nodes = 1
         self.setup_clean_chain = True
