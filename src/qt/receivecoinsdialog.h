@@ -17,6 +17,7 @@
 
 class PlatformStyle;
 class WalletModel;
+enum class OutputType;
 
 namespace Ui {
     class ReceiveCoinsDialog;
@@ -43,6 +44,8 @@ public:
     ~ReceiveCoinsDialog();
 
     void setModel(WalletModel *model);
+    void setAddressTypes(OutputType outputType);
+    void updateWalletTypes(int height);
 
 public Q_SLOTS:
     void clear();
@@ -57,6 +60,9 @@ private:
     QAction* copyMessageAction;
     QAction* copyAmountAction;
     const PlatformStyle *platformStyle;
+
+    bool segwitIsSet = false;
+    bool taprootIsSet = false;
 
     QModelIndex selectedRow();
     void copyColumnToClipboard(int column);

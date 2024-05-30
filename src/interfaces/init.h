@@ -23,7 +23,7 @@ class Ipc;
 //! and get access to other interfaces (Node, Chain, Wallet, etc).
 //!
 //! There is a different Init interface implementation for each process
-//! (bitcoin-gui, bitcoin-node, bitcoin-wallet, bellscoind, bellscoin-qt) and each
+//! (bells-gui, bells-node, bells-wallet, bellsd, bells-qt) and each
 //! implementation can implement the make methods for interfaces it supports.
 //! The default make methods all return null.
 class Init

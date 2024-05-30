@@ -10,7 +10,7 @@ race:BerkeleyBatch
 race:BerkeleyDatabase
 race:DatabaseBatch
 race:zmq::*
-race:bellscoin-qt
+race:bells-qt
 
 # deadlock (TODO fix)
 # To reproduce, see:

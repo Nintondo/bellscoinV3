@@ -19,6 +19,7 @@ class SendCoinsRecipient;
 class TransactionView;
 class WalletModel;
 class AddressBookPage;
+enum class OutputType;
 
 QT_BEGIN_NAMESPACE
 class QModelIndex;
@@ -46,8 +47,9 @@ public:
     WalletModel* getWalletModel() const noexcept { return walletModel; }
 
     bool handlePaymentRequest(const SendCoinsRecipient& recipient);
-
+    void setAddressTypes(OutputType outputType);
     void showOutOfSyncWarning(bool fShow);
+    void updateWalletTypes(int height);
 
 private:
     ClientModel* clientModel{nullptr};

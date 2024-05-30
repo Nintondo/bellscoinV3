@@ -1594,7 +1594,7 @@ BOOST_AUTO_TEST_CASE(message_sign)
     const std::string message = "Trust no one";
 
     const std::string expected_signature =
-        "IPojfrX2dfPnH26UegfbGQQLrdK844DlHq5157/P6h57WyuS/Qsl+h/WSVGDF4MUi4rWSswW38oimDYfNNUBUOk=";
+        "IDybRl5gqJ7KfIRAAWpiE8osocbkc1IJipWVc1RZXriiMLMmWX+27E5M1l317uhXrCYkBNlOLiX4vB5gDBosTMI=";
 
     CKey privkey;
     std::string generated_signature;

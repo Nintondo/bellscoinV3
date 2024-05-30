@@ -45,7 +45,6 @@ public:
     void showOutOfSyncWarning(bool fShow);
 
     QSize sizeHint() const override { return m_size_hint; }
-
 Q_SIGNALS:
     void createWalletButtonClicked();
     void message(const QString& title, const QString& message, unsigned int style);
@@ -57,7 +56,6 @@ private:
     QMap<WalletModel*, WalletView*> mapWalletViews;
 
     bool bOutOfSync;
-
     const PlatformStyle *platformStyle;
 
     const QSize m_size_hint;

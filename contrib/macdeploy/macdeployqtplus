@@ -20,7 +20,7 @@ import sys, re, os, platform, shutil, stat, subprocess, os.path
 from argparse import ArgumentParser
 from pathlib import Path
 from subprocess import PIPE, run
-from typing import List, Optional
+from typing import Optional
 
 # This is ported from the original macdeployqt with modifications
 
@@ -146,7 +146,7 @@ class ApplicationBundleInfo(object):
     def __init__(self, path: str):
         self.path = path
         # for backwards compatibility reasons, this must remain as Bitcoin-Qt
-        self.binaryPath = os.path.join(path, "Contents", "MacOS", "Bitcoin-Qt")
+        self.binaryPath = os.path.join(path, "Contents", "MacOS", "Bells-Qt")
         if not os.path.exists(self.binaryPath):
             raise RuntimeError(f"Could not find bundle binary for {path}")
         self.resourcesPath = os.path.join(path, "Contents", "Resources")
@@ -181,7 +181,7 @@ class DeploymentInfo(object):
                     return True
         return False
 
-def getFrameworks(binaryPath: str, verbose: int) -> List[FrameworkInfo]:
+def getFrameworks(binaryPath: str, verbose: int) -> list[FrameworkInfo]:
     if verbose:
         print(f"Inspecting with otool: {binaryPath}")
     otoolbin=os.getenv("OTOOL", "otool")
@@ -285,7 +285,7 @@ def copyFramework(framework: FrameworkInfo, path: str, verbose: int) -> Optional
 
     return toPath
 
-def deployFrameworks(frameworks: List[FrameworkInfo], bundlePath: str, binaryPath: str, strip: bool, verbose: int, deploymentInfo: Optional[DeploymentInfo] = None) -> DeploymentInfo:
+def deployFrameworks(frameworks: list[FrameworkInfo], bundlePath: str, binaryPath: str, strip: bool, verbose: int, deploymentInfo: Optional[DeploymentInfo] = None) -> DeploymentInfo:
     if deploymentInfo is None:
         deploymentInfo = DeploymentInfo()
     
@@ -421,7 +421,7 @@ if os.path.exists(appname + ".zip"):
 
 # ------------------------------------------------
 
-target = os.path.join("dist", "Bitcoin-Qt.app")
+target = os.path.join("dist", "Bells-Qt.app")
 
 print("+ Copying source bundle +")
 if verbose:
@@ -498,7 +498,7 @@ if platform.system() == "Darwin":
 # ------------------------------------------------
 
 if config.zip is not None:
-    shutil.make_archive('{}'.format(appname), format='zip', root_dir='dist', base_dir='Bitcoin-Qt.app')
+    shutil.make_archive('{}'.format(appname), format='zip', root_dir='dist', base_dir='Bells-Qt.app')
 
 # ------------------------------------------------
 

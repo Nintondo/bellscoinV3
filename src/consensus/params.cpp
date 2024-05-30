@@ -12,11 +12,11 @@
 namespace Consensus {
     
     std::chrono::seconds Params::PoWTargetSpacing(bool tests) const {
-        std::chrono::seconds tmp = tests ? std::chrono::seconds{nPostBlossomPowTargetSpacing} : std::chrono::seconds{10*60};
+        //std::chrono::seconds tmp = tests ? std::chrono::seconds{nPostBlossomPowTargetSpacing} : std::chrono::seconds{10*60};
     
-        return tests ? std::chrono::seconds{nPostBlossomPowTargetSpacing} : std::chrono::seconds{10*60}; // Old
+        //return tests ? std::chrono::seconds{nPostBlossomPowTargetSpacing} : std::chrono::seconds{10*60}; // Old
         
-        //return std::chrono::seconds{nPostBlossomPowTargetSpacing}; // New
+        return std::chrono::seconds{nPostBlossomPowTargetSpacing}; // New
     }
 
     int64_t Params::AveragingWindowTimespan() const {

@@ -40,6 +40,13 @@ static void TestBlockSubsidyHalvings(int nSubsidyHalvingInterval)
     // TestBlockSubsidyHalvings(consensusParams);
 }
 
+BOOST_AUTO_TEST_CASE(block_after_auxpow_test)
+{
+    const auto chainParams = CreateChainParams(*m_node.args, ChainType::MAIN)->GetConsensus();
+    BOOST_CHECK_EQUAL(GetBlockSubsidy(chainParams.nAuxpowStartHeight + 1, chainParams), 2 * COIN);
+    BOOST_CHECK(GetBlockSubsidy(chainParams.nAuxpowStartHeight + chainParams.nBlockAfterAuxpowRewardThreshold + 1, chainParams) != 2 * COIN);
+}
+
 BOOST_AUTO_TEST_CASE(block_subsidy_test)
 {
     // const auto chainParams = CreateChainParams(*m_node.args, ChainType::MAIN);

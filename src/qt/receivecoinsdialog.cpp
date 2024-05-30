@@ -15,6 +15,7 @@
 #include <qt/recentrequeststablemodel.h>
 #include <qt/walletmodel.h>
 
+#include <outputtype.h>
 #include <QAction>
 #include <QCursor>
 #include <QMessageBox>
@@ -68,6 +69,25 @@ ReceiveCoinsDialog::ReceiveCoinsDialog(const PlatformStyle *_platformStyle, QWid
     }
 }
 
+void ReceiveCoinsDialog::setAddressTypes(OutputType outputType)
+{
+    // Populate address type dropdown and select default
+    auto add_address_type = [&](OutputType type, const QString& text, const QString& tooltip) {
+        const auto index = ui->addressType->count();
+        ui->addressType->addItem(text, (int) type);
+        ui->addressType->setItemData(index, tooltip, Qt::ToolTipRole);
+        if (model->wallet().getDefaultAddressType() == type) ui->addressType->setCurrentIndex(index);
+    };
+
+    if(outputType == OutputType::LEGACY) add_address_type(OutputType::LEGACY, tr("Base58 (Legacy)"), tr("Not recommended due to higher fees and less protection against typos."));
+    if(outputType == OutputType::P2SH_SEGWIT) add_address_type(OutputType::P2SH_SEGWIT, tr("Base58 (P2SH-SegWit)"), tr("Generates an address compatible with older wallets."));
+    if(outputType == OutputType::BECH32) add_address_type(OutputType::BECH32, tr("Bech32 (SegWit)"), tr("Generates a native segwit address (BIP-173). Some old wallets don't support it."));
+    if(outputType == OutputType::BECH32M) 
+        if (model->wallet().taprootEnabled()) {
+            add_address_type(OutputType::BECH32M, tr("Bech32m (Taproot)"), tr("Bech32m (BIP-350) is an upgrade to Bech32, wallet support is still limited."));
+        }
+}
+
 void ReceiveCoinsDialog::setModel(WalletModel *_model)
 {
     this->model = _model;
@@ -86,19 +106,7 @@ void ReceiveCoinsDialog::setModel(WalletModel *_model)
             &QItemSelectionModel::selectionChanged, this,
             &ReceiveCoinsDialog::recentRequestsView_selectionChanged);
 
-        // Populate address type dropdown and select default
-        auto add_address_type = [&](OutputType type, const QString& text, const QString& tooltip) {
-            const auto index = ui->addressType->count();
-            ui->addressType->addItem(text, (int) type);
-            ui->addressType->setItemData(index, tooltip, Qt::ToolTipRole);
-            if (model->wallet().getDefaultAddressType() == type) ui->addressType->setCurrentIndex(index);
-        };
-        add_address_type(OutputType::LEGACY, tr("Base58 (Legacy)"), tr("Not recommended due to higher fees and less protection against typos."));
-        add_address_type(OutputType::P2SH_SEGWIT, tr("Base58 (P2SH-SegWit)"), tr("Generates an address compatible with older wallets."));
-        add_address_type(OutputType::BECH32, tr("Bech32 (SegWit)"), tr("Generates a native segwit address (BIP-173). Some old wallets don't support it."));
-        if (model->wallet().taprootEnabled()) {
-            add_address_type(OutputType::BECH32M, tr("Bech32m (Taproot)"), tr("Bech32m (BIP-350) is an upgrade to Bech32, wallet support is still limited."));
-        }
+        setAddressTypes(OutputType::LEGACY);
 
         // Set the button to be enabled or disabled based on whether the wallet can give out new addresses.
         ui->receiveButton->setEnabled(model->wallet().canGetAddresses());
@@ -143,6 +151,23 @@ void ReceiveCoinsDialog::updateDisplayUnit()
     }
 }
 
+void ReceiveCoinsDialog::updateWalletTypes(int height)
+{ 
+    auto& consens = GlobParams().GetConsensus();
+    if (!segwitIsSet && height > consens.SegwitHeight)
+    {
+        segwitIsSet = true;
+        setAddressTypes(OutputType::P2SH_SEGWIT);
+        setAddressTypes(OutputType::BECH32);
+    }
+
+    if (!taprootIsSet && height > consens.vDeployments[Consensus::DEPLOYMENT_TAPROOT].min_activation_height) // Mabye check with deploymentActiveAt?
+    {
+        taprootIsSet = true;
+        setAddressTypes(OutputType::BECH32M);
+    }
+}
+
 void ReceiveCoinsDialog::on_receiveButton_clicked()
 {
     if(!model || !model->getOptionsModel() || !model->getAddressTableModel() || !model->getRecentRequestsTableModel())
@@ -151,9 +176,10 @@ void ReceiveCoinsDialog::on_receiveButton_clicked()
     QString address;
     QString label = ui->reqLabel->text();
     /* Generate new receiving address */
+    
     const OutputType address_type = (OutputType)ui->addressType->currentData().toInt();
     address = model->getAddressTableModel()->addRow(AddressTableModel::Receive, label, "", address_type);
-
+    
     switch(model->getAddressTableModel()->getEditStatus())
     {
     case AddressTableModel::EditStatus::OK: {

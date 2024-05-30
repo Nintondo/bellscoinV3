@@ -1758,10 +1758,16 @@ CAmount GetBlockSubsidy(int nHeight, const Consensus::Params& consensusParams)
 {
     CAmount nSubsidy = 2 * COIN;
 
-    if(nHeight < 101) {
-        nSubsidy = 2 * COIN; //first 100 blocks have minimal rewards
-    } else {
-
+    if(nHeight < 101) 
+    {
+        return nSubsidy; //first 100 blocks have minimal rewards
+    } 
+    else if(nHeight >= consensusParams.nAuxpowStartHeight && nHeight < consensusParams.nAuxpowStartHeight + consensusParams.nBlockAfterAuxpowRewardThreshold)
+    {
+        return nSubsidy;
+    }
+    else 
+    {
         int rand = generateMTRandom(nHeight, 1000);
         if (nHeight < 129600) {
             if(rand >= 990) {
@@ -2458,9 +2464,9 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
     // edge case when manipulating the UTXO and it would be simpler not to have
     // another edge case to deal with.
 
-    // testnet3 has no blocks before the BIP34 height with indicated heights
+    // testnet has no blocks before the BIP34 height with indicated heights
     // post BIP34 before approximately height 486,000,000. After block
-    // 1,983,702 testnet3 starts doing unnecessary BIP30 checking again.
+    // 1,983,702 testnet starts doing unnecessary BIP30 checking again.
     assert(pindex->pprev);
     CBlockIndex* pindexBIP34height = pindex->pprev->GetAncestor(params.GetConsensus().BIP34Height);
     //Only continue to enforce if we're below BIP34 activation height or the block hash at that height doesn't correspond.

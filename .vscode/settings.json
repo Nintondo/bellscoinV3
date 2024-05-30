@@ -103,6 +103,11 @@
         "timer": "cpp",
         "latch": "cpp",
         "spanstream": "cpp",
-        "syncstream": "cpp"
-    }
+        "syncstream": "cpp",
+        "*.moc": "cpp",
+        "qvariant": "cpp",
+        "qitemselection": "cpp",
+        "qkeyevent": "cpp"
+    },
+    "cmake.configureOnOpen": false
 }

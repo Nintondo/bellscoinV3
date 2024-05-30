@@ -13,8 +13,8 @@
 class ArgsManager;
 
 /**
- * CBaseChainParams defines the base parameters (shared between bitcoin-cli and bellscoind)
- * of a given instance of the Bitcoin system.
+ * CBaseChainParams defines the base parameters (shared between bells-cli and bellsd)
+ * of a given instance of the Bells system.
  */
 class CBaseChainParams
 {

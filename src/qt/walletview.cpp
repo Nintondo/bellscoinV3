@@ -18,6 +18,7 @@
 #include <qt/transactionview.h>
 #include <qt/walletmodel.h>
 
+#include <outputtype.h>
 #include <interfaces/node.h>
 #include <node/interface_ui.h>
 #include <util/strencodings.h>
@@ -156,6 +157,16 @@ void WalletView::gotoHistoryPage()
 void WalletView::gotoReceiveCoinsPage()
 {
     setCurrentWidget(receiveCoinsPage);
+}
+
+void WalletView::setAddressTypes(OutputType outputType) 
+{ 
+    receiveCoinsPage->setAddressTypes(outputType); 
+}
+
+void WalletView::updateWalletTypes(int height) 
+{ 
+    receiveCoinsPage->updateWalletTypes(height); 
 }
 
 void WalletView::gotoSendCoinsPage(QString addr)

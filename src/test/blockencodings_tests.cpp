@@ -48,7 +48,6 @@ static CBlock BuildBlockTestCase() {
     assert(!mutated);
     while (!CheckProofOfWork(block.GetPoWHash(), block.nBits, GlobParams().GetConsensus()))
     {
-        printf("nonce - %u", block.nNonce);
         ++block.nNonce;
     } 
     return block;

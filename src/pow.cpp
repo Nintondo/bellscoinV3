@@ -50,11 +50,10 @@ unsigned int GetNextWorkRequiredOld(const CBlockIndex* pindexLast, const CBlockH
         if (params.fPowAllowMinDifficultyBlocks)
         {
             // Special difficulty rule for testnet:
-            // If the new block's timestamp is more than 2* 10 minutes
+            // If the new block's timestamp is more than 4 minutes
             // then allow mining of a min-difficulty block.
             if (pblock->GetBlockTime() > pindexLast->GetBlockTime() + params.PoWTargetSpacing().count()*4)
             {
-
                 return nProofOfWorkLimit;
             }
             else
@@ -104,12 +103,14 @@ unsigned int GetNextWorkRequiredNew(const CBlockIndex* pindexLast, const CBlockH
     // Genesis block
     if (pindexLast == NULL)
     {
+        LogPrintf("------> Genesis block. Return nProofOfWorkLimit - %d\n", nProofOfWorkLimit);
         return nProofOfWorkLimit;
     }
 
     // Regtest
     if (params.fPowNoRetargeting)
     {
+        LogPrintf("------> Return params.fPowNoRetargeting - %d\n", pindexLast->nBits);
         return pindexLast->nBits;
     }
 
@@ -124,6 +125,7 @@ unsigned int GetNextWorkRequiredNew(const CBlockIndex* pindexLast, const CBlockH
             // then allow mining of a min-difficulty block.
             if (pblock && pblock->GetBlockTime() > pindexLast->GetBlockTime() + params.PoWTargetSpacing().count() * 6)
             {
+                LogPrintf("------> Testnet Return nProofOfWorkLimit - %d\n", nProofOfWorkLimit);
                 return nProofOfWorkLimit;
             }
         }
@@ -142,6 +144,7 @@ unsigned int GetNextWorkRequiredNew(const CBlockIndex* pindexLast, const CBlockH
     // Check we have enough blocks
     if (pindexFirst == NULL)
     {
+        LogPrintf("------> We have enough blocks Return nProofOfWorkLimit - %d\n", nProofOfWorkLimit);
         return nProofOfWorkLimit;
     }
 
@@ -173,9 +176,11 @@ unsigned int CalculateNextWorkRequiredNew(arith_uint256 bnAvg,
     nActualTimespan = averagingWindowTimespan + (nActualTimespan - averagingWindowTimespan)/4;
 
     if (nActualTimespan < minActualTimespan) {
+        LogPrintf("------> nActualTimespan < minActualTimespan { nActualTimespan %d = %d minActualTimespan }\n", nActualTimespan, minActualTimespan);
         nActualTimespan = minActualTimespan;
     }
     if (nActualTimespan > maxActualTimespan) {
+        LogPrintf("------> nActualTimespan > maxActualTimespan { nActualTimespan %d = %d maxActualTimespan }\n",nActualTimespan, maxActualTimespan);
         nActualTimespan = maxActualTimespan;
     }
 
@@ -186,9 +191,13 @@ unsigned int CalculateNextWorkRequiredNew(arith_uint256 bnAvg,
     bnNew *= nActualTimespan;
 
     if (bnNew > bnPowLimit) {
+        LogPrintf("------> bnNew > bnPowLimit { bnNew %d = %d bnPowLimit }\n", bnNew.GetCompact(), bnPowLimit.GetCompact());
+        LogPrintf("------> bnNew > bnPowLimit { bnNew %s = %s bnPowLimit }\n", bnNew.ToString(), bnPowLimit.ToString());
         bnNew = bnPowLimit;
     }
-
+    
+    LogPrintf("------> CalculateNextWorkRequiredNew Return bnNew.GetCompact() - %d\n", bnNew.GetCompact());
+    LogPrintf("------> CalculateNextWorkRequiredNew Return bnNew.ToString() - %s\n", bnNew.ToString());
     return bnNew.GetCompact();
 }
 
@@ -238,7 +247,11 @@ unsigned int CalculateNextWorkRequiredOld(const CBlockIndex* pindexLast, int64_t
 // or decrease beyond the permitted limits.
 bool PermittedDifficultyTransition(const Consensus::Params& params, int64_t height, uint32_t old_nbits, uint32_t new_nbits)
 {
-    if (params.fPowAllowMinDifficultyBlocks) return true;
+    if (params.fPowAllowMinDifficultyBlocks)
+    {
+        LogPrintf("------> PermittedDifficultyTransition return true fPowAllowMinDifficultyBlocks\n");
+        return true;
+    } 
 
     if (height % params.DifficultyAdjustmentInterval() == 0) {
         int64_t smallest_timespan = params.nPowTargetTimespan/4;
@@ -262,8 +275,11 @@ bool PermittedDifficultyTransition(const Consensus::Params& params, int64_t heig
         // observed.
         arith_uint256 maximum_new_target;
         maximum_new_target.SetCompact(largest_difficulty_target.GetCompact());
-        if (maximum_new_target < observed_new_target) return false;
-
+        if (maximum_new_target < observed_new_target)
+        {
+            LogPrintf("------> PermittedDifficultyTransition return false\n");
+            return false;
+        } 
         // Calculate the smallest difficulty value possible:
         arith_uint256 smallest_difficulty_target;
         smallest_difficulty_target.SetCompact(old_nbits);
@@ -278,10 +294,16 @@ bool PermittedDifficultyTransition(const Consensus::Params& params, int64_t heig
         // observed.
         arith_uint256 minimum_new_target;
         minimum_new_target.SetCompact(smallest_difficulty_target.GetCompact());
-        if (minimum_new_target > observed_new_target) return false;
+        if (minimum_new_target > observed_new_target)
+        {
+            LogPrintf("------> PermittedDifficultyTransition minimum_new_target > observed_new_target return false\n");
+            return false;
+        }
     } else if (old_nbits != new_nbits) {
+        LogPrintf("------> PermittedDifficultyTransition old_nbits != new_nbits return true\n");
         return false;
     }
+    LogPrintf("------> PermittedDifficultyTransition return true\n");
     return true;
 }
 

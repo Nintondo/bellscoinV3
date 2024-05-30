@@ -102,9 +102,8 @@ BOOST_AUTO_TEST_CASE(DifficultyAveraging) {
 BOOST_AUTO_TEST_CASE(MinDifficultyRules) {
     SelectParams(ChainType::TESTNET);
     Consensus::Params& params = const_cast<Consensus::Params&>(GlobParams().GetConsensus());
-    params.powLimit = uint256S("0x0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f");
-    params.nPowMaxAdjustDown = 0; // Turn off adjustment down
-    params.nPowMaxAdjustUp = 0; // Turn off adjustment up
+    params.powLimit = uint256S("0x00ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+    params.nPowAllowMinDifficultyBlocksAfterHeight = 299187;
     params.nNewPowDiffHeight = 0;
     size_t lastBlk = 2*params.nPowAveragingWindow;
     size_t firstBlk = lastBlk - params.nPowAveragingWindow;

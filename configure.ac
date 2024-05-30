@@ -29,7 +29,7 @@ if test -n "$PKG_CONFIG_LIBDIR"; then
   PKG_CONFIG="env PKG_CONFIG_LIBDIR=$PKG_CONFIG_LIBDIR $PKG_CONFIG"
 fi
 
-BITCOIN_DAEMON_NAME=bells
+BITCOIN_DAEMON_NAME=bellsd
 BITCOIN_GUI_NAME=bells-qt
 BITCOIN_TEST_NAME=test_bells
 BITCOIN_CLI_NAME=bells-cli
@@ -291,7 +291,7 @@ AC_ARG_WITH([mpgen],
 
 AC_ARG_ENABLE([multiprocess],
   [AS_HELP_STRING([--enable-multiprocess],
-  [build multiprocess bitcoin-node, bitcoin-wallet, and bitcoin-gui executables in addition to monolithic bitcoind and bellscoin-qt executables. Requires libmultiprocess library. Experimental (default is no)])],
+  [build multiprocess bells-node, bells-wallet, and bells-gui executables in addition to monolithic bellsd and bells-qt executables. Requires libmultiprocess library. Experimental (default is no)])],
   [enable_multiprocess=$enableval],
   [enable_multiprocess=no])
 

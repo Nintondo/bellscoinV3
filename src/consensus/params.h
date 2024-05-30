@@ -128,6 +128,7 @@ struct Params {
     /** Auxpow parameters */
     int32_t nAuxpowChainId;
     int nAuxpowStartHeight;
+    int nBlockAfterAuxpowRewardThreshold;
     bool fStrictChainId;
     int nLegacyBlocksBefore; // -1 for "always allow"
 
