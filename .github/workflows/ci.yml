@@ -30,3 +30,7 @@ jobs:
         ./autogen.sh
         ./configure --prefix=$PWD/depends/x86_64-pc-linux-gnu
         make
+
+    - name: Check tests
+      run: |
+        make check
