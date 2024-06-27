@@ -14,9 +14,10 @@ jobs:
       uses: actions/cache@v2
       with:
         path: depends
-        key: ${{ runner.os }}-depends-${{ hashFiles('**/configure') }}
+        key: ${{ runner.os }}-depends-v1.0
         restore-keys: |
           ${{ runner.os }}-depends-
+          ${{ runner.os }}-depends-v1.0-
           
     - name: Build dependencies
       run: |
@@ -27,5 +28,5 @@ jobs:
       run: |
         ls -la
         ./autogen.sh
-        ./configure
+        ./configure --prefix=$PWD/depends/x86_64-pc-linux-gnu
         make
