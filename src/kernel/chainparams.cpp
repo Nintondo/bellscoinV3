@@ -146,7 +146,7 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].bit = 2;
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].nStartTime = 1718409600; // 2024-06-15 00:00:00
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].nTimeout = 1735084800; // 2024-12-25 18:00:00
-        consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].min_activation_height = 144000;
+        consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].min_activation_height = 188000;
 
         consensus.nMinimumChainWork = uint256S("0x0000000000000000000000000000000000000000000000000000000000100010");
         consensus.defaultAssumeValid = uint256S("0x50c259c50c5c2ab235f2ceb45da49f7c046f0411667c00d81cb8165f2b843ea1"); // 40000
