@@ -39,5 +39,4 @@ jobs:
 
     - name: Check tests
       run: |
-        ./src/qt/test/test_bells-qt
         make check
