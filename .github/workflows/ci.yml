@@ -26,7 +26,7 @@ jobs:
 
     - name: Configure and build
       run: |
-        sudo apt-get install libxcb-xinerama0
+        sudo apt-get install libxcb-xinerama0 libxcb-icccm4-dev
         ./autogen.sh
         ./configure --prefix=$PWD/depends/x86_64-pc-linux-gnu
         make
