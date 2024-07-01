@@ -103,14 +103,12 @@ unsigned int GetNextWorkRequiredNew(const CBlockIndex* pindexLast, const CBlockH
     // Genesis block
     if (pindexLast == NULL)
     {
-        LogPrintf("------> Genesis block. Return nProofOfWorkLimit - %d\n", nProofOfWorkLimit);
         return nProofOfWorkLimit;
     }
 
     // Regtest
     if (params.fPowNoRetargeting)
     {
-        LogPrintf("------> Return params.fPowNoRetargeting - %d\n", pindexLast->nBits);
         return pindexLast->nBits;
     }
 
@@ -125,7 +123,6 @@ unsigned int GetNextWorkRequiredNew(const CBlockIndex* pindexLast, const CBlockH
             // then allow mining of a min-difficulty block.
             if (pblock && pblock->GetBlockTime() > pindexLast->GetBlockTime() + params.PoWTargetSpacing().count() * 6)
             {
-                LogPrintf("------> Testnet Return nProofOfWorkLimit - %d\n", nProofOfWorkLimit);
                 return nProofOfWorkLimit;
             }
         }
@@ -144,7 +141,6 @@ unsigned int GetNextWorkRequiredNew(const CBlockIndex* pindexLast, const CBlockH
     // Check we have enough blocks
     if (pindexFirst == NULL)
     {
-        LogPrintf("------> We have enough blocks Return nProofOfWorkLimit - %d\n", nProofOfWorkLimit);
         return nProofOfWorkLimit;
     }
 
@@ -176,11 +172,9 @@ unsigned int CalculateNextWorkRequiredNew(arith_uint256 bnAvg,
     nActualTimespan = averagingWindowTimespan + (nActualTimespan - averagingWindowTimespan)/4;
 
     if (nActualTimespan < minActualTimespan) {
-        LogPrintf("------> nActualTimespan < minActualTimespan { nActualTimespan %d = %d minActualTimespan }\n", nActualTimespan, minActualTimespan);
         nActualTimespan = minActualTimespan;
     }
     if (nActualTimespan > maxActualTimespan) {
-        LogPrintf("------> nActualTimespan > maxActualTimespan { nActualTimespan %d = %d maxActualTimespan }\n",nActualTimespan, maxActualTimespan);
         nActualTimespan = maxActualTimespan;
     }
 
@@ -191,13 +185,9 @@ unsigned int CalculateNextWorkRequiredNew(arith_uint256 bnAvg,
     bnNew *= nActualTimespan;
 
     if (bnNew > bnPowLimit) {
-        LogPrintf("------> bnNew > bnPowLimit { bnNew %d = %d bnPowLimit }\n", bnNew.GetCompact(), bnPowLimit.GetCompact());
-        LogPrintf("------> bnNew > bnPowLimit { bnNew %s = %s bnPowLimit }\n", bnNew.ToString(), bnPowLimit.ToString());
         bnNew = bnPowLimit;
     }
     
-    LogPrintf("------> CalculateNextWorkRequiredNew Return bnNew.GetCompact() - %d\n", bnNew.GetCompact());
-    LogPrintf("------> CalculateNextWorkRequiredNew Return bnNew.ToString() - %s\n", bnNew.ToString());
     return bnNew.GetCompact();
 }
 
@@ -249,7 +239,6 @@ bool PermittedDifficultyTransition(const Consensus::Params& params, int64_t heig
 {
     if (params.fPowAllowMinDifficultyBlocks)
     {
-        LogPrintf("------> PermittedDifficultyTransition return true fPowAllowMinDifficultyBlocks\n");
         return true;
     } 
 
@@ -277,7 +266,6 @@ bool PermittedDifficultyTransition(const Consensus::Params& params, int64_t heig
         maximum_new_target.SetCompact(largest_difficulty_target.GetCompact());
         if (maximum_new_target < observed_new_target)
         {
-            LogPrintf("------> PermittedDifficultyTransition return false\n");
             return false;
         } 
         // Calculate the smallest difficulty value possible:
@@ -296,14 +284,11 @@ bool PermittedDifficultyTransition(const Consensus::Params& params, int64_t heig
         minimum_new_target.SetCompact(smallest_difficulty_target.GetCompact());
         if (minimum_new_target > observed_new_target)
         {
-            LogPrintf("------> PermittedDifficultyTransition minimum_new_target > observed_new_target return false\n");
             return false;
         }
     } else if (old_nbits != new_nbits) {
-        LogPrintf("------> PermittedDifficultyTransition old_nbits != new_nbits return true\n");
         return false;
     }
-    LogPrintf("------> PermittedDifficultyTransition return true\n");
     return true;
 }
 
@@ -318,14 +303,12 @@ bool CheckProofOfWork(uint256 hash, unsigned int nBits, const Consensus::Params&
     // Check range
     if (fNegative || bnTarget == 0 || fOverflow || bnTarget > UintToArith256(params.powLimit))
     {
-        //printf("123123 bntarget %s > powlimit %s \n", bnTarget.ToString().c_str(), params.powLimit.ToString().c_str());
         return false;
     }
 
     // Check proof of work matches claimed amount
     if (UintToArith256(hash) > bnTarget)
     {
-        //printf("5123123 hash %s > powlimit %s \n", hash.ToString().c_str(), bnTarget.ToString().c_str());
         return false;
     }
 
