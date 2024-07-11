@@ -2,7 +2,7 @@
 # Copyright (c) 2018-2022 The Bitcoin Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
-"""Check that it's not possible to start a second bellscoind instance using the same datadir or wallet."""
+"""Check that it's not possible to start a second bellsd instance using the same datadir or wallet."""
 import random
 import string
 
@@ -26,7 +26,7 @@ class FilelockTest(BellscoinTestFramework):
         datadir = self.nodes[0].chain_path
         self.log.info(f"Using datadir {datadir}")
 
-        self.log.info("Check that we can't start a second bellscoind instance using the same datadir")
+        self.log.info("Check that we can't start a second bellsd instance using the same datadir")
         expected_msg = f"Error: Cannot obtain a lock on data directory {datadir}. {self.config['environment']['PACKAGE_NAME']} is probably already running."
         self.nodes[1].assert_start_raises_init_error(extra_args=[f'-datadir={self.nodes[0].datadir_path}', '-noserver'], expected_msg=expected_msg)
 
@@ -35,7 +35,7 @@ class FilelockTest(BellscoinTestFramework):
                 wallet_name = ''.join([random.choice(string.ascii_lowercase) for _ in range(6)])
                 self.nodes[0].createwallet(wallet_name=wallet_name, descriptors=descriptors)
                 wallet_dir = self.nodes[0].wallets_path
-                self.log.info("Check that we can't start a second bellscoind instance using the same wallet")
+                self.log.info("Check that we can't start a second bellsd instance using the same wallet")
                 if descriptors:
                     expected_msg = f"Error: SQLiteDatabase: Unable to obtain an exclusive lock on the database, is it being used by another instance of {self.config['environment']['PACKAGE_NAME']}?"
                 else:

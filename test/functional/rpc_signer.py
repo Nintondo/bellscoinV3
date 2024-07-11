@@ -4,7 +4,7 @@
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test external signer.
 
-Verify that a bellscoind node can use an external signer command.
+Verify that a bellsd node can use an external signer command.
 See also wallet_signer.py for tests that require wallet context.
 """
 import os
@@ -48,7 +48,7 @@ class RPCSignerTest(BellscoinTestFramework):
     def run_test(self):
         self.log.debug(f"-signer={self.mock_signer_path()}")
 
-        assert_raises_rpc_error(-1, 'Error: restart bellscoind with -signer=<cmd>',
+        assert_raises_rpc_error(-1, 'Error: restart bellsd with -signer=<cmd>',
             self.nodes[0].enumeratesigners
         )
 

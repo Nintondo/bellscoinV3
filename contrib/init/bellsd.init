@@ -22,15 +22,15 @@ prog=bellsd
 # you can override the lockfile via BITCOIND_LOCKFILE in /etc/sysconfig/bellsd
 lockfile=${BITCOIND_LOCKFILE-/var/lock/subsys/bellsd}
 
-# bellscoind defaults to /usr/bin/bellsd, override with BITCOIND_BIN
-bellscoind=${BITCOIND_BIN-/usr/bin/bellsd}
+# bellsd defaults to /usr/bin/bellsd, override with BITCOIND_BIN
+bellsd=${BITCOIND_BIN-/usr/bin/bellsd}
 
-# bellscoind opts default to -disablewallet, override with BITCOIND_OPTS
-bellscoind_opts=${BITCOIND_OPTS--disablewallet}
+# bellsd opts default to -disablewallet, override with BITCOIND_OPTS
+bellsd_opts=${BITCOIND_OPTS--disablewallet}
 
 start() {
     echo -n $"Starting $prog: "
-    daemon $DAEMONOPTS $bellscoind $bellscoind_opts
+    daemon $DAEMONOPTS $bellsd $bellsd_opts
     RETVAL=$?
     echo
     [ $RETVAL -eq 0 ] && touch $lockfile

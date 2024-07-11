@@ -1,8 +1,8 @@
 # Disable files from being included in completions by default
-complete --command bellscoind --no-files
+complete --command bellsd --no-files
 
 # Extract options
-function __fish_bellscoind_get_options
+function __fish_bellsd_get_options
     argparse 'nofiles' -- $argv
     set --local cmd (commandline -opc)[1]
     set --local options
@@ -21,15 +21,15 @@ end
 
 # Add options with file completion
 complete \
-    --command bellscoind \
-    --arguments "(__fish_bellscoind_get_options)"
+    --command bellsd \
+    --arguments "(__fish_bellsd_get_options)"
 # Enable file completions only if the commandline now contains a `*.=` style option
-complete --command bellscoind \
+complete --command bellsd \
     --condition 'string match --regex -- ".*=" (commandline -pt)' \
     --force-files
 
 # Add options without file completion
 complete \
-    --command bellscoind \
-    --arguments "(__fish_bellscoind_get_options --nofiles)"
+    --command bellsd \
+    --arguments "(__fish_bellsd_get_options --nofiles)"
 

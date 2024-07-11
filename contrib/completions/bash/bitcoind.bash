@@ -1,15 +1,15 @@
-# bash programmable completion for bellscoind(1) and bellscoin-qt(1)
+# bash programmable completion for bellsd(1) and bellscoin-qt(1)
 # Copyright (c) 2012-2022 The Bitcoin Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-_bellscoind() {
+_bellsd() {
     local cur prev words=() cword
-    local bellscoind
+    local bellsd
 
-    # save and use original argument to invoke bellscoind for -help
+    # save and use original argument to invoke bellsd for -help
     # it might not be in $PATH
-    bellscoind="$1"
+    bellsd="$1"
 
     COMPREPLY=()
     _get_comp_words_by_ref -n = cur prev words cword
@@ -33,7 +33,7 @@ _bellscoind() {
             # only parse -help if sensible
             if [[ -z "$cur" || "$cur" =~ ^- ]]; then
                 local helpopts
-                helpopts=$($bellscoind -help 2>&1 | awk '$1 ~ /^-/ { sub(/=.*/, "="); print $1 }' )
+                helpopts=$($bellsd -help 2>&1 | awk '$1 ~ /^-/ { sub(/=.*/, "="); print $1 }' )
                 COMPREPLY=( $( compgen -W "$helpopts" -- "$cur" ) )
             fi
 
@@ -45,7 +45,7 @@ _bellscoind() {
             ;;
     esac
 } &&
-complete -F _bellscoind bellscoind bellscoin-qt
+complete -F _bellsd bellsd bellscoin-qt
 
 # Local variables:
 # mode: shell-script
