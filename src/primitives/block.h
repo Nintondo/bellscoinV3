@@ -5,7 +5,7 @@
 
 #ifndef BITCOIN_PRIMITIVES_BLOCK_H
 #define BITCOIN_PRIMITIVES_BLOCK_H
-
+#include <iostream>
 #include <boost/stacktrace.hpp>
 #include <auxpow.h>
 #include <primitives/transaction.h>
