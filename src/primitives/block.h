@@ -6,6 +6,7 @@
 #ifndef BITCOIN_PRIMITIVES_BLOCK_H
 #define BITCOIN_PRIMITIVES_BLOCK_H
 
+#include <boost/stacktrace.hpp>
 #include <auxpow.h>
 #include <primitives/transaction.h>
 #include <primitives/pureheader.h>
@@ -37,6 +38,9 @@ public:
         s << *(CPureBlockHeader*)this;
         if (this->IsAuxpow())
         {
+            std::cout << "---------------STACKTRACE this->IsAuxpow()---------------\n";
+            std::cout << boost::stacktrace::stacktrace() << std::endl << std::endl;
+            std::cout << "-------------------------------------------------------\n";
             assert(auxpow != nullptr);
             s << *auxpow;
         }
