@@ -1083,11 +1083,12 @@ struct ActionUnserialize {
 class CSizeComputer
 {
 protected:
+    const int nProtocol{SER_SIZE};
     size_t nSize{0};
 
     const int nVersion;
 public:
-    explicit CSizeComputer(int nVersionIn) : nVersion(nVersionIn) {}
+    explicit CSizeComputer(int nVersionIn, int nProtocolIn = SER_SIZE) : nProtocol(nProtocolIn), nVersion(nVersionIn) {}
 
     void write(Span<const std::byte> src)
     {
@@ -1111,6 +1112,7 @@ public:
         return nSize;
     }
 
+    int GetType() const { return nProtocol; }
     int GetVersion() const { return nVersion; }
 };
 

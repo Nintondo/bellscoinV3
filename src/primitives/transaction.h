@@ -426,6 +426,7 @@ class GenTxid
 {
     bool m_is_wtxid;
     uint256 m_hash;
+    uint32_t m_type;
     GenTxid(bool is_wtxid, const uint256& hash) : m_is_wtxid(is_wtxid), m_hash(hash) {}
 
 public:
@@ -433,6 +434,7 @@ public:
     static GenTxid Wtxid(const uint256& hash) { return GenTxid{true, hash}; }
     bool IsWtxid() const { return m_is_wtxid; }
     const uint256& GetHash() const { return m_hash; }
+    const uint32_t& GetType() const { return m_type; }
     friend bool operator==(const GenTxid& a, const GenTxid& b) { return a.m_is_wtxid == b.m_is_wtxid && a.m_hash == b.m_hash; }
     friend bool operator<(const GenTxid& a, const GenTxid& b) { return std::tie(a.m_is_wtxid, a.m_hash) < std::tie(b.m_is_wtxid, b.m_hash); }
 };

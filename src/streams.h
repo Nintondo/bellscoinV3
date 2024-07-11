@@ -51,9 +51,11 @@ class OverrideStream
     Stream* stream;
 
     const int nVersion;
+    int nType{0};
 
 public:
     OverrideStream(Stream* stream_, int nVersion_) : stream{stream_}, nVersion{nVersion_} {}
+    OverrideStream(Stream* stream_, int nType_, int nVersion_) : stream(stream_), nType(nType_), nVersion(nVersion_) {}
 
     template<typename T>
     OverrideStream<Stream>& operator<<(const T& obj)
@@ -79,6 +81,7 @@ public:
         stream->read(dst);
     }
 
+    int GetType() const { return nType; }
     int GetVersion() const { return nVersion; }
     size_t size() const { return stream->size(); }
     void ignore(size_t size) { return stream->ignore(size); }
@@ -143,10 +146,7 @@ class CVectorWriter
         ::Serialize(*this, obj);
         return (*this);
     }
-    int GetVersion() const
-    {
-        return nVersion;
-    }
+    int GetVersion() const { return nVersion;}
     int GetType() const { return nType; }
 
 private:
@@ -164,6 +164,7 @@ class SpanReader
 private:
     const int m_version;
     Span<const unsigned char> m_data;
+    const int m_type{0};
 
 public:
     /**
@@ -173,6 +174,9 @@ public:
     SpanReader(int version, Span<const unsigned char> data)
         : m_version{version}, m_data{data} {}
 
+    SpanReader(int type, int version, Span<const unsigned char> data)
+        : m_version(version), m_data(data), m_type(type) {}
+
     template<typename T>
     SpanReader& operator>>(T&& obj)
     {
@@ -180,6 +184,7 @@ public:
         return (*this);
     }
 
+    int GetType() const { return m_type; }
     int GetVersion() const { return m_version; }
 
     size_t size() const { return m_data.size(); }
@@ -211,6 +216,7 @@ protected:
     using vector_type = SerializeData;
     vector_type vch;
     vector_type::size_type m_read_pos{0};
+    int nType{0};
 
 public:
     typedef vector_type::allocator_type   allocator_type;
@@ -223,9 +229,9 @@ public:
     typedef vector_type::const_iterator   const_iterator;
     typedef vector_type::reverse_iterator reverse_iterator;
 
-    explicit DataStream() {}
-    explicit DataStream(Span<const uint8_t> sp) : DataStream{AsBytes(sp)} {}
-    explicit DataStream(Span<const value_type> sp) : vch(sp.data(), sp.data() + sp.size()) {}
+    explicit DataStream(int nTypeIn = 0) {nType = nTypeIn;}
+    explicit DataStream(Span<const uint8_t> sp, int nTypeIn = 0) : DataStream{AsBytes(sp), nTypeIn} {}
+    explicit DataStream(Span<const value_type> sp, int nTypeIn = 0) : vch(sp.data(), sp.data() + sp.size()), nType(nTypeIn) {}
 
     std::string str() const
     {
@@ -339,23 +345,23 @@ public:
     {
         util::Xor(MakeWritableByteSpan(*this), MakeByteSpan(key));
     }
+
+    int GetType() const { return nType; }
 };
 
 class CDataStream : public DataStream
 {
 private:
-    int nType;
     int nVersion;
 
 public:
     explicit CDataStream(int nTypeIn, int nVersionIn)
-        : nType{nTypeIn},
+        : DataStream{nTypeIn},
           nVersion{nVersionIn} {}
 
     explicit CDataStream(Span<const uint8_t> sp, int type, int version) : CDataStream{AsBytes(sp), type, version} {}
     explicit CDataStream(Span<const value_type> sp, int nTypeIn, int nVersionIn)
-        : DataStream{sp},
-          nType{nTypeIn},
+        : DataStream{sp, nTypeIn},
           nVersion{nVersionIn} {}
 
     int GetType() const          { return nType; }
@@ -555,10 +561,12 @@ public:
 class CAutoFile : public AutoFile
 {
 private:
+    const int nType;
     const int nVersion;
 
 public:
-    explicit CAutoFile(std::FILE* file, int version, std::vector<std::byte> data_xor = {}) : AutoFile{file, std::move(data_xor)}, nVersion{version} {}
+    explicit CAutoFile(std::FILE* file, int version, std::vector<std::byte> data_xor = {}) : AutoFile{file, std::move(data_xor)}, nType{SER_DISK}, nVersion{version} {}
+    int GetType() const          { return nType; }
     int GetVersion() const       { return nVersion; }
 
     template<typename T>
@@ -585,6 +593,7 @@ public:
 class BufferedFile
 {
 private:
+    int nType;
     CAutoFile& m_src;
     uint64_t nSrcPos{0};  //!< how many bytes have been read from source
     uint64_t m_read_pos{0}; //!< how many bytes have been read from this
@@ -639,6 +648,7 @@ public:
             throw std::ios_base::failure("Rewind limit must be less than buffer size");
     }
 
+    int GetType() const { return nType; }
     int GetVersion() const { return m_src.GetVersion(); }
 
     //! check whether we're at the end of the source file
