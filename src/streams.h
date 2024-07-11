@@ -103,12 +103,25 @@ class CVectorWriter
         if(nPos > vchData.size())
             vchData.resize(nPos);
     }
+
+    // BELLSCOIN
+    CVectorWriter(int nTypeIn, int nVersionIn, std::vector<unsigned char>& vchDataIn, size_t nPosIn) : nType(nTypeIn), nVersion(nVersionIn), vchData(vchDataIn), nPos(nPosIn)
+    {
+        if(nPos > vchData.size())
+            vchData.resize(nPos);
+    }
 /*
  * (other params same as above)
  * @param[in]  args  A list of items to serialize starting at nPosIn.
 */
     template <typename... Args>
     CVectorWriter(int nVersionIn, std::vector<unsigned char>& vchDataIn, size_t nPosIn, Args&&... args) : CVectorWriter{nVersionIn, vchDataIn, nPosIn}
+    {
+        ::SerializeMany(*this, std::forward<Args>(args)...);
+    }
+    // BELLSCOIN
+    template <typename... Args>
+    CVectorWriter(int nTypeIn, int nVersionIn, std::vector<unsigned char>& vchDataIn, size_t nPosIn, Args&&... args) : CVectorWriter{nTypeIn, nVersionIn, vchDataIn, nPosIn}
     {
         ::SerializeMany(*this, std::forward<Args>(args)...);
     }
@@ -134,8 +147,11 @@ class CVectorWriter
     {
         return nVersion;
     }
+    int GetType() const { return nType; }
 
 private:
+    int nType{0};
+
     const int nVersion;
     std::vector<unsigned char>& vchData;
     size_t nPos;
