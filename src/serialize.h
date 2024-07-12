@@ -308,6 +308,8 @@ template <typename Stream, typename B> void Unserialize(Stream& s, Span<B> span)
 
 template <typename Stream> inline void Serialize(Stream& s, bool a) { uint8_t f = a; ser_writedata8(s, f); }
 template <typename Stream> inline void Unserialize(Stream& s, bool& a) { uint8_t f = ser_readdata8(s); a = f; }
+
+template <typename S, typename T> size_t GetSerializeSize(const S& s, const T& t);
 // clang-format on
 
 
@@ -1083,10 +1085,11 @@ struct ActionUnserialize {
 class CSizeComputer
 {
 protected:
-    const int nProtocol{SER_SIZE};
     size_t nSize{0};
 
+    const int nProtocol{SER_SIZE};
     const int nVersion;
+
 public:
     explicit CSizeComputer(int nVersionIn, int nProtocolIn = SER_SIZE) : nProtocol(nProtocolIn), nVersion(nVersionIn) {}
 
@@ -1128,9 +1131,20 @@ inline void WriteCompactSize(CSizeComputer &s, uint64_t nSize)
 }
 
 template <typename T>
-size_t GetSerializeSize(const T& t, int nVersion = 0)
+size_t GetSerializeSize(const T& t, int nVersion = 0, int nProtocol = SER_SIZE)
 {
-    return (CSizeComputer(nVersion) << t).size();
+    return (CSizeComputer(nVersion, nProtocol) << t).size();
+}
+// Bellscoin
+template <typename T>
+size_t GetSerializeSize(const T& t, int nVersion, int nProtocol, int nTxVersion)
+{
+    return (CSizeComputer(nVersion, nProtocol, nTxVersion) << t).size();
+}
+template <typename S, typename T>
+size_t GetSerializeSize(const S& s, const T& t)
+{
+    return (CSizeComputer(s.GetVersion()) << t).size();
 }
 
 template <typename... T>
