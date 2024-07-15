@@ -5,7 +5,6 @@
 
 #include <net_processing.h>
 
-#include <boost/stacktrace.hpp>
 #include <addrman.h>
 #include <banman.h>
 #include <blockencodings.h>
@@ -5704,9 +5703,6 @@ bool PeerManagerImpl::SendMessages(CNode* pto)
                         LogPrint(BCLog::NET, "%s: sending header %s to peer=%d\n", __func__,
                                 vHeaders.front().GetHash().ToString(), pto->GetId());
                     }
-                    std::cout << "---------------STACKTRACE sending header---------------\n";
-                    std::cout << boost::stacktrace::stacktrace() << std::endl << std::endl;
-                    std::cout << "-------------------------------------------------------\n";
                     m_connman.PushMessage(pto, msgMaker.Make(NetMsgType::HEADERS, vHeaders));
                     state.pindexBestHeaderSent = pBestIndex;
                 } else

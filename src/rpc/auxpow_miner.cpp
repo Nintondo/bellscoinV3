@@ -178,11 +178,6 @@ AuxpowMiner::submitAuxBlock (const node::JSONRPCRequest& request,
   std::unique_ptr<CAuxPow> pow(new CAuxPow ());
   ss >> *pow;
 
-  if(pow)
-    printf("Correct auxpow\n");
-  else
-    printf("Error -> incorrect auxpow\n");
-
   shared_block->SetAuxpow (std::move (pow));
   CHECK_NONFATAL(shared_block->GetHash ().GetHex () == hashHex);
 
