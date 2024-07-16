@@ -177,6 +177,7 @@ AuxpowMiner::submitAuxBlock (const node::JSONRPCRequest& request,
   CDataStream ss(vchAuxPow, SER_GETHASH, PROTOCOL_VERSION);
   std::unique_ptr<CAuxPow> pow(new CAuxPow ());
   ss >> *pow;
+
   shared_block->SetAuxpow (std::move (pow));
   CHECK_NONFATAL(shared_block->GetHash ().GetHex () == hashHex);
 

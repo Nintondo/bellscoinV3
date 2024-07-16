@@ -44,7 +44,7 @@ CBlockHeader CBlockIndex::GetBlockHeader() const
     block.nVersion       = nVersion;
 
     if (pprev)
-    block.hashPrevBlock = pprev->GetBlockHash();
+        block.hashPrevBlock = pprev->GetBlockHash();
     block.hashMerkleRoot = hashMerkleRoot;
     block.nTime          = nTime;
     block.nBits          = nBits;

@@ -202,7 +202,7 @@ private:
     bool ValidateAndStoreHeadersCommitments(const std::vector<CBlockHeader>& headers);
 
     /** In PRESYNC, process and update state for a single header */
-    bool ValidateAndProcessSingleHeader(const CBlockHeader& current);
+    bool ValidateAndProcessSingleHeader(const CPureBlockHeader& current);
 
     /** In REDOWNLOAD, check a header's commitment (if applicable) and add to
      * buffer for later processing */
@@ -241,7 +241,7 @@ private:
     uint64_t m_max_commitments{0};
 
     /** Store the latest header received while in PRESYNC (initialized to m_chain_start) */
-    CBlockHeader m_last_header_received;
+    CPureBlockHeader m_last_header_received;
 
     /** Height of m_last_header_received */
     int64_t m_current_height{0};

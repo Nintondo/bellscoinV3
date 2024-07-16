@@ -49,6 +49,7 @@ public:
     }
 
     int GetVersion() const { return m_version; }
+    int GetType() const { return SER_NETWORK; }
 private:
     const int m_version;
     const unsigned char* m_data;

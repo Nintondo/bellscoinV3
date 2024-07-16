@@ -111,7 +111,7 @@ class ZMQTest (BellscoinTestFramework):
 
     def skip_test_if_missing_module(self):
         self.skip_if_no_py3_zmq()
-        self.skip_if_no_bellscoind_zmq()
+        self.skip_if_no_bellsd_zmq()
 
     def run_test(self):
         self.wallet = MiniWallet(self.nodes[0])

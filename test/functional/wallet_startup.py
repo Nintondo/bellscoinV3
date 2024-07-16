@@ -4,7 +4,7 @@
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test wallet load on startup.
 
-Verify that a bellscoind node can maintain list of wallets loading on startup
+Verify that a bellsd node can maintain list of wallets loading on startup
 """
 from test_framework.test_framework import BellscoinTestFramework
 from test_framework.util import (

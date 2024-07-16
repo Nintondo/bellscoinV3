@@ -266,7 +266,7 @@ class BackwardsCompatibilityTest(BellscoinTestFramework):
         if self.options.descriptors:
             self.log.info("Test descriptor wallet incompatibility on:")
             for node in legacy_only_nodes:
-                # RPC loadwallet failure causes bellscoind to exit in <= 0.17, in addition to the RPC
+                # RPC loadwallet failure causes bellsd to exit in <= 0.17, in addition to the RPC
                 # call failure, so the following test won't work:
                 # assert_raises_rpc_error(-4, "Wallet loading failed.", node_v17.loadwallet, 'w3')
                 if self.major_version_less_than(node, 18):

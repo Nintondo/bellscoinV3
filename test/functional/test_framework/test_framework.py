@@ -158,9 +158,9 @@ class BellscoinTestFramework(metaclass=BellscoinTestMetaClass):
         previous_releases_path = os.getenv("PREVIOUS_RELEASES_DIR") or os.getcwd() + "/releases"
         parser = argparse.ArgumentParser(usage="%(prog)s [options]")
         parser.add_argument("--nocleanup", dest="nocleanup", default=False, action="store_true",
-                            help="Leave bellscoinds and test.* datadir on exit or error")
+                            help="Leave bellsds and test.* datadir on exit or error")
         parser.add_argument("--noshutdown", dest="noshutdown", default=False, action="store_true",
-                            help="Don't stop bellscoinds after the test execution")
+                            help="Don't stop bellsds after the test execution")
         parser.add_argument("--cachedir", dest="cachedir", default=os.path.abspath(os.path.dirname(os.path.realpath(__file__)) + "/../../cache"),
                             help="Directory for caching pregenerated datadirs (default: %(default)s)")
         parser.add_argument("--tmpdir", dest="tmpdir", help="Root directory for datadirs")
@@ -231,7 +231,7 @@ class BellscoinTestFramework(metaclass=BellscoinTestMetaClass):
         """Update self.options with the paths of all binaries from environment variables or their default values"""
 
         binaries = {
-            "bellscoind": ("bellscoind", "BITCOIND"),
+            "bellsd": ("bellsd", "BITCOIND"),
             "bitcoin-cli": ("bitcoincli", "BITCOINCLI"),
             "bitcoin-util": ("bitcoinutil", "BITCOINUTIL"),
             "bitcoin-wallet": ("bitcoinwallet", "BITCOINWALLET"),
@@ -314,7 +314,7 @@ class BellscoinTestFramework(metaclass=BellscoinTestMetaClass):
         else:
             for node in self.nodes:
                 node.cleanup_on_exit = False
-            self.log.info("Note: bellscoinds were not stopped and may still be running")
+            self.log.info("Note: bellsds were not stopped and may still be running")
 
         should_clean_up = (
             not self.options.nocleanup and
@@ -497,7 +497,7 @@ class BellscoinTestFramework(metaclass=BellscoinTestMetaClass):
         if versions is None:
             versions = [None] * num_nodes
         if binary is None:
-            binary = [get_bin_from_version(v, 'bellscoind', self.options.bellscoind) for v in versions]
+            binary = [get_bin_from_version(v, 'bellsd', self.options.bellsd) for v in versions]
         if binary_cli is None:
             binary_cli = [get_bin_from_version(v, 'bitcoin-cli', self.options.bitcoincli) for v in versions]
         assert_equal(len(extra_confs), num_nodes)
@@ -516,7 +516,7 @@ class BellscoinTestFramework(metaclass=BellscoinTestMetaClass):
                 rpchost=rpchost,
                 timewait=self.rpc_timeout,
                 timeout_factor=self.options.timeout_factor,
-                bellscoind=binary[i],
+                bellsd=binary[i],
                 bitcoin_cli=binary_cli[i],
                 version=versions[i],
                 coverage_dir=self.options.coveragedir,
@@ -534,7 +534,7 @@ class BellscoinTestFramework(metaclass=BellscoinTestMetaClass):
                 test_node_i.replace_in_config([('[regtest]', '')])
 
     def start_node(self, i, *args, **kwargs):
-        """Start a bellscoind"""
+        """Start a bellsd"""
 
         node = self.nodes[i]
 
@@ -545,7 +545,7 @@ class BellscoinTestFramework(metaclass=BellscoinTestMetaClass):
             coverage.write_all_rpc_commands(self.options.coveragedir, node.rpc)
 
     def start_nodes(self, extra_args=None, *args, **kwargs):
-        """Start multiple bellscoinds"""
+        """Start multiple bellsds"""
 
         if extra_args is None:
             extra_args = [None] * self.num_nodes
@@ -565,11 +565,11 @@ class BellscoinTestFramework(metaclass=BellscoinTestMetaClass):
                 coverage.write_all_rpc_commands(self.options.coveragedir, node.rpc)
 
     def stop_node(self, i, expected_stderr='', wait=0):
-        """Stop a bellscoind test node"""
+        """Stop a bellsd test node"""
         self.nodes[i].stop_node(expected_stderr, wait=wait)
 
     def stop_nodes(self, wait=0):
-        """Stop multiple bellscoind test nodes"""
+        """Stop multiple bellsd test nodes"""
         for node in self.nodes:
             # Issue RPC to stop nodes
             node.stop_node(wait=wait, wait_until_stopped=False)
@@ -763,7 +763,7 @@ class BellscoinTestFramework(metaclass=BellscoinTestMetaClass):
         # User can provide log level as a number or string (eg DEBUG). loglevel was caught as a string, so try to convert it to an int
         ll = int(self.options.loglevel) if self.options.loglevel.isdigit() else self.options.loglevel.upper()
         ch.setLevel(ll)
-        # Format logs the same as bellscoind's debug.log with microprecision (so log files can be concatenated and sorted)
+        # Format logs the same as bellsd's debug.log with microprecision (so log files can be concatenated and sorted)
         formatter = logging.Formatter(fmt='%(asctime)s.%(msecs)03d000Z %(name)s (%(levelname)s): %(message)s', datefmt='%Y-%m-%dT%H:%M:%S')
         formatter.converter = time.gmtime
         fh.setFormatter(formatter)
@@ -803,7 +803,7 @@ class BellscoinTestFramework(metaclass=BellscoinTestMetaClass):
                     rpchost=None,
                     timewait=self.rpc_timeout,
                     timeout_factor=self.options.timeout_factor,
-                    bellscoind=self.options.bellscoind,
+                    bellsd=self.options.bellsd,
                     bitcoin_cli=self.options.bitcoincli,
                     coverage_dir=None,
                     cwd=self.options.tmpdir,
@@ -882,10 +882,10 @@ class BellscoinTestFramework(metaclass=BellscoinTestMetaClass):
         except ImportError:
             raise SkipTest("bcc python module not available")
 
-    def skip_if_no_bellscoind_tracepoints(self):
-        """Skip the running test if bellscoind has not been compiled with USDT tracepoint support."""
+    def skip_if_no_bellsd_tracepoints(self):
+        """Skip the running test if bellsd has not been compiled with USDT tracepoint support."""
         if not self.is_usdt_compiled():
-            raise SkipTest("bellscoind has not been built with USDT tracepoints enabled.")
+            raise SkipTest("bellsd has not been built with USDT tracepoints enabled.")
 
     def skip_if_no_bpf_permissions(self):
         """Skip the running test if we don't have permissions to do BPF syscalls and load BPF maps."""
@@ -903,10 +903,10 @@ class BellscoinTestFramework(metaclass=BellscoinTestMetaClass):
         if os.name != 'posix':
             raise SkipTest("not on a POSIX system")
 
-    def skip_if_no_bellscoind_zmq(self):
-        """Skip the running test if bellscoind has not been compiled with zmq support."""
+    def skip_if_no_bellsd_zmq(self):
+        """Skip the running test if bellsd has not been compiled with zmq support."""
         if not self.is_zmq_compiled():
-            raise SkipTest("bellscoind has not been built with zmq enabled.")
+            raise SkipTest("bellsd has not been built with zmq enabled.")
 
     def skip_if_no_wallet(self):
         """Skip the running test if wallet has not been compiled."""

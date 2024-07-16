@@ -5,7 +5,6 @@
 
 #ifndef BITCOIN_PRIMITIVES_BLOCK_H
 #define BITCOIN_PRIMITIVES_BLOCK_H
-
 #include <auxpow.h>
 #include <primitives/transaction.h>
 #include <primitives/pureheader.h>

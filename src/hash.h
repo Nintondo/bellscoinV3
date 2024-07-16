@@ -102,7 +102,6 @@ class HashWriter
 {
 private:
     CSHA256 ctx;
-    int nTxVersion{0};
     const int nVersion;
     const int nType;
 
@@ -149,7 +148,8 @@ public:
         return *this;
     }
 
-    int GetVersion() const { return 1; }
+    int GetType() const { return nType; }
+    int GetVersion() const { return nVersion; } 
 };
 
 class CHashWriter : public HashWriter

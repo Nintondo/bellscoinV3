@@ -3,7 +3,7 @@
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-""" Interactive bellscoind P2P network traffic monitor utilizing USDT and the
+""" Interactive bellsd P2P network traffic monitor utilizing USDT and the
     net:inbound_message and net:outbound_message tracepoints. """
 
 # This script demonstrates what USDT for Bitcoin Core can enable. It uses BCC
@@ -115,17 +115,17 @@ class Peer:
             self.total_outbound_msgs += 1
 
 
-def main(bellscoind_path):
+def main(bellsd_path):
     peers = dict()
 
-    bellscoind_with_usdts = USDT(path=str(bellscoind_path))
+    bellsd_with_usdts = USDT(path=str(bellsd_path))
 
     # attaching the trace functions defined in the BPF program to the tracepoints
-    bellscoind_with_usdts.enable_probe(
+    bellsd_with_usdts.enable_probe(
         probe="inbound_message", fn_name="trace_inbound_message")
-    bellscoind_with_usdts.enable_probe(
+    bellsd_with_usdts.enable_probe(
         probe="outbound_message", fn_name="trace_outbound_message")
-    bpf = BPF(text=program, usdt_contexts=[bellscoind_with_usdts])
+    bpf = BPF(text=program, usdt_contexts=[bellsd_with_usdts])
 
     # BCC: perf buffer handle function for inbound_messages
     def handle_inbound(_, data, size):
@@ -247,7 +247,7 @@ def render(screen, peers, cur_list_pos, scroll, ROWS_AVALIABLE_FOR_LIST, info_pa
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("USAGE:", sys.argv[0], "path/to/bellscoind")
+        print("USAGE:", sys.argv[0], "path/to/bellsd")
         exit()
     path = sys.argv[1]
     main(path)

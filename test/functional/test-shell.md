@@ -8,8 +8,8 @@ The `TestShell` submodule extends the `BitcoinTestFramework` functionality to
 external interactive environments for prototyping and educational purposes. Just
 like `BitcoinTestFramework`, the `TestShell` allows the user to:
 
-* Manage regtest bellscoind subprocesses.
-* Access RPC interfaces of the underlying bellscoind instances.
+* Manage regtest bellsd subprocesses.
+* Access RPC interfaces of the underlying bellsd instances.
 * Log events to the functional test logging utility.
 
 The `TestShell` can be useful in interactive environments where it is necessary
@@ -20,7 +20,7 @@ user inputs. Such environments include the Python3 command line interpreter or
 ## 1. Requirements
 
 * Python3
-* `bellscoind` built in the same repository as the `TestShell`.
+* `bellsd` built in the same repository as the `TestShell`.
 
 ## 2. Importing `TestShell` from the Bitcoin Core repository
 
@@ -34,7 +34,7 @@ importing the `TestShell` class from the `test_shell` sub-package.
 >>> from test_framework.test_shell import TestShell
 ```
 
-The following `TestShell` methods manage the lifetime of the underlying bellscoind
+The following `TestShell` methods manage the lifetime of the underlying bellsd
 processes and logging utilities.
 
 * `TestShell().setup()`
@@ -61,7 +61,7 @@ used to initialize the `TestShell` can be found in [section
 
 **Note: Running multiple instances of `TestShell` is not allowed.** Running a
 single process also ensures that logging remains consolidated in the same
-temporary folder. If you need more bellscoind nodes than set by default (1),
+temporary folder. If you need more bellsd nodes than set by default (1),
 simply increase the `num_nodes` parameter during setup.
 
 ```

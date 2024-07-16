@@ -961,7 +961,7 @@ bool BlockManager::WriteBlockToDisk(const CBlock& block, FlatFilePos& pos) const
     }
 
     // Write index header
-    unsigned int nSize = GetSerializeSize(block, fileout.GetVersion());
+    unsigned int nSize = GetSerializeSize(block, fileout.GetVersion(), SER_DISK);
     fileout << GetParams().MessageStart() << nSize;
 
     // Write block

@@ -132,15 +132,15 @@ def print_message(event, inbound):
           )
 
 
-def main(bellscoind_path):
-    bellscoind_with_usdts = USDT(path=str(bellscoind_path))
+def main(bellsd_path):
+    bellsd_with_usdts = USDT(path=str(bellsd_path))
 
     # attaching the trace functions defined in the BPF program to the tracepoints
-    bellscoind_with_usdts.enable_probe(
+    bellsd_with_usdts.enable_probe(
         probe="inbound_message", fn_name="trace_inbound_message")
-    bellscoind_with_usdts.enable_probe(
+    bellsd_with_usdts.enable_probe(
         probe="outbound_message", fn_name="trace_outbound_message")
-    bpf = BPF(text=program, usdt_contexts=[bellscoind_with_usdts])
+    bpf = BPF(text=program, usdt_contexts=[bellsd_with_usdts])
 
     # BCC: perf buffer handle function for inbound_messages
     def handle_inbound(_, data, size):
@@ -177,7 +177,7 @@ def main(bellscoind_path):
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("USAGE:", sys.argv[0], "path/to/bellscoind")
+        print("USAGE:", sys.argv[0], "path/to/bellsd")
         exit()
     path = sys.argv[1]
     main(path)
