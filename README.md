@@ -1,6 +1,4 @@
 <h1 align="center">
-<img src="https://belscan.io/images/logo.png" data-canonical-src="https://belscan.io/images/logo.png" width="250" height="250" alt="Bells"/>
-<br/><br/>
 Bells Core [BEL]
 </h1>
 
@@ -11,7 +9,7 @@ Bells Core [BEL]
 
 </div>
 
-## This branch contains the latest version 2.0.0 of the bells network.
+## This branch contains the latest version 3.0.0 of the bells network.
 
 ## What is Bells?
 Bells is the twin of DogeCoin, born before it, and just seen the lights now. [Visit blockchain explorer](https://nintondo.io/explorer)
