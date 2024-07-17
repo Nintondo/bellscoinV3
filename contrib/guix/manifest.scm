@@ -91,7 +91,7 @@ chain for " target " development."))
       (home-page (package-home-page xgcc))
       (license (package-license xgcc)))))
 
-(define base-gcc gcc-10)
+(define base-gcc gcc-11)
 (define base-linux-kernel-headers linux-libre-headers-6.1)
 
 (define* (make-bitcoin-cross-toolchain target
@@ -409,8 +409,12 @@ inspecting signatures in Mach-O binaries.")
           `(append ,flags
             ;; https://gcc.gnu.org/install/configure.html
             (list "--enable-threads=posix",
-                  "--enable-default-ssp=yes",
-                  building-on)))))))
+                  building-on)))
+        ((#:make-flags flags)
+          ;; Uses the SSP functions from glibc instead of from libssp.so.
+          ;; Our 'symbol-check' script will complain if we link against libssp.so,
+          ;; and thus will ensure that this works properly.
+          `(cons "gcc_cv_libc_provides_ssp=yes" ,flags))))))
 
 (define-public linux-base-gcc
   (package
