@@ -1089,9 +1089,10 @@ protected:
 
     const int nProtocol{SER_SIZE};
     const int nVersion;
+    int nTxVersion{0};
 
 public:
-    explicit CSizeComputer(int nVersionIn, int nProtocolIn = SER_SIZE) : nProtocol(nProtocolIn), nVersion(nVersionIn) {}
+    explicit CSizeComputer(int nVersionIn, int nProtocolIn = SER_SIZE, int nTxVersionIn = 0) : nProtocol(nProtocolIn), nVersion(nVersionIn), nTxVersion(nTxVersionIn) {}
 
     void write(Span<const std::byte> src)
     {
