@@ -2,12 +2,12 @@ AC_PREREQ([2.69])
 define(_CLIENT_VERSION_MAJOR, 3)
 define(_CLIENT_VERSION_MINOR, 0)
 define(_CLIENT_VERSION_BUILD, 0)
-define(_CLIENT_VERSION_RC, 0)
+define(_CLIENT_VERSION_RC, 1)
 define(_CLIENT_VERSION_IS_RELEASE, false)
 define(_COPYRIGHT_YEAR, 2024)
 define(_COPYRIGHT_HOLDERS,[The %s developers])
 define(_COPYRIGHT_HOLDERS_SUBSTITUTION,[[Bells Core]])
-AC_INIT([Bells core],m4_join([.], _CLIENT_VERSION_MAJOR, _CLIENT_VERSION_MINOR, _CLIENT_VERSION_BUILD)m4_if(_CLIENT_VERSION_RC, [0], [], [rc]_CLIENT_VERSION_RC),[https://github.com/bitcoin/bitcoin/issues],[bitcoin],[https://bitcoincore.org/])
+AC_INIT([Bells core],m4_join([.], _CLIENT_VERSION_MAJOR, _CLIENT_VERSION_MINOR, _CLIENT_VERSION_BUILD)m4_if(_CLIENT_VERSION_RC, [0], [], [rc]_CLIENT_VERSION_RC),[https://github.com/nintondo/bellscoin/issues],[bitcoin],[https://nintondo.io/])
 AC_CONFIG_SRCDIR([src/validation.cpp])
 AC_CONFIG_HEADERS([src/config/bitcoin-config.h])
 AC_CONFIG_AUX_DIR([build-aux])
@@ -69,6 +69,9 @@ else
   CXXFLAGS_overridden=no
 fi
 AC_PROG_CXX
+
+# Enable for dev backtrace
+# AC_CHECK_LIB([dl], [dladdr])
 
 dnl libtool overrides
 case $host in

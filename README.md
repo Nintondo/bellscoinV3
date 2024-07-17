@@ -1,17 +1,17 @@
 <h1 align="center">
-<img src="https://belscan.io/images/logo.png" data-canonical-src="https://belscan.io/images/logo.png" width="250" height="250" alt="Bells"/>
+<img src="https://bellscoin.com/assets/bell-bag-1x-300-CRltNSoe.webp" data-canonical-src="https://bellscoin.com/assets/bell-bag-1x-300-CRltNSoe.webp" width="301" height="360" alt="Bells"/>
 <br/><br/>
 Bells Core [BEL]
 </h1>
 
 <div align="center">
 
-[![BellsBadge](https://img.shields.io/badge/Bells-Coin-blue)](https://dogecoin.com)
-[![MuchWow](https://img.shields.io/badge/OG-Coin-yellow.svg)](https://dogecoin.com)
+[![BellsBadge](https://img.shields.io/badge/Bells-Coin-blue)](https://bellscoin.com)
+[![MuchWow](https://img.shields.io/badge/OG-Coin-yellow.svg)](https://bellscoin.com)
 
 </div>
 
-## This branch contains the latest version 2.0.0 of the bells network.
+## This branch contains the latest version 3.0.0 of the bells network.
 
 ## What is Bells?
 Bells is the twin of DogeCoin, born before it, and just seen the lights now. [Visit blockchain explorer](https://nintondo.io/explorer)
