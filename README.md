@@ -1,11 +1,13 @@
 <h1 align="center">
+<img src="https://bellscoin.com/assets/bell-bag-1x-300-CRltNSoe.webp" data-canonical-src="https://bellscoin.com/assets/bell-bag-1x-300-CRltNSoe.webp" width="301" height="360" alt="Bells"/>
+<br/><br/>
 Bells Core [BEL]
 </h1>
 
 <div align="center">
 
-[![BellsBadge](https://img.shields.io/badge/Bells-Coin-blue)](https://dogecoin.com)
-[![MuchWow](https://img.shields.io/badge/OG-Coin-yellow.svg)](https://dogecoin.com)
+[![BellsBadge](https://img.shields.io/badge/Bells-Coin-blue)](https://bellscoin.com)
+[![MuchWow](https://img.shields.io/badge/OG-Coin-yellow.svg)](https://bellscoin.com)
 
 </div>
 
