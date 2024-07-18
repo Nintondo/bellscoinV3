@@ -290,7 +290,7 @@ endif # ENABLE_WALLET
 
 QT_RES_ANIMATION = $(wildcard $(srcdir)/qt/res/animation/spinner-*.png)
 
-BITCOIN_QT_RC = qt/res/bitcoin-qt-res.rc
+BITCOIN_QT_RC = qt/res/bells-qt-res.rc
 
 BITCOIN_QT_INCLUDES = -DQT_NO_KEYWORDS -DQT_USE_QSTRINGBUILDER
 

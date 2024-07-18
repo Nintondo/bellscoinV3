@@ -791,7 +791,7 @@ bitcoin_bin_cxxflags = $(AM_CXXFLAGS) $(PIE_FLAGS)
 bitcoin_bin_ldflags = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS) $(PTHREAD_FLAGS)
 
 if TARGET_WINDOWS
-bitcoin_daemon_sources += bitcoind-res.rc
+bitcoin_daemon_sources += bellsd-res.rc
 endif
 
 bitcoin_bin_ldadd = \
@@ -828,7 +828,7 @@ bells_cli_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 bells_cli_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS) $(PTHREAD_FLAGS)
 
 if TARGET_WINDOWS
-bells_cli_SOURCES += bitcoin-cli-res.rc
+bells_cli_SOURCES += bells-cli-res.rc
 endif
 
 bells_cli_LDADD = \
@@ -848,7 +848,7 @@ bells_tx_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 bells_tx_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS) $(PTHREAD_FLAGS)
 
 if TARGET_WINDOWS
-bells_tx_SOURCES += bitcoin-tx-res.rc
+bells_tx_SOURCES += bells-tx-res.rc
 endif
 
 bells_tx_LDADD = \
@@ -869,7 +869,7 @@ bells_wallet_LDFLAGS = $(bitcoin_bin_ldflags)
 bells_wallet_LDADD = $(LIBBITCOIN_WALLET_TOOL) $(bitcoin_bin_ldadd)
 
 if TARGET_WINDOWS
-bells_wallet_SOURCES += bitcoin-wallet-res.rc
+bells_wallet_SOURCES += bells-wallet-res.rc
 endif
 #
 
@@ -880,7 +880,7 @@ bells_util_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 bells_util_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS) $(PTHREAD_FLAGS)
 
 if TARGET_WINDOWS
-bells_util_SOURCES += bitcoin-util-res.rc
+bells_util_SOURCES += bells-util-res.rc
 endif
 
 bells_util_LDADD = \
