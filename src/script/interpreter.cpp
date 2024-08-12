@@ -12,7 +12,7 @@
 #include <pubkey.h>
 #include <script/script.h>
 #include <uint256.h>
-#include "mcl/bn_c384_256.h"
+#include <mcl/bn_c384_256.h>
 
 typedef std::vector<unsigned char> valtype;
 
@@ -1983,11 +1983,10 @@ static bool VerifyTaprootCommitment(const std::vector<unsigned char>& control, c
     return q.CheckTapTweak(p, merkle_root, control[0] & 1);
 }
 
-bool TransactionSignatureChecker::GetSigHash(const std::vector<unsigned char>& scriptSig, int nHashType, const CScript& scriptCode, SigVersion sigversion, uint256 * sighashOut) 
+template <class T>
+bool GenericTransactionSignatureChecker<T>::GetSigHash(int nHashType, const CScript& scriptCode, SigVersion sigversion, uint256 * sighashOut) const
 {
-
     *sighashOut = SignatureHash(scriptCode, *txTo, nIn, nHashType, amount, sigversion, this->txdata);
-
     return true;
 }
 

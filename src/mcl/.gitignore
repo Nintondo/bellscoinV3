@@ -14,3 +14,8 @@ GTAGS
 build/
 external/
 Testing/
+build-aux/
+libmcl.pc
+config.h
+config.h.in
+stamp-h1

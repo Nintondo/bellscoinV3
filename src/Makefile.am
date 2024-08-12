@@ -6,7 +6,7 @@
 print-%: FORCE
 	@echo '$*'='$($*)'
 
-DIST_SUBDIRS = secp256k1 mcl
+DIST_SUBDIRS = secp256k1 univalue mcl
 
 AM_LDFLAGS = $(LIBTOOL_LDFLAGS) $(HARDENED_LDFLAGS) $(GPROF_LDFLAGS) $(SANITIZER_LDFLAGS) $(LTO_LDFLAGS) $(CORE_LDFLAGS)
 AM_CXXFLAGS = $(DEBUG_CXXFLAGS) $(HARDENED_CXXFLAGS) $(WARN_CXXFLAGS) $(NOWARN_CXXFLAGS) $(ERROR_CXXFLAGS) $(GPROF_CXXFLAGS) $(SANITIZER_CXXFLAGS) $(LTO_CXXFLAGS) $(CORE_CXXFLAGS)
@@ -24,7 +24,7 @@ check_PROGRAMS =
 TESTS =
 BENCHMARKS =
 
-BITCOIN_INCLUDES=-I$(builddir) -I$(srcdir)/$(MINISKETCH_INCLUDE_DIR_INT) -I$(srcdir)/secp256k1/include -I$(srcdir)/$(UNIVALUE_INCLUDE_DIR_INT) -I$(srcdir)/mcl/include
+BITCOIN_INCLUDES=-I$(builddir) -I$(srcdir)/$(MINISKETCH_INCLUDE_DIR_INT) -I$(srcdir)/secp256k1/include -I$(srcdir)/$(UNIVALUE_INCLUDE_DIR_INT) -I$(srcdir)/mcl/include -I$(srcdir)/mcl/src
 
 LIBBITCOIN_NODE=libbitcoin_node.a
 LIBBITCOIN_COMMON=libbitcoin_common.a
@@ -34,6 +34,7 @@ LIBBITCOIN_UTIL=libbitcoin_util.a
 LIBBITCOIN_CRYPTO_BASE=crypto/libbitcoin_crypto_base.la
 LIBBITCOINQT=qt/libbitcoinqt.a
 LIBSECP256K1=secp256k1/libsecp256k1.la
+LIBMCL=mcl/libmcl.la
 
 if ENABLE_ZMQ
 LIBBITCOIN_ZMQ=libbitcoin_zmq.a
@@ -917,8 +918,8 @@ if BUILD_BITCOIN_KERNEL_LIB
 lib_LTLIBRARIES += $(LIBBITCOINKERNEL)
 
 libbitcoinkernel_la_LDFLAGS = $(AM_LDFLAGS) -no-undefined $(RELDFLAGS) $(PTHREAD_FLAGS)
-libbitcoinkernel_la_LIBADD = $(LIBBITCOIN_CRYPTO) $(LIBLEVELDB) $(LIBMEMENV) $(LIBSECP256K1) $(LIBMCL)
-libbitcoinkernel_la_CPPFLAGS = $(AM_CPPFLAGS) -I$(builddir)/obj -I$(srcdir)/secp256k1/include -DBUILD_BITCOIN_INTERNAL $(BOOST_CPPFLAGS) $(LEVELDB_CPPFLAGS) -I$(srcdir)/mcl/include
+libbitcoinkernel_la_LIBADD = $(LIBBITCOIN_CRYPTO) $(LIBLEVELDB) $(LIBMEMENV) $(LIBSECP256K1)
+libbitcoinkernel_la_CPPFLAGS = $(AM_CPPFLAGS) -I$(builddir)/obj -I$(srcdir)/secp256k1/include -DBUILD_BITCOIN_INTERNAL $(BOOST_CPPFLAGS) $(LEVELDB_CPPFLAGS) -I$(srcdir)/mcl/include -I$(srcdir)/mcl/src
 
 # libbitcoinkernel requires default symbol visibility, explicitly specify that
 # here so that things still work even when user configures with
@@ -1024,8 +1025,8 @@ include_HEADERS = script/bitcoinconsensus.h
 libbitcoinconsensus_la_SOURCES = support/cleanse.cpp $(crypto_libbitcoin_crypto_base_la_SOURCES) $(libbitcoin_consensus_a_SOURCES)
 
 libbitcoinconsensus_la_LDFLAGS = $(AM_LDFLAGS) -no-undefined $(RELDFLAGS)
-libbitcoinconsensus_la_LIBADD = $(LIBSECP256K1)
-libbitcoinconsensus_la_CPPFLAGS = $(AM_CPPFLAGS) -I$(builddir)/obj -I$(srcdir)/secp256k1/include -DBUILD_BITCOIN_INTERNAL
+libbitcoinconsensus_la_LIBADD = $(LIBSECP256K1) $(LIBMCL)
+libbitcoinconsensus_la_CPPFLAGS = $(AM_CPPFLAGS) -I$(builddir)/obj -I$(srcdir)/secp256k1/include -I$(srcdir)/mcl/include -DBUILD_BITCOIN_INTERNAL
 libbitcoinconsensus_la_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 
 endif
@@ -1071,7 +1072,7 @@ $(top_srcdir)/$(subdir)/config/bitcoin-config.h.in:  $(am__configure_deps)
 
 clean-local:
 	-$(MAKE) -C secp256k1 clean
-  -$(MAKE) -C mcl clean
+	-$(MAKE) -C mcl clean
 	-rm -f leveldb/*/*.gcda leveldb/*/*.gcno leveldb/helpers/memenv/*.gcda leveldb/helpers/memenv/*.gcno
 	-rm -f config.h
 	-rm -rf test/__pycache__

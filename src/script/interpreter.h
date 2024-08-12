@@ -253,7 +253,7 @@ public:
         return false;
     }
 
-    virtual bool GetSigHash(const std::vector<unsigned char>& scriptSig, int nHashType, const CScript& scriptCode, SigVersion sigversion, uint256 * sighashOut) 
+    virtual bool GetSigHash(int nHashType, const CScript& scriptCode, SigVersion sigversion, uint256 * sighashOut) const
     {
         return false;
     }
@@ -304,7 +304,7 @@ public:
     bool CheckSchnorrSignature(Span<const unsigned char> sig, Span<const unsigned char> pubkey, SigVersion sigversion, ScriptExecutionData& execdata, ScriptError* serror = nullptr) const override;
     bool CheckLockTime(const CScriptNum& nLockTime) const override;
     bool CheckSequence(const CScriptNum& nSequence) const override;
-    bool GetSigHash(const std::vector<unsigned char>& scriptSig, int nHashType, const CScript& scriptCode, SigVersion sigversion, uint256 * sighashOut);
+    bool GetSigHash(int nHashType, const CScript& scriptCode, SigVersion sigversion, uint256 * sighashOut) const override;
 };
 
 using TransactionSignatureChecker = GenericTransactionSignatureChecker<CTransaction>;
