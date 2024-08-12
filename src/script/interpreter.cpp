@@ -8,9 +8,11 @@
 #include <crypto/ripemd160.h>
 #include <crypto/sha1.h>
 #include <crypto/sha256.h>
+#include "script/groth16.h"
 #include <pubkey.h>
 #include <script/script.h>
 #include <uint256.h>
+#include "mcl/bn_c384_256.h"
 
 typedef std::vector<unsigned char> valtype;
 
@@ -591,7 +593,7 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
                     break;
                 }
 
-                case OP_NOP1: case OP_NOP4: case OP_NOP5:
+                case OP_NOP1: case OP_NOP5:
                 case OP_NOP6: case OP_NOP7: case OP_NOP8: case OP_NOP9: case OP_NOP10:
                 {
                     if (flags & SCRIPT_VERIFY_DISCOURAGE_UPGRADABLE_NOPS)
@@ -1210,6 +1212,117 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
                         else
                             return set_error(serror, SCRIPT_ERR_CHECKMULTISIGVERIFY);
                     }
+                }
+                break;
+                case OP_CHECKGROTH16VERIFY:
+                {
+                    if (stack.size() < 12)
+                        return set_error(serror, SCRIPT_ERR_INVALID_STACK_OPERATION);
+
+                    CScriptNum mode(stacktop(-1), fRequireMinimal);
+                    size_t upperStackOffset = 0;
+                    if(mode.getint() == 1){
+
+                        // tx_hash mode has no public_input_1
+                        upperStackOffset = 1;
+                    }else if (stack.size() < 13){
+                        return set_error(serror, SCRIPT_ERR_INVALID_STACK_OPERATION);
+                    }
+                    if(mode.getint() != 1 && mode.getint() != 0){
+                        // todo: implement mode 2 and 3
+                        return set_error(serror, SCRIPT_ERR_SIG_DER);
+                    }
+                    
+                    valtype& verfierDataF = stacktop(-2);
+                    valtype& verfierDataE = stacktop(-3);
+                    valtype& verfierDataD = stacktop(-4);
+                    valtype& verfierDataC = stacktop(-5);
+                    valtype& verfierDataB = stacktop(-6);
+                    valtype& verfierDataA = stacktop(-7);
+
+                    
+                    // Subset of script starting at the most recent codeseparator
+                    //CScript scriptCode(pbegincodehash, pend);
+
+
+
+
+                    /*
+                    todo: drop the proof?
+                    // Drop the signature in pre-segwit scripts but not segwit scripts
+                    if (sigversion == SIGVERSION_BASE) {
+                        scriptCode.FindAndDelete(CScript(vchSig));
+                    }
+                    */
+                    valtype publicInput1(32); //tx
+                    if(mode.getint()==1){
+                        CScript scriptCode(pbegincodehash, pend);
+                        uint256 txHash;
+                        if(!checker.GetSigHash(SIGHASH_ALL, scriptCode, sigversion, &txHash)){
+                            return set_error(serror, SCRIPT_ERR_SIG_NULLFAIL);
+                        }
+                        publicInput1.assign(txHash.begin(), txHash.end());
+                        // truncate the last byte so it fits in Fr
+                        publicInput1[31] = 0;//publicInput1[31]&0xf; 
+                    }
+
+
+
+                    // cut off for witness, if mode is 1, then public_input_1 is the current tx_hash instead of a public input
+                    valtype& public_input_1 = mode.getint()==1?publicInput1:stacktop(-8);
+                    valtype& public_input_0 = stacktop(-9+upperStackOffset);
+                    valtype& piC = stacktop(-10+upperStackOffset);
+                    valtype& piB1 = stacktop(-11+upperStackOffset);
+                    valtype& piB0 = stacktop(-12+upperStackOffset);
+                    valtype& piA = stacktop(-13+upperStackOffset);
+                    
+
+                    CGROTH16 groth16Verifier = CGROTH16();
+                   if(
+                        !groth16Verifier.SetProofDataCompact(
+                            &piA,
+                            &piB0,
+                            &piB1,
+                            &piC,
+                            &public_input_0,
+                            &public_input_1
+                        )
+                    ) {
+                        // SCRIPT_ERR_WITNESS_PUBKEYTYPE -> makes sense?
+                        return set_error(serror, SCRIPT_ERR_CHECKMULTISIGVERIFY);
+                    }
+                   if(
+                        !groth16Verifier.SetVerifierDataCompact(
+                            &verfierDataA,
+                            &verfierDataB,
+                            &verfierDataC,
+                            &verfierDataD,
+                            &verfierDataE,
+                            &verfierDataF
+                        )
+                    ) {
+                        // SCRIPT_ERR_WITNESS_PUBKEYTYPE -> makes sense?
+                        return set_error(serror, SCRIPT_ERR_WITNESS_PUBKEYTYPE);
+                    }
+                    
+
+                    
+                    bool fSuccess = groth16Verifier.Verify();
+                    /*
+                    // we don't modify the stack so as to be compatible with older versions
+                    for(int i=0;i<12;i++){
+                        popstack(stack);
+                    }
+                    if(mode.getint() != 1){
+                        popstack(stack); // extra value for mode 0 and 2
+                    }
+                    stack.push_back(fSuccess ? vchTrue : vchFalse);
+                    */
+                   if(!fSuccess){
+                       return set_error(serror, SCRIPT_ERR_CHECKSIGVERIFY);
+                   }
+
+                    
                 }
                 break;
 
@@ -1868,6 +1981,14 @@ static bool VerifyTaprootCommitment(const std::vector<unsigned char>& control, c
     const uint256 merkle_root = ComputeTaprootMerkleRoot(control, tapleaf_hash);
     // Verify that the output pubkey matches the tweaked internal pubkey, after correcting for parity.
     return q.CheckTapTweak(p, merkle_root, control[0] & 1);
+}
+
+bool TransactionSignatureChecker::GetSigHash(const std::vector<unsigned char>& scriptSig, int nHashType, const CScript& scriptCode, SigVersion sigversion, uint256 * sighashOut) 
+{
+
+    *sighashOut = SignatureHash(scriptCode, *txTo, nIn, nHashType, amount, sigversion, this->txdata);
+
+    return true;
 }
 
 static bool VerifyWitnessProgram(const CScriptWitness& witness, int witversion, const std::vector<unsigned char>& program, unsigned int flags, const BaseSignatureChecker& checker, ScriptError* serror, bool is_p2sh)
