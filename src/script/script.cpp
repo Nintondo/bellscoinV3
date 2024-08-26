@@ -237,6 +237,25 @@ bool CScript::IsWitnessProgram(int& version, std::vector<unsigned char>& program
     return false;
 }
 
+bool CScript::IsGroth16Program() const
+{
+
+    return false;
+}
+
+std::string CScript::groth16_to_string()
+{
+    std::string ret = "CScriptWitness(";
+    for (unsigned int i = 0; i < stack.size(); i++) {
+        if (i) {
+            ret += ", ";
+        }
+        ret += HexStr(stack[i]);
+    }
+    return ret + ")";
+}
+
+
 bool CScript::IsPushOnly(const_iterator pc) const
 {
     while (pc < end())
