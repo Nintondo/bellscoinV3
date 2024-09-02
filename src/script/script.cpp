@@ -245,13 +245,7 @@ bool CScript::IsGroth16Program() const
 
 std::string CScript::groth16_to_string()
 {
-    std::string ret = "CScriptWitness(";
-    for (unsigned int i = 0; i < stack.size(); i++) {
-        if (i) {
-            ret += ", ";
-        }
-        ret += HexStr(stack[i]);
-    }
+    std::string ret = "CScriptGroth16("; // TODO: do for tests groth16
     return ret + ")";
 }
 

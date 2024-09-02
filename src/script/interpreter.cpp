@@ -1943,6 +1943,7 @@ static bool ExecuteWitnessScript(const Span<const valtype>& stack_span, const CS
                         return set_error(serror, SCRIPT_ERR_DISCOURAGE_OP_SUCCESS);
                     }
                     return set_success(serror);
+                }
             }
         }
 
