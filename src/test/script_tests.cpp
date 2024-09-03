@@ -1923,6 +1923,22 @@ BOOST_AUTO_TEST_CASE(compute_tapleaf)
     BOOST_CHECK_EQUAL(ComputeTapleafHash(0xc2, Span(script)), tlc2);
 }
 
+std::tuple<CScript, CScriptWitness> ConstructWitnessForTaprootLeafSpend(std::vector<unsigned char> witVerifyScript, std::vector<std::vector<unsigned char>> witData) {
+    const KeyData keys;
+    TaprootBuilder builder;
+    builder.Add(/*depth=*/0, witVerifyScript, TAPROOT_LEAF_TAPSCRIPT, /*track=*/true);
+    builder.Finalize(XOnlyPubKey(keys.key0.GetPubKey()));
+
+    CScriptWitness witness;
+    witness.stack.insert(witness.stack.begin(), witData.begin(), witData.end());
+    witness.stack.push_back(witVerifyScript);
+    auto controlblock = *(builder.GetSpendData().scripts[{witVerifyScript, TAPROOT_LEAF_TAPSCRIPT}].begin());
+    witness.stack.push_back(controlblock);
+
+    CScript scriptPubKey = CScript() << OP_1 << ToByteVector(builder.GetOutput());
+    return std::make_tuple(scriptPubKey, witness);
+}
+
 void DoTapscriptTest(std::vector<unsigned char> witVerifyScript, std::vector<std::vector<unsigned char>> witData, const std::string& message, int scriptError)
 {
     const KeyData keys;

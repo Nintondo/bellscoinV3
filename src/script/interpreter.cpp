@@ -453,12 +453,12 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
                 if (opcode > OP_16 && ++nOpCount > MAX_OPS_PER_SCRIPT) {
                     return set_error(serror, SCRIPT_ERR_OP_COUNT);
                 }
-            }
-            // When OP_SUCCESS disabled opcodes (CVE-2010-5137) are
-            // redefined in tapscript, remove them from the if below
-            // and put them here
-            if (opcode == OP_CAT) {
-                return set_error(serror, SCRIPT_ERR_DISABLED_OPCODE); // Disabled opcodes (CVE-2010-5137).
+                // When OP_SUCCESS disabled opcodes (CVE-2010-5137) are
+                // redefined in tapscript, remove them from the if below
+                // and put them here
+                if (opcode == OP_CAT) {
+                    return set_error(serror, SCRIPT_ERR_DISABLED_OPCODE); // Disabled opcodes (CVE-2010-5137).
+                }
             }
 
             if (opcode == OP_SUBSTR ||
