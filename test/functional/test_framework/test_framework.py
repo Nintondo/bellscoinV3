@@ -73,6 +73,7 @@ class BellscoinTestMetaClass(type):
                 raise TypeError("BellscoinTestFramework subclasses may not override "
                                 "'__init__' or 'main'")
 
+        print(f"---- Creating class {clsname} !!!!!! with bases !!!!!! {bases} and attributes {dct}")
         return super().__new__(cls, clsname, bases, dct)
 
 

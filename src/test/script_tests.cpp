@@ -1963,10 +1963,13 @@ BOOST_AUTO_TEST_CASE(cat_simple)
     std::vector<std::vector<unsigned char>> witData;
     witData.emplace_back(ParseHex("aa"));
     witData.emplace_back(ParseHex("bbbb"));
-    std::vector<unsigned char> witVerifyScript = {OP_CAT, OP_PUSHDATA1, 0x03, 0xaa, 0xbb, 0xbb, OP_EQUAL};
-    DoTapscriptTest(witVerifyScript, witData, "Simple CAT", SCRIPT_ERR_OK);
-}
 
+    std::vector<unsigned char> witVerifyScript = {OP_CAT, OP_PUSHDATA1, 0x03, 0xaa, 0xbb, 0xbb, OP_EQUAL};
+    auto [scriptPubKey, wit] = ConstructWitnessForTaprootLeafSpend(witVerifyScript, witData);
+    CScript scriptSig = CScript(); // Script sig is always size 0 and empty in tapscript
+    uint32_t flags = SCRIPT_VERIFY_P2SH | SCRIPT_VERIFY_WITNESS | SCRIPT_VERIFY_TAPROOT | SCRIPT_VERIFY_OP_CAT;
+    DoTest(scriptPubKey, scriptSig, wit, flags, "Simple CAT", SCRIPT_ERR_OK, /*nValue=*/1);
+}
 
 BOOST_AUTO_TEST_CASE(cat_empty_stack)
 {
@@ -1974,8 +1977,11 @@ BOOST_AUTO_TEST_CASE(cat_empty_stack)
     std::vector<std::vector<unsigned char>> witData;
     witData.emplace_back();
     witData.emplace_back();
-    std::vector<unsigned char> witVerifyScript = {OP_CAT, OP_PUSHDATA1, 0x00,OP_EQUAL};
-    DoTapscriptTest(witVerifyScript, witData, "CAT empty stack", SCRIPT_ERR_OK);
+    std::vector<unsigned char> witVerifyScript = {OP_CAT, OP_PUSHDATA1, 0x00, OP_EQUAL};
+    auto [scriptPubKey, wit] = ConstructWitnessForTaprootLeafSpend(witVerifyScript, witData);
+    CScript scriptSig = CScript(); // Script sig is always size 0 and empty in tapscript
+    uint32_t flags = SCRIPT_VERIFY_P2SH | SCRIPT_VERIFY_WITNESS | SCRIPT_VERIFY_TAPROOT | SCRIPT_VERIFY_OP_CAT;
+    DoTest(scriptPubKey, scriptSig, wit, flags, "CAT empty stack", SCRIPT_ERR_OK, /*nValue=*/1);
 }
 
 BOOST_AUTO_TEST_CASE(cat_dup_test)
@@ -1985,6 +1991,9 @@ BOOST_AUTO_TEST_CASE(cat_dup_test)
     // or not thrown, as appropriate.
     unsigned int maxElementSize = 522;
     unsigned int maxDupsToCheck = 10;
+
+    CScript scriptSig = CScript(); // Script sig is always size 0 and empty in tapscript
+    uint32_t flags = SCRIPT_VERIFY_P2SH | SCRIPT_VERIFY_WITNESS | SCRIPT_VERIFY_TAPROOT | SCRIPT_VERIFY_OP_CAT;
 
     std::vector<std::vector<unsigned char>> witData;
     witData.emplace_back();
@@ -2001,7 +2010,8 @@ BOOST_AUTO_TEST_CASE(cat_dup_test)
                 expectedErr = SCRIPT_ERR_PUSH_SIZE;
                 break;
             }
-            DoTapscriptTest(witVerifyScript, witData, "CAT DUP test", expectedErr);
+            auto [scriptPubKey, wit] = ConstructWitnessForTaprootLeafSpend(witVerifyScript, witData);
+            DoTest(scriptPubKey, scriptSig, wit, flags, "CAT DUP test", expectedErr, /*nValue=*/1);
             // Once we hit the stack element size limit, break
             if (expectedErr == SCRIPT_ERR_OK)
                 break;

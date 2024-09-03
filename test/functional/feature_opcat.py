@@ -33,7 +33,7 @@ from test_framework.script import (
 )
 from test_framework.script_util import script_to_p2sh_script
 from test_framework.key import ECKey, compute_xonly_pubkey
-from test_framework.test_framework import BitcoinTestFramework
+from test_framework.test_framework import BellscoinTestFramework
 from test_framework.util import assert_equal, assert_raises_rpc_error
 from test_framework.wallet import MiniWallet, MiniWalletMode
 from decimal import Decimal
@@ -79,7 +79,7 @@ def create_transaction_to_script(node, wallet, txid, script, *, amount_sats):
     return tx
 
 
-class CatTest(BitcoinTestFramework):
+class CatTest(BellscoinTestFramework):
     def set_test_params(self):
         self.num_nodes = 1
         self.extra_args = [
@@ -245,4 +245,5 @@ class CatTest(BitcoinTestFramework):
 
 
 if __name__ == "__main__":
-    CatTest(__file__).main()
+    print(f"Path: {__file__}")
+    CatTest().main()
