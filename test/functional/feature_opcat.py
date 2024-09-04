@@ -103,6 +103,8 @@ class CatTest(BellscoinTestFramework):
     def add_block(self, txs):
         block, h = self.get_block(txs)
         reason = self.nodes[0].submitblock(block)
+        print(f"-- {block}")
+        print(f"-- {h}")
         if reason:
             self.log.debug("Reject Reason: [%s]", reason)
         assert_equal(self.nodes[0].getbestblockhash(), h)
@@ -184,6 +186,7 @@ class CatTest(BellscoinTestFramework):
 
         self.log.info("Funding all outputs")
         self.add_block(funding_txs)
+        self.log.info("END Funding all outputs")
 
         self.log.info("Testing tapscript OP_CAT usage is discouraged")
         taproot_op_cat_transaction = CTransaction()

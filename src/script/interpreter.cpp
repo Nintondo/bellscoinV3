@@ -13,6 +13,7 @@
 #include <script/script.h>
 #include <uint256.h>
 #include <mcl/bn_c384_256.h>
+#include <logging.h>
 
 typedef std::vector<unsigned char> valtype;
 
@@ -457,7 +458,14 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
                 // redefined in tapscript, remove them from the if below
                 // and put them here
                 if (opcode == OP_CAT) {
-                    return set_error(serror, SCRIPT_ERR_DISABLED_OPCODE); // Disabled opcodes (CVE-2010-5137).
+                    LogPrintf("-------------> Hello 1\n");
+                    if (flags & SCRIPT_VERIFY_DISCOURAGE_OP_CAT) {
+                    LogPrintf("-------------> Hello 2\n");
+                        return set_error(serror, SCRIPT_ERR_DISCOURAGE_OP_CAT);
+                    } else if (!(flags & SCRIPT_VERIFY_OP_CAT)) {
+                    LogPrintf("-------------> Hello 3\n");
+                        return set_success(serror);
+                    }
                 }
             }
 
@@ -527,6 +535,7 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
                 
                 case OP_CAT:
                 {
+                    LogPrintf("-------------> Hello 4\n");
                     if (stack.size() < 2)
                         return set_error(serror, SCRIPT_ERR_INVALID_STACK_OPERATION);
                     valtype& vch1 = stacktop(-2);
@@ -1931,19 +1940,12 @@ static bool ExecuteWitnessScript(const Span<const valtype>& stack_span, const CS
             }
             // New opcodes will be listed here. May use a different sigversion to modify existing opcodes.
             if (IsOpSuccess(opcode)) {
-                 if (opcode == OP_CAT) {
-                    if (flags & SCRIPT_VERIFY_DISCOURAGE_OP_CAT) {
-                        return set_error(serror, SCRIPT_ERR_DISCOURAGE_OP_CAT);
-                    } else if (!(flags & SCRIPT_VERIFY_OP_CAT)) {
-                        return set_success(serror);
-                    }
-                } else {
-                    // OP_SUCCESS behaviour
-                    if (flags & SCRIPT_VERIFY_DISCOURAGE_OP_SUCCESS) {
-                        return set_error(serror, SCRIPT_ERR_DISCOURAGE_OP_SUCCESS);
-                    }
-                    return set_success(serror);
+               
+                // OP_SUCCESS behaviour
+                if (flags & SCRIPT_VERIFY_DISCOURAGE_OP_SUCCESS) {
+                    return set_error(serror, SCRIPT_ERR_DISCOURAGE_OP_SUCCESS);
                 }
+                return set_success(serror);
             }
         }
 
