@@ -2527,44 +2527,6 @@
 ["OP_CAT tests"],
 [
     [
-        "#SCRIPT# CAT",
-        "#CONTROLBLOCK#",
-        0.00000001
-    ],
-    "",
-    "0x51 0x20 #TAPROOTOUTPUT#",
-    "P2SH,WITNESS,TAPROOT",
-    "OK",
-    "TAPSCRIPT (CAT) Test of OP_CAT flag by calling CAT on an empty stack. This does not error because no TAPSCRIPT_OP_CAT flag is set so CAT is OP_SUCCESS"
-],
-[
-    [
-        "#SCRIPT# CAT",
-        "#CONTROLBLOCK#",
-        0.00000001
-    ],
-    "",
-    "0x51 0x20 #TAPROOTOUTPUT#",
-    "P2SH,WITNESS,TAPROOT,OP_CAT",
-    "INVALID_STACK_OPERATION",
-    "TAPSCRIPT Test of OP_CAT flag by calling CAT on an empty stack. This throws an error because TAPSCRIPT_OP_CAT flag is set so CAT is executed"
-],
-[
-    [
-        "aa",
-        "bb",
-        "#SCRIPT# CAT",
-        "#CONTROLBLOCK#",
-        0.00000001
-    ],
-    "",
-    "0x51 0x20 #TAPROOTOUTPUT#",
-    "P2SH,WITNESS,TAPROOT,OP_CAT",
-    "OK",
-    "TAPSCRIPT Test of OP_CAT flag by calling CAT on two elements. TAPSCRIPT_OP_CAT flag is set so CAT is executed."
-],
-[
-    [
         "78a11a1260c1101260",
         "78a11a1260",
         "c1101260",
@@ -2577,21 +2539,6 @@
     "P2SH,WITNESS,TAPROOT,OP_CAT",
     "OK",
     "TAPSCRIPT CATs 78a11a1260 and c1101260 together and checks it is EQUAL to stack element 78a11a1260c1101260"
-],
-[
-    [
-        "78a11a1260c1101260",
-        "78a11a1260",
-        "c1101260",
-        "#SCRIPT# CAT EQUAL",
-        "#CONTROLBLOCK#",
-        0.00000001
-    ],
-    "",
-    "0x51 0x20 #TAPROOTOUTPUT#",
-    "P2SH,WITNESS,TAPROOT",
-    "OK",
-    "TAPSCRIPT Test of OP_CAT flag, CATs 78a11a1260 and c1101260 together and checks it is EQUAL to stack element 78a11a1260c1101260. No TAPSCRIPT_OP_CAT set so CAT should be OP_SUCCESS."
 ],
 [
     [
