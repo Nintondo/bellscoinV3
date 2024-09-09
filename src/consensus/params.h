@@ -138,6 +138,9 @@ struct Params {
     int64_t nPowMaxAdjustUp;
     int64_t nPostBlossomPowTargetSpacing;
 
+    int nGroth16StartHeight;
+    int nOPCATStartHeight;
+
     std::chrono::seconds PoWTargetSpacing(bool tests = true) const;
     int64_t AveragingWindowTimespan() const;
     int64_t MinActualTimespan() const;
