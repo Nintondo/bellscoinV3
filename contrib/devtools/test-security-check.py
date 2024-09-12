@@ -59,7 +59,7 @@ class TestSecurityChecks(unittest.TestCase):
         arch = get_arch(cxx, source, executable)
 
         if arch == lief.ARCHITECTURES.X86:
-            pass_flags = ['-D_FORTIFY_SOURCE=3', '-Wl,-znoexecstack', '-Wl,-zrelro', '-Wl,-z,now', '-pie', '-fPIE', '-Wl,-z,separate-code', '-fcf-protection=full']
+            pass_flags = ['-O2', '-D_FORTIFY_SOURCE=3', '-Wl,-znoexecstack', '-Wl,-zrelro', '-Wl,-z,now', '-pie', '-fPIE', '-Wl,-z,separate-code', '-fcf-protection=full']
             self.assertEqual(call_security_check(cxx, source, executable, pass_flags + ['-Wl,-zexecstack']), (1, executable + ': failed NX'))
             self.assertEqual(call_security_check(cxx, source, executable, pass_flags + ['-no-pie','-fno-PIE','-fno-stack-protector-all']), (1, executable + ': failed PIE'))
             self.assertEqual(call_security_check(cxx, source, executable, pass_flags + ['-Wl,-znorelro']), (1, executable + ': failed RELRO'))
