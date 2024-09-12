@@ -25,6 +25,19 @@ class ChainstateManager;
  */
 static constexpr int64_t MAX_FUTURE_BLOCK_TIME = 2 * 60 * 60;
 
+static int global_height = 0;
+static std::mutex height_mutex;
+
+static inline void SetGlobHeight(int new_height) {
+    std::lock_guard<std::mutex> lock(height_mutex);
+    global_height = new_height;
+}
+
+static inline int GetGlobHeight() {
+    std::lock_guard<std::mutex> lock(height_mutex);
+    return global_height;
+}
+
 /**
  * Timestamp window used as a grace period by code that compares external
  * timestamps (such as timestamps passed to RPCs, or wallet key creation times)

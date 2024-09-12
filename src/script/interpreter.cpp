@@ -15,6 +15,7 @@
 #include <mcl/bn_c384_256.h>
 #include <logging.h>
 #include <chainparams.h>
+#include <chain.h>
 
 typedef std::vector<unsigned char> valtype;
 
@@ -419,7 +420,7 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
 
     // sigversion cannot be TAPROOT here, as it admits no script execution.
     assert(sigversion == SigVersion::BASE || sigversion == SigVersion::WITNESS_V0 || sigversion == SigVersion::TAPSCRIPT);
-
+    int height = GetGlobHeight();
     const Consensus::Params& consensusParams = GlobParams().GetConsensus();
     CScript::const_iterator pc = script.begin();
     CScript::const_iterator pend = script.end();
@@ -451,9 +452,10 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
                 return set_error(serror, SCRIPT_ERR_PUSH_SIZE);
             
             //TODO: get current height somehow
-            if (opcode == OP_CHECKGROTH16VERIFY && consensusParams.nGroth16StartHeight > CURRENT_HEIGHT)
+            
+            if (opcode == OP_CHECKGROTH16VERIFY && consensusParams.nGroth16StartHeight > height)
                     return set_error(serror, SCRIPT_ERR_DISABLED_OPCODE);
-            if (opcode == OP_CAT && consensusParams.nOPCATStartHeight > CURRENT_HEIGHT)
+            if (opcode == OP_CAT && consensusParams.nOPCATStartHeight > height)
                     return set_error(serror, SCRIPT_ERR_DISABLED_OPCODE);
 
             if (sigversion == SigVersion::BASE || sigversion == SigVersion::WITNESS_V0) {
