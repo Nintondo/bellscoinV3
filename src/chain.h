@@ -25,17 +25,14 @@ class ChainstateManager;
  */
 static constexpr int64_t MAX_FUTURE_BLOCK_TIME = 2 * 60 * 60;
 
-static int global_height = 0;
-static std::mutex height_mutex;
+static std::atomic<int> global_height(0);
 
 static inline void SetGlobHeight(int new_height) {
-    std::lock_guard<std::mutex> lock(height_mutex);
-    global_height = new_height;
+    global_height.store(new_height, std::memory_order_relaxed);
 }
 
 static inline int GetGlobHeight() {
-    std::lock_guard<std::mutex> lock(height_mutex);
-    return global_height;
+    return global_height.load(std::memory_order_relaxed);
 }
 
 /**
