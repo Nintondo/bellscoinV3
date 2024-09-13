@@ -71,7 +71,6 @@ void CChain::SetTip(CBlockIndex& block)
         vChain[pindex->nHeight] = pindex;
         pindex = pindex->pprev;
     }
-    SetGlobHeight(Height());
 }
 
 std::vector<uint256> LocatorEntries(const CBlockIndex* index)

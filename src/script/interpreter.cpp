@@ -15,7 +15,7 @@
 #include <mcl/bn_c384_256.h>
 #include <logging.h>
 #include <chainparams.h>
-#include <chain.h>
+#include <primitives/block.h>
 
 typedef std::vector<unsigned char> valtype;
 

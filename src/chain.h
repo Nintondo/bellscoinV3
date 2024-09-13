@@ -25,16 +25,6 @@ class ChainstateManager;
  */
 static constexpr int64_t MAX_FUTURE_BLOCK_TIME = 2 * 60 * 60;
 
-static std::atomic<int> global_height(0);
-
-static inline void SetGlobHeight(int new_height) {
-    global_height.store(new_height, std::memory_order_relaxed);
-}
-
-static inline int GetGlobHeight() {
-    return global_height.load(std::memory_order_relaxed);
-}
-
 /**
  * Timestamp window used as a grace period by code that compares external
  * timestamps (such as timestamps passed to RPCs, or wallet key creation times)
