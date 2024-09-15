@@ -454,9 +454,13 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
             //TODO: get current height somehow
             
             if (opcode == OP_CHECKGROTH16VERIFY && consensusParams.nGroth16StartHeight > height)
-                    return set_error(serror, SCRIPT_ERR_DISABLED_OPCODE);
+            {
+                return set_error(serror, SCRIPT_ERR_DISABLED_OPCODE);
+            }
             if (opcode == OP_CAT && consensusParams.nOPCATStartHeight > height)
-                    return set_error(serror, SCRIPT_ERR_DISABLED_OPCODE);
+            {
+                return set_error(serror, SCRIPT_ERR_DISABLED_OPCODE);
+            }
 
             if (sigversion == SigVersion::BASE || sigversion == SigVersion::WITNESS_V0) {
                 // Note how OP_RESERVED does not count towards the opcode limit.

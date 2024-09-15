@@ -131,6 +131,11 @@ BasicTestingSetup::BasicTestingSetup(const ChainType chainType, const std::vecto
     SetupEnvironment();
     SetupNetworking();
 
+    CChainParams& params = const_cast<CChainParams&>(GlobParams());
+    Consensus::Params& consensus = const_cast<Consensus::Params&>(params.GetConsensus());
+    consensus.nOPCATStartHeight = 0;
+    consensus.nGroth16StartHeight = 0;
+    
     ValidationCacheSizes validation_cache_sizes{};
     ApplyArgsManOptions(*m_node.args, validation_cache_sizes);
     Assert(InitSignatureCache(validation_cache_sizes.signature_cache_bytes));
