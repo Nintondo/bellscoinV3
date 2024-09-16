@@ -46,7 +46,8 @@ public:
     opcodetype Parse(const std::string& s) const
     {
         auto it = mapOpNames.find(s);
-        if (it == mapOpNames.end()) throw std::runtime_error("script parse error: unknown opcode");
+        if (it == mapOpNames.end()) 
+            throw std::runtime_error("script parse error: unknown opcode");
         return it->second;
     }
 };

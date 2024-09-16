@@ -8,3 +8,4 @@ Description: Library for the Bells consensus protocol.
 Version: @PACKAGE_VERSION@
 Libs: -L${libdir} -lbitcoinconsensus
 Cflags: -I${includedir}
+Requires.private: libcrypto libmcl

@@ -28,10 +28,10 @@ The JSON-RPC API provided by Bells Core is self-documenting and can be browsed w
 
 ## Frequently Asked Questions
 
-### How much doge can exist?
+### How much bells can exist?
 Total of 500,000,000 coins, special rewards system.
 
-### How get $bel?
+### How to get $bel?
 Scrypt Proof of Work
 
 1 Minute Block Targets, 4 Hour Diff Readjustments

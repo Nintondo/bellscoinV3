@@ -1,0 +1,13 @@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+libdir=@libdir@
+includedir=@includedir@
+
+Name: libmcl
+Description: Pairing Library
+URL: https://github.com/QEDProtocol/mcl
+Version: @PACKAGE_VERSION@
+Cflags: -I${includedir}
+Libs: -L${libdir} -lmcl
+Libs.private: @MCL_LIBS@
+

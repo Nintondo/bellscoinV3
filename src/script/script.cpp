@@ -7,6 +7,7 @@
 
 #include <hash.h>
 #include <util/strencodings.h>
+#include <mcl/bn_c384_256.h>
 
 #include <string>
 
@@ -135,7 +136,7 @@ std::string GetOpName(opcodetype opcode)
     case OP_NOP1                   : return "OP_NOP1";
     case OP_CHECKLOCKTIMEVERIFY    : return "OP_CHECKLOCKTIMEVERIFY";
     case OP_CHECKSEQUENCEVERIFY    : return "OP_CHECKSEQUENCEVERIFY";
-    case OP_NOP4                   : return "OP_NOP4";
+    case OP_CHECKGROTH16VERIFY     : return "OP_CHECKGROTH16VERIFY";
     case OP_NOP5                   : return "OP_NOP5";
     case OP_NOP6                   : return "OP_NOP6";
     case OP_NOP7                   : return "OP_NOP7";
@@ -235,6 +236,19 @@ bool CScript::IsWitnessProgram(int& version, std::vector<unsigned char>& program
     }
     return false;
 }
+
+bool CScript::IsGroth16Program() const
+{
+
+    return false;
+}
+
+std::string CScript::groth16_to_string()
+{
+    std::string ret = "CScriptGroth16("; // TODO: do for tests groth16
+    return ret + ")";
+}
+
 
 bool CScript::IsPushOnly(const_iterator pc) const
 {
