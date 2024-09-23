@@ -44,7 +44,8 @@ int verify_groth16_proof_precomputed(
     const mclBnFr *publicInputs);
 int deserialize_groth16_vk(Groth16VerifierKeyInput *vk, const char *data, size_t length);
 int deserialize_groth16_proof(Groth16ProofInput *vk, mclBnFr *publicInputs, const char *data, size_t length);
-
+int serialize_groth16_proof(const Groth16ProofInput *vk, const mclBnFr *publicInputs, char *data);
+int serialize_groth16_vk(const Groth16VerifierKeyInput *vk, char *data);
 /** A verifier class for Groth16 BLS12-381 Zero Knoweledge Proofs. */
 class CGROTH16
 {

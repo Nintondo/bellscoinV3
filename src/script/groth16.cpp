@@ -91,6 +91,7 @@ int serialize_groth16_vk(const Groth16VerifierKeyInput *vk, char *data)
     data += tmp;
     return ptr - data;
 }
+
 int serialize_groth16_proof(const Groth16ProofInput *vk, const mclBnFr *publicInputs, char *data)
 {
     char *ptr = data;
