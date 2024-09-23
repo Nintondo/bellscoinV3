@@ -17,7 +17,7 @@ class Groth16VerifyTest(BellscoinTestFramework):
         self.setup_clean_chain = True
         self.num_nodes = 1
         self.extra_args = [[
-            "-dustrelayfee=0", "-walletrejectlongchains=0", "-whitelist=noban@127.0.0.1"
+            "-walletrejectlongchains=0", "-whitelist=noban@127.0.0.1", "-maxtxfee=0.00001000"
         ]]
         self.supports_cli = False
 
@@ -52,7 +52,6 @@ class Groth16VerifyTest(BellscoinTestFramework):
         # Decode the transaction for modification
         decoded_tx = w0.decoderawtransaction(tx['hex'])
         print(decoded_tx)# Pretty-print the decoded transaction
-        print(json.dumps(decoded_tx, indent=4, sort_keys=True))
 
         # Add the OP_CHECKGROTH16VERIFY script with the Groth16 proof
         tx_script = f"OP_CHECKGROTH16VERIFY {proof.hex()}"
@@ -60,12 +59,23 @@ class Groth16VerifyTest(BellscoinTestFramework):
         # Modify the vout to include the Groth16 proof in the scriptPubKey
         decoded_tx['vout'][0]['scriptPubKey']['asm'] = tx_script
 
+        print()
+        print(f"vout[0] - {decoded_tx['vout'][0]}")
+        print("")
+        print(f"vin[0] - {decoded_tx['vin'][0]}")
+        print()
+        print(f"vout[1] - {decoded_tx['vout'][1]}")
+        print("")
+
         # Recreate the transaction with the modified script
-        modified_tx = w0.createrawtransaction(decoded_tx['vin'], decoded_tx['vout'])
-
+        modified_tx = w0.createrawtransaction([{'txid': decoded_tx['vin'][0]['txid'], 'vout': decoded_tx['vin'][0]['vout'],
+             'scriptSig': decoded_tx['vin'][0]['scriptSig']}], {address1: 1})
+        
+        print(f"\nmodified_tx - {modified_tx}\n")
         # Sign the modified transaction
-        signed_tx = w0.signrawtransactionwithwallet(modified_tx['hex'])
+        signed_tx = w0.signrawtransactionwithwallet(modified_tx)
 
+        print(f"\signed_tx - {signed_tx}\n")
         # Broadcast the transaction to the network
         txid = w0.sendrawtransaction(signed_tx['hex'])
 
