@@ -72,7 +72,7 @@ class Groth16VerifyTest(BellscoinTestFramework):
             'txid': decoded_tx['vin'][0]['txid'],
             'vout': decoded_tx['vin'][0]['vout'],
             'scriptSig': decoded_tx['vin'][0]['scriptSig']
-        }], {address1: 1})
+        }], {address1: 2})
         
         print(f"\nmodified_tx - {modified_tx}\n")
         # Sign the modified transaction
