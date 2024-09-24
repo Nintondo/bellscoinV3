@@ -75,6 +75,7 @@ TransactionError BroadcastTransaction(NodeContext& node, const CTransactionRef t
                 if (result.m_result_type != MempoolAcceptResult::ResultType::VALID) {
                     return HandleATMPError(result.m_state, err_string);
                 } else if (result.m_base_fees.value() > max_tx_fee) {
+                    printf("\n--- %d %d-----\n", result.m_base_fees.value(), max_tx_fee);
                     return TransactionError::MAX_FEE_EXCEEDED;
                 }
             }

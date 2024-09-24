@@ -7,7 +7,7 @@
 
 from test_framework.test_framework import BellscoinTestFramework
 from test_framework.util import assert_equal
-import json
+from decimal import Decimal
 
 class Groth16VerifyTest(BellscoinTestFramework):
     def add_options(self, parser):
@@ -17,7 +17,7 @@ class Groth16VerifyTest(BellscoinTestFramework):
         self.setup_clean_chain = True
         self.num_nodes = 1
         self.extra_args = [[
-            "-walletrejectlongchains=0", "-whitelist=noban@127.0.0.1", "-maxtxfee=0.00001000"
+            "-walletrejectlongchains=0", "-whitelist=noban@127.0.0.1", "-maxtxfee=0.1"
         ]]
         self.supports_cli = False
 
@@ -34,6 +34,7 @@ class Groth16VerifyTest(BellscoinTestFramework):
 
         # Create and load the wallet
         self.nodes[0].createwallet(wallet_name='w0', descriptors=True)
+        self.nodes[0].setnetworkactive(True)
         w0 = node.get_wallet_rpc('w0')
 
         # Get a new address and check balance
@@ -49,6 +50,8 @@ class Groth16VerifyTest(BellscoinTestFramework):
         tx = w0.fundrawtransaction(tx, {'changeAddress': address1})
         tx = w0.signrawtransactionwithwallet(tx['hex'])
 
+        custom_fee_rate = 0.0001  # Lower the fee rate to avoid exceeding limits
+        w0.settxfee(custom_fee_rate)
         # Decode the transaction for modification
         decoded_tx = w0.decoderawtransaction(tx['hex'])
         print(decoded_tx)# Pretty-print the decoded transaction
@@ -59,17 +62,17 @@ class Groth16VerifyTest(BellscoinTestFramework):
         # Modify the vout to include the Groth16 proof in the scriptPubKey
         decoded_tx['vout'][0]['scriptPubKey']['asm'] = tx_script
 
-        print()
-        print(f"vout[0] - {decoded_tx['vout'][0]}")
-        print("")
-        print(f"vin[0] - {decoded_tx['vin'][0]}")
-        print()
-        print(f"vout[1] - {decoded_tx['vout'][1]}")
-        print("")
+        # Print the modified vout and vin
+        print(f"\nvout[0] - {decoded_tx['vout'][0]}")
+        print(f"\nvin[0] - {decoded_tx['vin'][0]}")
+        print(f"\nvout[1] - {decoded_tx['vout'][1]}")
 
         # Recreate the transaction with the modified script
-        modified_tx = w0.createrawtransaction([{'txid': decoded_tx['vin'][0]['txid'], 'vout': decoded_tx['vin'][0]['vout'],
-             'scriptSig': decoded_tx['vin'][0]['scriptSig']}], {address1: 1})
+        modified_tx = w0.createrawtransaction([{
+            'txid': decoded_tx['vin'][0]['txid'],
+            'vout': decoded_tx['vin'][0]['vout'],
+            'scriptSig': decoded_tx['vin'][0]['scriptSig']
+        }], {address1: 1})
         
         print(f"\nmodified_tx - {modified_tx}\n")
         # Sign the modified transaction
