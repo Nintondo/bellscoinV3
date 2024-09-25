@@ -103,18 +103,22 @@ class Groth16VerifyTest(BellscoinTestFramework):
         print(f"\nvout[0] - {decoded_tx['vout'][0]}")
         print(f"\nvin[0] - {decoded_tx['vin'][0]}")
         print(f"\nvout[1] - {decoded_tx['vout'][1]}")
-        print()
-        print()
 
-        print([{
+        print("------------------")
+        print(json.dumps([{
             'txid': decoded_tx['vin'][0]['txid'],
             'vout': vouts,
             'scriptSig': decoded_tx['vin'][0]['scriptSig']
-        }])
-        print()
+        }], cls=DecimalEncoder, indent=4))
+        print("------------------")
 
-        print()
-        print()
+        print("------------------")
+        print(json.dumps([{
+            'txid': decoded_tx['vin'][0]['txid'],
+            'vout': decoded_tx['vin'][0]['vout'],
+            'scriptSig': decoded_tx['vin'][0]['scriptSig']
+        }], cls=DecimalEncoder, indent=4))
+        print("------------------")
         # Recreate the transaction with the modified script
         modified_tx = w0.createrawtransaction([{
             'txid': decoded_tx['vin'][0]['txid'],
