@@ -9,6 +9,18 @@ from test_framework.test_framework import BellscoinTestFramework
 from test_framework.util import assert_equal
 from decimal import Decimal
 import json
+from test_framework.script import (
+    CScript,
+    OP_CHECKGROTH16VERIFY
+)
+
+from test_framework.messages import (
+    COutPoint,
+    CTransaction,
+    CTxIn,
+    CTxOut,
+)
+
 class tx_data:
     def __init__(self, value: str, vout: str, txid: str):
         self.value = value
@@ -87,25 +99,27 @@ class Groth16VerifyTest(BellscoinTestFramework):
         vouts = self.get_utxo_info(w0, address0)
 
         # Add the OP_CHECKGROTH16VERIFY script with the Groth16 proof
-        tx_script = f"OP_CHECKGROTH16VERIFY {proof.hex()}"
-        
+        tx_script = f"{OP_CHECKGROTH16VERIFY} {proof.hex()}"
+
+
+        # Создаем транзакцию
         # Modify the vout to include the Groth16 proof in the scriptPubKey
         # decoded_tx['vout'][0]['scriptPubKey']['asm'] = tx_script
         # vouts[0].vout['scriptPubkey']['asm'] = tx_script
         # Recreate the transaction with the modified script
         modified_tx = w0.createrawtransaction([{
             'txid': vouts[0].txid,
-            'vout': 2
-        }], {address1: 0.3})
+            'vout': 0,
+        }], {address1: 1.99})
         print()
         
         decode_modified_tx = w0.decoderawtransaction(modified_tx)
-        
+        decode_modified_tx['vin'][0]['scriptSig']['asm'] = tx_script
         print(f"\nmodified_tx - {modified_tx}\n")
         print(f"decode modified - {btfl_json(decode_modified_tx)}")
 
         # Sign the modified transaction
-        signed_tx = w0.signrawtransactionwithwallet(modified_tx)
+        signed_tx = w0.signrawtransactionwithwallet(decode_modified_tx)
 
         decode_signed_tx_tx = w0.decoderawtransaction(signed_tx['hex'])
         
@@ -118,7 +132,12 @@ class Groth16VerifyTest(BellscoinTestFramework):
         # Verify the transaction was included in the blockchain
         tx_info = w0.gettransaction(txid)
         print(f"Transaction ID: {txid}")
+        assert_equal(tx_info['confirmations'], 0)
+        self.generate(node, 1)  # Leave IBD for sethdseed
+        tx_info = w0.gettransaction(txid)
         assert_equal(tx_info['confirmations'], 1)
+        assert_equal(tx_info['confirmations'], 100)
+
 
 if __name__ == '__main__':
     Groth16VerifyTest().main()
