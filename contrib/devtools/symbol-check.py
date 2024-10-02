@@ -32,7 +32,7 @@ import lief
 # See https://gcc.gnu.org/onlinedocs/libstdc++/manual/abi.html for more info.
 
 MAX_VERSIONS = {
-'GCC':       (4,3,0),
+'GCC':       (4,8,0),
 'GLIBC': {
     lief.ELF.ARCH.x86_64: (2,27),
     lief.ELF.ARCH.ARM:    (2,27),
@@ -40,6 +40,8 @@ MAX_VERSIONS = {
     lief.ELF.ARCH.PPC64:  (2,27),
     lief.ELF.ARCH.RISCV:  (2,27),
 },
+'GLIBCXX': (3, 4, 29),
+'CXXABI': (1, 3, 13),
 'LIBATOMIC': (1,0),
 'V':         (0,5,0),  # xkb (bitcoin-qt only)
 }
@@ -48,7 +50,17 @@ MAX_VERSIONS = {
 IGNORE_EXPORTS = {
 'environ', '_environ', '__environ', '_fini', '_init', 'stdin',
 'stdout', 'stderr',
+# Common C++ standard library symbols
+'_ZTV', '_ZTI', '_ZTT', '_ZSt', '_ZNSt', '_ZNKSt', '_ZNSo', '_ZNSi', '_ZNSs',
+'_ZNK', '_ZNKSt6locale5facetE',
 }
+
+def is_cpp_stdlib_symbol(name: str) -> bool:
+    """
+    Determine if the symbol is a part of the C++ standard library.
+    C++ standard library symbols usually start with certain mangled names.
+    """
+    return any(name.startswith(prefix) for prefix in IGNORE_EXPORTS)
 
 # Expected linker-loader names can be found here:
 # https://sourceware.org/glibc/wiki/ABIList?action=recall&rev=16
@@ -112,6 +124,7 @@ ELF_ALLOWED_LIBRARIES = {
 'libfontconfig.so.1', # font support
 'libfreetype.so.6', # font parsing
 'libdl.so.2', # programming interface to dynamic linker
+'libstdc++.so.6', # c++ standard library
 'libxcb-icccm.so.4',
 'libxcb-image.so.0',
 'libxcb-shm.so.0',
@@ -206,7 +219,7 @@ def check_exported_symbols(binary) -> bool:
         if not symbol.exported:
             continue
         name = symbol.name
-        if binary.header.machine_type == lief.ELF.ARCH.RISCV or name in IGNORE_EXPORTS:
+        if binary.header.machine_type == lief.ELF.ARCH.RISCV or is_cpp_stdlib_symbol(name) or name in IGNORE_EXPORTS:
             continue
         print(f'{binary.name}: export of symbol {name} not allowed!')
         ok = False
