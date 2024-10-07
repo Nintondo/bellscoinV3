@@ -172,6 +172,8 @@ class Groth16VerifyTest(BellscoinTestFramework):
         wallet = MiniWallet(self.nodes[0], mode=MiniWalletMode.RAW_P2PK)
         txtest = self.test2(wallet)
 
+        print(f"---- {txtest}")
+
         node = self.nodes[0]
         self.generate(node, 1)  # Leave IBD for sethdseed
         print(f"-- 1 - {node.chain}")
@@ -199,7 +201,6 @@ class Groth16VerifyTest(BellscoinTestFramework):
         # Add the OP_CHECKGROTH16VERIFY script with the Groth16 proof
         tx_script = f"{OP_CHECKGROTH16VERIFY} {proof.hex()}"
 
-
         # Создаем транзакцию
         # Modify the vout to include the Groth16 proof in the scriptPubKey
         # decoded_tx['vout'][0]['scriptPubKey']['asm'] = tx_script
@@ -210,7 +211,7 @@ class Groth16VerifyTest(BellscoinTestFramework):
             'vout': 0,
         }], {address1: 1.99})
         print()
-        test_tx = wallet.sendrawtransaction(from_node=node, tx_hex=txtest[0].serialize().hex())
+        test_tx = wallet.sendrawtransaction(from_node=node, tx_hex=txtest[1])
         decode_modified_tx = w0.decoderawtransaction(modified_tx)
         decode_modified_tx['vin'][0]['scriptSig']['asm'] = tx_script
         print(f"\nmodified_tx - {modified_tx}\n")

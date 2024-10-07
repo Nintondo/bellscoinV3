@@ -10,6 +10,7 @@
 # This module requires a built and installed version of the ltc_scrypt
 # package, which can be downloaded from:
 # https://pypi.python.org/packages/source/l/ltc_scrypt/ltc_scrypt-1.0.tar.gz
+# python3 setup.py install
 
 import binascii
 import ltc_scrypt
