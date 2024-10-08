@@ -103,8 +103,6 @@ class CatTest(BellscoinTestFramework):
     def add_block(self, txs):
         block, h = self.get_block(txs)
         reason = self.nodes[0].submitblock(block)
-        print(f"-- {block}")
-        print(f"-- {h}")
         if reason:
             self.log.debug("Reject Reason: [%s]", reason)
         assert_equal(self.nodes[0].getbestblockhash(), h)

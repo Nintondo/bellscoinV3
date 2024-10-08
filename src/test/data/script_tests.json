@@ -2523,8 +2523,122 @@
 ["0", "CHECKSEQUENCEVERIFY", "CHECKSEQUENCEVERIFY", "UNSATISFIED_LOCKTIME", "CSV fails if stack top bit 1 << 31 is set and the tx version < 2"],
 ["0x050000000001", "CHECKSEQUENCEVERIFY", "CHECKSEQUENCEVERIFY", "UNSATISFIED_LOCKTIME",
   "CSV fails if stack top bit 1 << 31 is not set, and tx version < 2"],
-
-["OP_CAT tests"],
+["OP_CAT (and related) script verify flag tests"],
+[
+    [
+        "#SCRIPT# CAT",
+        "#CONTROLBLOCK#",
+        0.00000001
+    ],
+    "",
+    "0x51 0x20 #TAPROOTOUTPUT#",
+    "P2SH,WITNESS,TAPROOT",
+    "OK",
+    "TAPSCRIPT CAT test of OP_CAT flag by calling CAT on an empty stack. This does not error because no OP_CAT verify flag is set so CAT is OP_SUCCESS"
+],
+[
+    [
+        "aa",
+        "bb",
+        "#SCRIPT# CAT",
+        "#CONTROLBLOCK#",
+        0.00000001
+    ],
+    "",
+    "0x51 0x20 #TAPROOTOUTPUT#",
+    "P2SH,WITNESS,TAPROOT,DISCOURAGE_OP_CAT,OP_CAT",
+    "DISCOURAGE_OP_CAT",
+    "TAPSCRIPT test of DISCOURAGE_OP_CAT flag by calling CAT on two elements. OP_CAT verify flag is set however OP_CAT is not executed due to DISCOURAGE_OP_CAT."
+],
+[
+    [
+        "aa",
+        "bb",
+        "#SCRIPT# CAT",
+        "#CONTROLBLOCK#",
+        0.00000001
+    ],
+    "",
+    "0x51 0x20 #TAPROOTOUTPUT#",
+    "P2SH,WITNESS,TAPROOT,DISCOURAGE_OP_CAT",
+    "DISCOURAGE_OP_CAT",
+    "TAPSCRIPT test of DISCOURAGE_OP_CAT flag by calling CAT on two elements. OP_CAT verify flag is not set and OP_CAT is not executed due to DISCOURAGE_OP_CAT."
+],
+[
+    [
+        "#SCRIPT# CAT",
+        "#CONTROLBLOCK#",
+        0.00000001
+    ],
+    "",
+    "0x51 0x20 #TAPROOTOUTPUT#",
+    "P2SH,WITNESS,TAPROOT,DISCOURAGE_OP_CAT",
+    "DISCOURAGE_OP_CAT",
+    "TAPSCRIPT test of DISCOURAGE_OP_CAT flag by calling CAT on a empty stack. Ordinarily this would be INVALID_STACK_OPERATION however due to DISCOURAGE_OP_CAT the script will throw before execution."
+],
+[
+    [
+        "#SCRIPT# 1",
+        "#CONTROLBLOCK#",
+        0.00000001
+    ],
+    "",
+    "0x51 0x20 #TAPROOTOUTPUT#",
+    "P2SH,WITNESS,TAPROOT,DISCOURAGE_OP_CAT",
+    "OK",
+    "TAPSCRIPT test of a valid script executed with DISCOURAGE_OP_CAT. This tests demonstrates that DISCOURAGE_OP_CAT has no affect when CAT is not used."
+],
+[
+    [
+        "#SCRIPT# CAT",
+        "#CONTROLBLOCK#",
+        0.00000001
+    ],
+    "",
+    "0x51 0x20 #TAPROOTOUTPUT#",
+    "P2SH,WITNESS,TAPROOT,DISCOURAGE_OP_CAT,DISCOURAGE_OP_SUCCESS",
+    "DISCOURAGE_OP_CAT",
+    "TAPSCRIPT test of a invalid script (CAT called with empty stack) executed with DISCOURAGE_OP_CAT and DISCOURAGE_OP_SUCCESS flags enabled. This tests demonstrates that DISCOURAGE_OP_CAT will take priority over the OP_SUCCESS discourage flag and OP_CAT is never exectuted"
+],
+[
+    [
+        "#SCRIPT# CAT",
+        "#CONTROLBLOCK#",
+        0.00000001
+    ],
+    "",
+    "0x51 0x20 #TAPROOTOUTPUT#",
+    "P2SH,WITNESS,TAPROOT,OP_CAT,DISCOURAGE_OP_SUCCESS",
+    "INVALID_STACK_OPERATION",
+    "TAPSCRIPT CAT on no stack elements with DISCOURAGE_OP_SUCCESS and OP_CAT script verify flags enabled. This test demonstrates that OP_CAT is no longer considered OP_SUCCESS when OP_CAT verify flag is set"
+],
+["OP_CAT functionality tests"],
+[
+    [
+        "#SCRIPT# CAT",
+        "#CONTROLBLOCK#",
+        0.00000001
+    ],
+    "",
+    "0x51 0x20 #TAPROOTOUTPUT#",
+    "P2SH,WITNESS,TAPROOT,OP_CAT",
+    "INVALID_STACK_OPERATION",
+    "TAPSCRIPT Test of OP_CAT flag by calling CAT on an empty stack. This throws an error because OP_CAT verify flag is set so CAT is executed"
+],
+[
+    [
+        "aa",
+        "bb",
+        "#SCRIPT# CAT",
+        "#CONTROLBLOCK#",
+        0.00000001
+    ],
+    "",
+    "0x51 0x20 #TAPROOTOUTPUT#",
+    "P2SH,WITNESS,TAPROOT,OP_CAT",
+    "OK",
+    "TAPSCRIPT Test of OP_CAT flag by calling CAT on two elements. OP_CAT verify flag is set so CAT is executed."
+],
 [
     [
         "78a11a1260c1101260",
@@ -2539,6 +2653,21 @@
     "P2SH,WITNESS,TAPROOT,OP_CAT",
     "OK",
     "TAPSCRIPT CATs 78a11a1260 and c1101260 together and checks it is EQUAL to stack element 78a11a1260c1101260"
+],
+[
+    [
+        "78a11a1260c1101260",
+        "78a11a1260",
+        "c1101260",
+        "#SCRIPT# CAT EQUAL",
+        "#CONTROLBLOCK#",
+        0.00000001
+    ],
+    "",
+    "0x51 0x20 #TAPROOTOUTPUT#",
+    "P2SH,WITNESS,TAPROOT",
+    "OK",
+    "TAPSCRIPT Test of OP_CAT flag, CATs 78a11a1260 and c1101260 together and checks it is EQUAL to stack element 78a11a1260c1101260. No OP_CAT verify flag set so CAT should be OP_SUCCESS."
 ],
 [
     [
@@ -2684,7 +2813,7 @@
     "0x51 0x20 #TAPROOTOUTPUT#",
     "P2SH,WITNESS,TAPROOT,OP_CAT",
     "OK",
-    "TAPSCRIPT  Runs DUP CAT seven times on 1a1a"
+    "TAPSCRIPT Runs DUP CAT seven times on 1a1a"
 ],
 [
     [
@@ -2764,7 +2893,7 @@
     "0x51 0x20 #TAPROOTOUTPUT#",
     "P2SH,WITNESS,TAPROOT,OP_CAT",
     "OK",
-    "TAPSCRIPT ([512 byte element, 09ca7009ca7009ca7009ca7009ca70], CAT)  Tests edge case where concatenated value is exactly max stack element size (520 bytes)"
+    "TAPSCRIPT ([512 byte element, 09ca7009ca7009ca7009ca7009ca70], CAT) Tests edge case where concatenated value is exactly max stack element size (520 bytes)"
 ],
 [
     [
