@@ -451,14 +451,8 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
             if (vchPushValue.size() > MAX_SCRIPT_ELEMENT_SIZE)
                 return set_error(serror, SCRIPT_ERR_PUSH_SIZE);
             
-            //TODO: get current height somehow
-            if (opcode == OP_CHECKGROTH16VERIFY)
-            {
-                printf("1WOW ITS OP_CHECKGROTH16VERIFY\n");
-            }
             if (opcode == OP_CHECKGROTH16VERIFY && consensusParams.nGroth16StartHeight > height)
             {
-                printf("2WOW ITS OP_CHECKGROTH16VERIFY\n");
                 return set_error(serror, SCRIPT_ERR_DISABLED_OPCODE);
             }
             if (opcode == OP_CAT && consensusParams.nOPCATStartHeight > height)
