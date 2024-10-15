@@ -9,9 +9,22 @@
 #include <tinyformat.h>
 #include <crypto/common.h>
 #include <crypto/scrypt.h>
+#include <atomic>
 
 #define BEGIN(a)            ((char*)&(a))
 #define END(a)              ((char*)&((&(a))[1]))
+
+std::atomic<int> global_height(0);
+
+int GetGlobHeight() 
+{
+    return global_height.load(std::memory_order_relaxed);
+}
+
+void SetGlobHeight(int new_height) 
+{
+    global_height.store(new_height, std::memory_order_relaxed);
+}
 
 void CBlockHeader::SetAuxpow (std::unique_ptr<CAuxPow> apow)
 {

@@ -94,6 +94,7 @@ static ScriptErrorDesc script_errors[]={
     {SCRIPT_ERR_WITNESS_PUBKEYTYPE, "WITNESS_PUBKEYTYPE"},
     {SCRIPT_ERR_OP_CODESEPARATOR, "OP_CODESEPARATOR"},
     {SCRIPT_ERR_SIG_FINDANDDELETE, "SIG_FINDANDDELETE"},
+    {SCRIPT_ERR_DISCOURAGE_OP_CAT, "DISCOURAGE_OP_CAT"},
 };
 
 static std::string FormatScriptError(ScriptError_t err)
@@ -1952,7 +1953,7 @@ void DoTapscriptTest(std::vector<unsigned char> witVerifyScript, std::vector<std
     auto controlblock = *(builder.GetSpendData().scripts[{witVerifyScript, TAPROOT_LEAF_TAPSCRIPT}].begin());
     witness.stack.push_back(controlblock);
 
-    uint32_t flags = SCRIPT_VERIFY_P2SH | SCRIPT_VERIFY_WITNESS | SCRIPT_VERIFY_TAPROOT | SCRIPT_VERIFY_OP_CAT;
+    uint32_t flags = SCRIPT_VERIFY_P2SH | SCRIPT_VERIFY_WITNESS | SCRIPT_VERIFY_TAPROOT;
     CScript scriptPubKey = CScript() << OP_1 << ToByteVector(builder.GetOutput());
     CScript scriptSig = CScript(); // Script sig is always size 0 and empty in tapscript
     DoTest(scriptPubKey, scriptSig, witness, flags, message, scriptError, /*nValue=*/1);

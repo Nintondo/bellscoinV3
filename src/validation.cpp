@@ -2927,6 +2927,7 @@ void Chainstate::UpdateTip(const CBlockIndex* pindexNew)
             }
         }
     }
+    SetGlobHeight(pindexNew->nHeight);
     UpdateTipLog(coins_tip, pindexNew, params, __func__, "", warning_messages.original);
 }
 

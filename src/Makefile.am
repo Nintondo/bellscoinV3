@@ -72,6 +72,9 @@ noinst_LTLIBRARIES += $(LIBBITCOIN_CRYPTO)
 $(LIBSECP256K1): $(wildcard secp256k1/src/*.h) $(wildcard secp256k1/src/*.c) $(wildcard secp256k1/include/*)
 	$(AM_V_at)$(MAKE) $(AM_MAKEFLAGS) -C $(@D) $(@F)
 
+mcl_libmcl_la_CXXFLAGS = $(AM_CXXFLAGS) -fvisibility=hidden
+mcl_libmcl_la_LDFLAGS = $(AM_LDFLAGS) -fvisibility=hidden
+
 $(LIBMCL): $(wildcard mcl/src/*) $(wildcard mcl/include/*)
 	$(AM_V_at)$(MAKE) $(AM_MAKEFLAGS) -C $(@D) $(@F)
 
