@@ -125,6 +125,7 @@ void DoTest(const CScript& scriptPubKey, const CScript& scriptSig, const CScript
         flags |= SCRIPT_VERIFY_WITNESS;
     }
     ScriptError err;
+
     const CTransaction txCredit{BuildCreditingTransaction(scriptPubKey, nValue)};
     CMutableTransaction tx = BuildSpendingTransaction(scriptSig, scriptWitness, txCredit);
     CMutableTransaction tx2 = tx;
@@ -1938,25 +1939,6 @@ std::tuple<CScript, CScriptWitness> ConstructWitnessForTaprootLeafSpend(std::vec
 
     CScript scriptPubKey = CScript() << OP_1 << ToByteVector(builder.GetOutput());
     return std::make_tuple(scriptPubKey, witness);
-}
-
-void DoTapscriptTest(std::vector<unsigned char> witVerifyScript, std::vector<std::vector<unsigned char>> witData, const std::string& message, int scriptError)
-{
-    const KeyData keys;
-    TaprootBuilder builder;
-    builder.Add(/*depth=*/0, witVerifyScript, TAPROOT_LEAF_TAPSCRIPT, /*track=*/true);
-    builder.Finalize(XOnlyPubKey(keys.key0.GetPubKey()));
-
-    CScriptWitness witness;
-    witness.stack.insert(witness.stack.begin(), witData.begin(), witData.end());
-    witness.stack.push_back(witVerifyScript);
-    auto controlblock = *(builder.GetSpendData().scripts[{witVerifyScript, TAPROOT_LEAF_TAPSCRIPT}].begin());
-    witness.stack.push_back(controlblock);
-
-    uint32_t flags = SCRIPT_VERIFY_P2SH | SCRIPT_VERIFY_WITNESS | SCRIPT_VERIFY_TAPROOT;
-    CScript scriptPubKey = CScript() << OP_1 << ToByteVector(builder.GetOutput());
-    CScript scriptSig = CScript(); // Script sig is always size 0 and empty in tapscript
-    DoTest(scriptPubKey, scriptSig, witness, flags, message, scriptError, /*nValue=*/1);
 }
 
 BOOST_AUTO_TEST_CASE(cat_simple)

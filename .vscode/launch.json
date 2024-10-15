@@ -86,7 +86,7 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/src/test/test_bells",
-            "args": ["--run_test=script_tests"],
+            "args": ["--run_test=script_tests/script_json_test"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],
