@@ -135,8 +135,8 @@ public:
         consensus.nPowMaxAdjustDown = 32; // 32% adjustment down
         consensus.nPowMaxAdjustUp = 16; // 16% adjustment up
 
-        consensus.nGroth16StartHeight = 200000;
-        consensus.nOPCATStartHeight = 200000;
+        consensus.nGroth16StartHeight = 350000;
+        consensus.nOPCATStartHeight = 350000;
         
         consensus.nRuleChangeActivationThreshold = 9576; // 95% of 10,080
         consensus.nMinerConfirmationWindow = 10080; // 60 * 24 * 7 = 10,080 blocks, or one week
