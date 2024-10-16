@@ -1960,22 +1960,27 @@ std::optional<bool> CheckTapscriptOpSuccess(const CScript& exec_script, unsigned
     }
     return std::nullopt;
 }
-
 static bool ExecuteWitnessScript(const Span<const valtype>& stack_span, const CScript& exec_script, unsigned int flags, SigVersion sigversion, const BaseSignatureChecker& checker, ScriptExecutionData& execdata, ScriptError* serror)
 {
     std::vector<valtype> stack{stack_span.begin(), stack_span.end()};
+
     if (sigversion == SigVersion::TAPSCRIPT) {
+
         auto r = CheckTapscriptOpSuccess(exec_script, flags, serror);
         if (r.has_value()) return *r;
+
         // Tapscript enforces initial stack size limits (altstack is empty here)
         if (stack.size() > MAX_STACK_SIZE) return set_error(serror, SCRIPT_ERR_STACK_SIZE);
     }
+
     // Disallow stack item size > MAX_SCRIPT_ELEMENT_SIZE in witness stack
     for (const valtype& elem : stack) {
         if (elem.size() > MAX_SCRIPT_ELEMENT_SIZE) return set_error(serror, SCRIPT_ERR_PUSH_SIZE);
     }
+
     // Run the script interpreter.
     if (!EvalScript(stack, exec_script, flags, checker, sigversion, execdata, serror)) return false;
+
     // Scripts inside witness implicitly require cleanstack behaviour
     if (stack.size() != 1) return set_error(serror, SCRIPT_ERR_CLEANSTACK);
     if (!CastToBool(stack.back())) return set_error(serror, SCRIPT_ERR_EVAL_FALSE);

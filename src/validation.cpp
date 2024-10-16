@@ -688,6 +688,11 @@ private:
         return true;
     }
 
+    ValidationCache& GetValidationCache()
+    {
+        return m_active_chainstate.m_chainman.m_validation_cache;
+    }
+    
 private:
     CTxMemPool& m_pool;
     CCoinsViewCache m_view;
@@ -1034,6 +1039,17 @@ bool MemPoolAccept::PackageMempoolChecks(const std::vector<CTransactionRef>& txn
    return true;
 }
 
+static unsigned int DepDiscourageFlags(const CBlockIndex* tip, const ChainstateManager& chainman, const std::vector<std::pair<Consensus::DeploymentPos,unsigned int>>& depflags)
+{
+    unsigned int result = SCRIPT_VERIFY_NONE;
+    for (auto [dep, flags] : depflags) {
+        if (!DeploymentActiveAfter(tip, chainman, dep)) {
+            result |= flags;
+        }
+    }
+    return result;
+}
+
 bool MemPoolAccept::PolicyScriptChecks(const ATMPArgs& args, Workspace& ws)
 {
     AssertLockHeld(cs_main);
@@ -1041,24 +1057,26 @@ bool MemPoolAccept::PolicyScriptChecks(const ATMPArgs& args, Workspace& ws)
     const CTransaction& tx = *ws.m_ptx;
     TxValidationState& state = ws.m_state;
 
-    constexpr unsigned int scriptVerifyFlags = STANDARD_SCRIPT_VERIFY_FLAGS;
+    const unsigned int scriptVerifyFlags = STANDARD_SCRIPT_VERIFY_FLAGS |
+        DepDiscourageFlags(m_active_chainstate.m_chain.Tip(), m_active_chainstate.m_chainman, {
+             { Consensus::DEPLOYMENT_OP_CAT, SCRIPT_VERIFY_DISCOURAGE_OP_CAT },
+    });
 
     // Check input scripts and signatures.
     // This is done last to help prevent CPU exhaustion denial-of-service attacks.
-    if (!CheckInputScripts(tx, state, m_view, scriptVerifyFlags, true, false, ws.m_precomputed_txdata)) {
+    if (!CheckInputScripts(tx, state, m_view, scriptVerifyFlags, true, false, ws.m_precomputed_txdata, GetValidationCache())) {
         // SCRIPT_VERIFY_CLEANSTACK requires SCRIPT_VERIFY_WITNESS, so we
         // need to turn both off, and compare against just turning off CLEANSTACK
         // to see if the failure is specifically due to witness validation.
         TxValidationState state_dummy; // Want reported failures to be from first CheckInputScripts
-        if (!tx.HasWitness() && CheckInputScripts(tx, state_dummy, m_view, scriptVerifyFlags & ~(SCRIPT_VERIFY_WITNESS | SCRIPT_VERIFY_CLEANSTACK), true, false, ws.m_precomputed_txdata) &&
-                !CheckInputScripts(tx, state_dummy, m_view, scriptVerifyFlags & ~SCRIPT_VERIFY_CLEANSTACK, true, false, ws.m_precomputed_txdata)) {
+        if (!tx.HasWitness() && CheckInputScripts(tx, state_dummy, m_view, scriptVerifyFlags & ~(SCRIPT_VERIFY_WITNESS | SCRIPT_VERIFY_CLEANSTACK), true, false, ws.m_precomputed_txdata, GetValidationCache()) &&
+                !CheckInputScripts(tx, state_dummy, m_view, scriptVerifyFlags & ~SCRIPT_VERIFY_CLEANSTACK, true, false, ws.m_precomputed_txdata, GetValidationCache())) {
             // Only the witness is missing, so the transaction itself may be fine.
             state.Invalid(TxValidationResult::TX_WITNESS_STRIPPED,
                     state.GetRejectReason(), state.GetDebugMessage());
         }
         return false; // state filled in by CheckInputScripts
     }
-
     return true;
 }
 
@@ -2295,7 +2313,11 @@ static unsigned int GetBlockScriptFlags(const CBlockIndex& block_index, const Ch
     if (DeploymentActiveAt(block_index, chainman, Consensus::DEPLOYMENT_SEGWIT)) {
         flags |= SCRIPT_VERIFY_NULLDUMMY;
     }
-
+    
+    // Enforce OP_CAT
+    if (DeploymentActiveAt(block_index, chainman, Consensus::DEPLOYMENT_OP_CAT)) {
+        flags |= SCRIPT_VERIFY_OP_CAT;
+    }
     return flags;
 }
 
