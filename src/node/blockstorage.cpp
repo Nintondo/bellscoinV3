@@ -35,6 +35,7 @@
 #include <util/strencodings.h>
 #include <util/translation.h>
 #include <validation.h>
+#include <clientversion.h>
 
 #include <map>
 #include <ranges>
@@ -676,7 +677,7 @@ CBlockFileInfo* BlockManager::GetBlockFileInfo(size_t n)
 bool BlockManager::UndoWriteToDisk(const CBlockUndo& blockundo, FlatFilePos& pos, const uint256& hashBlock) const
 {
     // Open history file to append
-    AutoFile fileout{OpenUndoFile(pos)};
+    CAutoFile fileout{OpenUndoFile(pos)};
     if (fileout.IsNull()) {
         LogError("%s: OpenUndoFile failed\n", __func__);
         return false;
@@ -708,11 +709,14 @@ bool BlockManager::UndoReadFromDisk(CBlockUndo& blockundo, const CBlockIndex& in
 {
     const FlatFilePos pos{WITH_LOCK(::cs_main, return index.GetUndoPos())};
 
+    if (pos.IsNull()) {
+        return error("%s: no undo data available", __func__);
+    }
+
     // Open history file to read
-    AutoFile filein{OpenUndoFile(pos, true)};
+    CAutoFile filein{OpenUndoFile(pos, true)};
     if (filein.IsNull()) {
         LogError("%s: OpenUndoFile failed for %s\n", __func__, pos.ToString());
-        return false;
     }
 
     // Read block
@@ -821,15 +825,25 @@ void BlockManager::UnlinkPrunedFiles(const std::set<int>& setFilesToPrune) const
     }
 }
 
-AutoFile BlockManager::OpenBlockFile(const FlatFilePos& pos, bool fReadOnly) const
+FlatFileSeq BlockManager::BlockFileSeq() const
 {
-    return AutoFile{m_block_file_seq.Open(pos, fReadOnly), m_xor_key};
+    return FlatFileSeq(m_opts.blocks_dir, "blk", m_opts.fast_prune ? 0x4000 /* 16kb */ : BLOCKFILE_CHUNK_SIZE);
+}
+
+FlatFileSeq BlockManager::UndoFileSeq() const
+{
+    return FlatFileSeq(m_opts.blocks_dir, "rev", UNDOFILE_CHUNK_SIZE);
+}
+
+CAutoFile BlockManager::OpenBlockFile(const FlatFilePos& pos, bool fReadOnly) const
+{
+    return CAutoFile{BlockFileSeq().Open(pos, fReadOnly), CLIENT_VERSION};
 }
 
 /** Open an undo file (rev?????.dat) */
-AutoFile BlockManager::OpenUndoFile(const FlatFilePos& pos, bool fReadOnly) const
+CAutoFile BlockManager::OpenUndoFile(const FlatFilePos& pos, bool fReadOnly) const
 {
-    return AutoFile{m_undo_file_seq.Open(pos, fReadOnly), m_xor_key};
+    return CAutoFile{UndoFileSeq().Open(pos, fReadOnly), CLIENT_VERSION};
 }
 
 fs::path BlockManager::GetBlockPosFilename(const FlatFilePos& pos) const
@@ -939,7 +953,7 @@ void BlockManager::UpdateBlockInfo(const CBlock& block, unsigned int nHeight, co
     }
 
     // Update the file information with the current block.
-    const unsigned int added_size = ::GetSerializeSize(TX_WITH_WITNESS(block));
+    const unsigned int added_size = ::GetSerializeSize(block, PROTOCOL_VERSION | SERIALIZE_TRANSACTION_NO_WITNESS);
     const int nFile = pos.nFile;
     if (static_cast<int>(m_blockfile_info.size()) <= nFile) {
         m_blockfile_info.resize(nFile + 1);
@@ -974,10 +988,9 @@ bool BlockManager::FindUndoPos(BlockValidationState& state, int nFile, FlatFileP
 bool BlockManager::WriteBlockToDisk(const CBlock& block, FlatFilePos& pos) const
 {
     // Open history file to append
-    AutoFile fileout{OpenBlockFile(pos)};
+    CAutoFile fileout{OpenBlockFile(pos)};
     if (fileout.IsNull()) {
-        LogError("%s: OpenBlockFile failed\n", __func__);
-        return false;
+        return error("WriteBlockToDisk: OpenBlockFile failed");
     }
 
     // Write index header
@@ -991,7 +1004,7 @@ bool BlockManager::WriteBlockToDisk(const CBlock& block, FlatFilePos& pos) const
         return false;
     }
     pos.nPos = (unsigned int)fileOutPos;
-    fileout << TX_WITH_WITNESS(block);
+    fileout << block;
 
     return true;
 }
@@ -1050,7 +1063,7 @@ bool BlockManager::ReadBlockOrHeader(T& block, const FlatFilePos& pos) const
     // Open history file to read
     CAutoFile filein{OpenBlockFile(pos, true)};
     if (filein.IsNull()) {
-        return error("ReadBlockFromDisk: OpenBlockFile failed for %s", pos.ToString());
+        LogError("%s: ReadBlockFromDisk: OpenBlockFile failed for %s\n", __func__, pos.ToString());
     }
 
     // Read block
@@ -1099,7 +1112,7 @@ bool BlockManager::ReadBlockFromDisk(CBlock& block, const FlatFilePos& pos) cons
 
     // Read block
     try {
-        filein >> TX_WITH_WITNESS(block);
+        filein >> block;
     } catch (const std::exception& e) {
         LogError("%s: Deserialize or I/O error - %s at %s\n", __func__, e.what(), pos.ToString());
         return false;
@@ -1185,7 +1198,7 @@ bool BlockManager::ReadRawBlockFromDisk(std::vector<uint8_t>& block, const FlatF
 
 FlatFilePos BlockManager::SaveBlockToDisk(const CBlock& block, int nHeight)
 {
-    unsigned int nBlockSize = ::GetSerializeSize(TX_WITH_WITNESS(block));
+    unsigned int nBlockSize = ::GetSerializeSize(block, CLIENT_VERSION, SER_DISK);
     // Account for the 4 magic message start bytes + the 4 length bytes (8 bytes total,
     // defined as BLOCK_SERIALIZATION_HEADER_SIZE)
     nBlockSize += static_cast<unsigned int>(BLOCK_SERIALIZATION_HEADER_SIZE);

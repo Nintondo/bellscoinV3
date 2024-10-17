@@ -144,9 +144,9 @@ static bool DecodeTx(CMutableTransaction& tx, const std::vector<unsigned char>& 
     // Try decoding with extended serialization support, and remember if the result successfully
     // consumes the entire input.
     if (try_witness) {
-        DataStream ssData(tx_data);
+        CDataStream ssData(tx_data, SER_NETWORK, PROTOCOL_VERSION);
         try {
-            ssData >> TX_WITH_WITNESS(tx_extended);
+            ssData >> tx_extended;
             if (ssData.empty()) ok_extended = true;
         } catch (const std::exception&) {
             // Fall through.
@@ -224,9 +224,9 @@ bool DecodeHexBlk(CBlock& block, const std::string& strHexBlk)
         return false;
 
     std::vector<unsigned char> blockData(ParseHex(strHexBlk));
-    DataStream ssBlock(blockData);
+    CDataStream ssBlock(blockData, SER_NETWORK, PROTOCOL_VERSION);
     try {
-        ssBlock >> TX_WITH_WITNESS(block);
+        ssBlock >> block;
     }
     catch (const std::exception&) {
         return false;

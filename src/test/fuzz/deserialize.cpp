@@ -316,7 +316,7 @@ FUZZ_TARGET_DESERIALIZE(blocktransactionsrequest_deserialize, {
     DeserializeFromFuzzingInput(buffer, btr);
 })
 FUZZ_TARGET_DESERIALIZE(snapshotmetadata_deserialize, {
-    auto msg_start = Params().MessageStart();
+    auto msg_start = GlobParams().MessageStart();
     SnapshotMetadata snapshot_metadata{msg_start};
     DeserializeFromFuzzingInput(buffer, snapshot_metadata);
 })

@@ -37,7 +37,7 @@ CBlockHeader ConsumeBlockHeader(FuzzedDataProvider& provider)
     header.hashPrevBlock = g_block_hash;
     header.hashMerkleRoot = g_block_hash;
     header.nTime = provider.ConsumeIntegral<decltype(header.nTime)>();
-    header.nBits = Params().GenesisBlock().nBits;
+    header.nBits = GlobParams().GenesisBlock().nBits;
     header.nNonce = provider.ConsumeIntegral<decltype(header.nNonce)>();
     return header;
 }
@@ -48,7 +48,7 @@ void init_block_index()
 {
     static const auto testing_setup = MakeNoLogFileContext<>(ChainType::MAIN);
     g_setup = testing_setup.get();
-    g_block_hash = Params().GenesisBlock().GetHash();
+    g_block_hash = GlobParams().GenesisBlock().GetHash();
 }
 
 FUZZ_TARGET(block_index, .init = init_block_index)
@@ -125,7 +125,7 @@ FUZZ_TARGET(block_index, .init = init_block_index)
 
     // We should be able to load everything we've previously stored. Note to assert on the
     // return value we need to make sure all blocks pass the pow check.
-    const auto params{Params().GetConsensus()};
+    const auto params{GlobParams().GetConsensus()};
     const auto inserter = [&](const uint256&) {
         return blocks.back().get();
     };

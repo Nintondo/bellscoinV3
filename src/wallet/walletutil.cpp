@@ -82,7 +82,7 @@ WalletDescriptor GenerateWalletDescriptor(const CExtPubKey& master_key, const Ou
     assert(!desc_prefix.empty());
 
     // Mainnet derives at 0', testnet and regtest derive at 1'
-    if (Params().IsTestChain()) {
+    if (GlobParams().IsTestChain()) {
         desc_prefix += "/1h";
     } else {
         desc_prefix += "/0h";

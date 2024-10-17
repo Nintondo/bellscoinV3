@@ -51,7 +51,9 @@ class OverrideStream
     Stream* stream;
 
     const int nVersion;
+    // BELLSCOIN
     int nType{0};
+    int nTxVersion{0};
 
 public:
     OverrideStream(Stream* stream_, int nVersion_) : stream{stream_}, nVersion{nVersion_} {}
@@ -81,10 +83,14 @@ public:
         stream->read(dst);
     }
 
-    int GetType() const { return nType; }
-    int GetVersion() const { return nVersion; }
     size_t size() const { return stream->size(); }
     void ignore(size_t size) { return stream->ignore(size); }
+    // BELLSCOIN
+    int GetType() const { return nType; }
+    const void* GetParams() const { return nullptr; }
+    void SetTxVersion(int nTxVersionIn) { nTxVersion = nTxVersionIn; }
+    int GetTxVersion()           { return nTxVersion; }
+    void seek(size_t _nSize) {return;}
 };
 
 /* Minimal stream for overwriting and/or appending to an existing byte vector
@@ -136,13 +142,18 @@ public:
         ::Serialize(*this, obj);
         return (*this);
     }
-    int GetVersion() const { return nVersion;}
+    // BELLSCOIN
     int GetType() const { return nType; }
+    const void* GetParams() const { return nullptr; }
+    void SetTxVersion(int nTxVersionIn) { nTxVersion = nTxVersionIn; }
+    int GetTxVersion()           { return nTxVersion; }
+    void seek(size_t _nSize) {return;}
 
 private:
+    // BELLSCOIN
     int nType{0};
-
     const int nVersion;
+    int nTxVersion{0};
     std::vector<unsigned char>& vchData;
     size_t nPos;
 };
@@ -154,7 +165,9 @@ class SpanReader
 private:
     const int m_version;
     Span<const unsigned char> m_data;
+    // BELLSCOIN
     const int m_type{0};
+    int nTxVersion{0};
 
 public:
     /**
@@ -174,8 +187,13 @@ public:
         return (*this);
     }
 
-    int GetType() const { return m_type; }
     int GetVersion() const { return m_version; }
+    // BELLSCOIN
+    int GetType() const { return m_type; }
+    const void* GetParams() const { return nullptr; }
+    void SetTxVersion(int nTxVersionIn) { nTxVersion = nTxVersionIn; }
+    int GetTxVersion()           { return nTxVersion; }
+    void seek(size_t _nSize) {return;}
 
     size_t size() const { return m_data.size(); }
     bool empty() const { return m_data.empty(); }
@@ -211,7 +229,9 @@ protected:
     using vector_type = SerializeData;
     vector_type vch;
     vector_type::size_type m_read_pos{0};
+    // BELLSCOIN
     int nType{0};
+    int nTxVersion{0};
 
 public:
     typedef vector_type::allocator_type   allocator_type;
@@ -224,6 +244,7 @@ public:
     typedef vector_type::const_iterator   const_iterator;
     typedef vector_type::reverse_iterator reverse_iterator;
 
+    // BELLSCOIN
     explicit DataStream(int nTypeIn = 0) {nType = nTypeIn;}
     explicit DataStream(Span<const uint8_t> sp, int nTypeIn = 0) : DataStream{AsBytes(sp), nTypeIn} {}
     explicit DataStream(Span<const value_type> sp, int nTypeIn = 0) : vch(sp.data(), sp.data() + sp.size()), nType(nTypeIn) {}
@@ -341,7 +362,12 @@ public:
         util::Xor(MakeWritableByteSpan(*this), MakeByteSpan(key));
     }
 
-    int GetType() const { return nType; }
+    // BELLSCOIN
+    void SetTxVersion(int nTxVersionIn) { nTxVersion = nTxVersionIn; }
+    int GetTxVersion()           { return nTxVersion; }
+    int GetType() const          { return nType; }
+    void seek(size_t _nSize) {return;}
+    const void* GetParams() const { return nullptr; }
 };
 
 class CDataStream : public DataStream
@@ -358,10 +384,12 @@ public:
     explicit CDataStream(Span<const value_type> sp, int nTypeIn, int nVersionIn)
         : DataStream{sp, nTypeIn},
           nVersion{nVersionIn} {}
-
-    int GetType() const          { return nType; }
+    
+    // BELLSCOIN
+    const void* GetParams() const { return nullptr; }
     void SetVersion(int n)       { nVersion = n; }
     int GetVersion() const       { return nVersion; }
+    void seek(size_t _nSize) {return;}
 
     template <typename T>
     CDataStream& operator<<(const T& obj)

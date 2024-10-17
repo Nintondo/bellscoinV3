@@ -230,7 +230,8 @@ struct PSBTInput
         // Write the utxo
         if (non_witness_utxo) {
             SerializeToVector(s, CompactSizeWriter(PSBT_IN_NON_WITNESS_UTXO));
-            SerializeToVector(s, TX_NO_WITNESS(non_witness_utxo));
+            OverrideStream<Stream> os{&s, s.GetVersion() | SERIALIZE_TRANSACTION_NO_WITNESS};
+            SerializeToVector(os, non_witness_utxo);
         }
         if (!witness_utxo.IsNull()) {
             SerializeToVector(s, CompactSizeWriter(PSBT_IN_WITNESS_UTXO));
@@ -397,7 +398,8 @@ struct PSBTInput
                         throw std::ios_base::failure("Non-witness utxo key is more than one byte type");
                     }
                     // Set the stream to unserialize with witness since this is always a valid network transaction
-                    UnserializeFromVector(s, TX_WITH_WITNESS(non_witness_utxo));
+                    OverrideStream<Stream> os{&s, s.GetVersion() & ~SERIALIZE_TRANSACTION_NO_WITNESS};
+                    UnserializeFromVector(os, non_witness_utxo);
                     break;
                 }
                 case PSBT_IN_WITNESS_UTXO:
@@ -986,7 +988,8 @@ struct PartiallySignedTransaction
         SerializeToVector(s, CompactSizeWriter(PSBT_GLOBAL_UNSIGNED_TX));
 
         // Write serialized tx to a stream
-        SerializeToVector(s, TX_NO_WITNESS(*tx));
+        OverrideStream<Stream> os{&s, s.GetVersion() | SERIALIZE_TRANSACTION_NO_WITNESS};
+        SerializeToVector(os, *tx);
 
         // Write xpubs
         for (const auto& xpub_pair : m_xpubs) {
@@ -1076,7 +1079,8 @@ struct PartiallySignedTransaction
                     }
                     CMutableTransaction mtx;
                     // Set the stream to serialize with non-witness since this should always be non-witness
-                    UnserializeFromVector(s, TX_NO_WITNESS(mtx));
+                    OverrideStream<Stream> os{&s, s.GetVersion() | SERIALIZE_TRANSACTION_NO_WITNESS};
+                    UnserializeFromVector(os, mtx);
                     tx = std::move(mtx);
                     // Make sure that all scriptSigs and scriptWitnesses are empty
                     for (const CTxIn& txin : tx->vin) {

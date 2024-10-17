@@ -299,6 +299,7 @@ static bool rest_block(const std::any& context,
         return RESTERR(req, HTTP_BAD_REQUEST, "Invalid hash: " + hashStr);
     }
 
+    CBlock block;
     FlatFilePos pos{};
     const CBlockIndex* pblockindex = nullptr;
     const CBlockIndex* tip = nullptr;
@@ -318,30 +319,31 @@ static bool rest_block(const std::any& context,
         pos = pblockindex->GetBlockPos();
     }
 
-    std::vector<uint8_t> block_data{};
-    if (!chainman.m_blockman.ReadRawBlockFromDisk(block_data, pos)) {
+    if (!chainman.m_blockman.ReadBlockFromDisk(block, *pblockindex)) {
         return RESTERR(req, HTTP_NOT_FOUND, hashStr + " not found");
     }
 
     switch (rf) {
     case RESTResponseFormat::BINARY: {
+        CDataStream ssBlock(SER_DISK, PROTOCOL_VERSION | RPCSerializationFlags());
+        ssBlock << block;
+        std::string binaryBlock = ssBlock.str();
         req->WriteHeader("Content-Type", "application/octet-stream");
-        req->WriteReply(HTTP_OK, std::as_bytes(std::span{block_data}));
+        req->WriteReply(HTTP_OK, binaryBlock);
         return true;
     }
 
     case RESTResponseFormat::HEX: {
-        const std::string strHex{HexStr(block_data) + "\n"};
+        CDataStream ssBlock(SER_DISK, PROTOCOL_VERSION | RPCSerializationFlags());
+        ssBlock << block;
+        std::string strHex = HexStr(ssBlock) + "\n";
         req->WriteHeader("Content-Type", "text/plain");
         req->WriteReply(HTTP_OK, strHex);
         return true;
     }
 
     case RESTResponseFormat::JSON: {
-        CBlock block{};
-        DataStream block_stream{block_data};
-        block_stream >> TX_WITH_WITNESS(block);
-        UniValue objBlock = blockToJSON(chainman.m_blockman, block, *tip, *pblockindex, tx_verbosity);
+        UniValue objBlock = blockToJSON(chainman.m_blockman, block, tip, pblockindex, tx_verbosity);
         std::string strJSON = objBlock.write() + "\n";
         req->WriteHeader("Content-Type", "application/json");
         req->WriteReply(HTTP_OK, strJSON);
@@ -728,17 +730,18 @@ static bool rest_tx(const std::any& context, HTTPRequest* req, const std::string
 
     switch (rf) {
     case RESTResponseFormat::BINARY: {
-        DataStream ssTx;
-        ssTx << TX_WITH_WITNESS(tx);
+        CDataStream ssTx(SER_DISK, PROTOCOL_VERSION | RPCSerializationFlags());
+        ssTx << tx;
 
+        std::string binaryTx = ssTx.str();
         req->WriteHeader("Content-Type", "application/octet-stream");
-        req->WriteReply(HTTP_OK, ssTx);
+        req->WriteReply(HTTP_OK, binaryTx);
         return true;
     }
 
     case RESTResponseFormat::HEX: {
-        DataStream ssTx;
-        ssTx << TX_WITH_WITNESS(tx);
+        CDataStream ssTx(SER_DISK, PROTOCOL_VERSION | RPCSerializationFlags());
+        ssTx << tx;
 
         std::string strHex = HexStr(ssTx) + "\n";
         req->WriteHeader("Content-Type", "text/plain");

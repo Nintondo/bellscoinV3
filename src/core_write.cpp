@@ -142,8 +142,8 @@ std::string ScriptToAsmStr(const CScript& script, const bool fAttemptSighashDeco
 
 std::string EncodeHexTx(const CTransaction& tx)
 {
-    DataStream ssTx;
-    ssTx << TX_WITH_WITNESS(tx);
+    CDataStream ssTx(SER_DISK, PROTOCOL_VERSION | serializeFlags);
+    ssTx << tx;
     return HexStr(ssTx);
 }
 

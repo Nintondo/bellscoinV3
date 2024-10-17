@@ -135,7 +135,6 @@ enum
     SER_GETHASH         = (1 << 2),
     SER_SIZE            = (1 << 3),
 };
-class SizeComputer;
 
 /**
  * Convert any argument to a reference to X, maintaining constness.
@@ -319,7 +318,7 @@ constexpr inline unsigned int GetSizeOfCompactSize(uint64_t nSize)
     else                         return sizeof(unsigned char) + sizeof(uint64_t);
 }
 
-inline void WriteCompactSize(SizeComputer& os, uint64_t nSize);
+inline void WriteCompactSize(CSizeComputer& os, uint64_t nSize);
 
 template<typename Stream>
 void WriteCompactSize(Stream& os, uint64_t nSize)
@@ -445,7 +444,7 @@ inline unsigned int GetSizeOfVarInt(I n)
 }
 
 template<typename I>
-inline void WriteVarInt(SizeComputer& os, I n);
+inline void WriteVarInt(CSizeComputer& os, I n);
 
 template<typename Stream, VarIntMode Mode, typename I>
 void WriteVarInt(Stream& os, I n)
@@ -1066,12 +1065,12 @@ struct ActionUnserialize {
 /* ::GetSerializeSize implementations
  *
  * Computing the serialized size of objects is done through a special stream
- * object of type SizeComputer, which only records the number of bytes written
+ * object of type CSizeComputer, which only records the number of bytes written
  * to it.
  *
  * If your Serialize or SerializationOp method has non-trivial overhead for
  * serialization, it may be worthwhile to implement a specialized version for
- * SizeComputer, which uses the s.seek() method to record bytes that would
+ * CSizeComputer, which uses the s.seek() method to record bytes that would
  * be written instead.
  */
 class CSizeComputer
@@ -1129,6 +1128,7 @@ size_t GetSerializeSize(const T& t, int nVersion = 0, int nProtocol = SER_SIZE)
 {
     return (CSizeComputer(nVersion, nProtocol) << t).size();
 }
+
 // Bellscoin
 template <typename T>
 size_t GetSerializeSize(const T& t, int nVersion, int nProtocol, int nTxVersion)
@@ -1140,6 +1140,14 @@ template <typename S, typename T>
 size_t GetSerializeSize(const S& s, const T& t)
 {
     return (CSizeComputer(s.GetVersion()) << t).size();
+}
+
+template <typename... T>
+size_t GetSerializeSizeMany(int nVersion, const T&... t)
+{
+    CSizeComputer sc(nVersion);
+    SerializeMany(sc, t...);
+    return sc.size();
 }
 
 //! Check if type contains a stream by seeing if has a GetStream() method.
@@ -1244,6 +1252,17 @@ public:
         ::Unserialize(ss, m_object);
     }
 };
+
+/**
+ * Return a wrapper around t that (de)serializes it with specified parameter params.
+ *
+ * See FORMATTER_METHODS_PARAMS for more information on serialization parameters.
+ */
+template <typename Params, typename T>
+static auto WithParams(const Params& params, T&& t)
+{
+    return ParamsWrapper<Params, T>{params, t};
+}
 
 /**
  * Helper macro for SerParams structs

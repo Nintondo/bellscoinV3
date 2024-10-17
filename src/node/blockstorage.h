@@ -166,7 +166,10 @@ private:
     [[nodiscard]] bool FlushChainstateBlockFile(int tip_height);
     bool FindUndoPos(BlockValidationState& state, int nFile, FlatFilePos& pos, unsigned int nAddSize);
 
-    AutoFile OpenUndoFile(const FlatFilePos& pos, bool fReadOnly = false) const;
+    FlatFileSeq BlockFileSeq() const;
+    FlatFileSeq UndoFileSeq() const;
+
+    CAutoFile OpenUndoFile(const FlatFilePos& pos, bool fReadOnly = false) const;
 
     /**
      * Write a block to disk. The pos argument passed to this function is modified by this call. Before this call, it should
@@ -409,7 +412,7 @@ public:
     void UpdatePruneLock(const std::string& name, const PruneLockInfo& lock_info) EXCLUSIVE_LOCKS_REQUIRED(::cs_main);
 
     /** Open a block file (blk?????.dat) */
-    AutoFile OpenBlockFile(const FlatFilePos& pos, bool fReadOnly = false) const;
+    CAutoFile OpenBlockFile(const FlatFilePos& pos, bool fReadOnly = false) const;
 
     /** Translation to a filesystem path */
     fs::path GetBlockPosFilename(const FlatFilePos& pos) const;

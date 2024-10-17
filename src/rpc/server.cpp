@@ -362,7 +362,7 @@ bool IsDeprecatedRPCEnabled(const std::string& method)
     return find(enabled_methods.begin(), enabled_methods.end(), method) != enabled_methods.end();
 }
 
-UniValue JSONRPCExec(const JSONRPCRequest& jreq, bool catch_errors)
+UniValue JSONRPCExec(const node::JSONRPCRequest& jreq, bool catch_errors)
 {
     UniValue result;
     if (catch_errors) {

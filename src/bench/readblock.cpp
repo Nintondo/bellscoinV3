@@ -14,9 +14,9 @@
 
 static FlatFilePos WriteBlockToDisk(ChainstateManager& chainman)
 {
-    DataStream stream{benchmark::data::block413567};
+    CDataStream stream(benchmark::data::block413567, SER_NETWORK, PROTOCOL_VERSION);
     CBlock block;
-    stream >> TX_WITH_WITNESS(block);
+    stream >> block;
 
     return chainman.m_blockman.SaveBlockToDisk(block, 0);
 }

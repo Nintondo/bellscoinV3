@@ -65,7 +65,7 @@ public:
 
     SERIALIZE_METHODS(BlockTransactions, obj)
     {
-        READWRITE(obj.blockhash, TX_WITH_WITNESS(Using<VectorFormatter<TransactionCompression>>(obj.txn)));
+        READWRITE(obj.blockhash, Using<VectorFormatter<TransactionCompression>>(obj.txn));
     }
 };
 
@@ -75,8 +75,8 @@ struct PrefilledTransaction {
     // as a proper transaction-in-block-index in PartiallyDownloadedBlock
     uint16_t index;
     CTransactionRef tx;
-
-    SERIALIZE_METHODS(PrefilledTransaction, obj) { READWRITE(COMPACTSIZE(obj.index), TX_WITH_WITNESS(Using<TransactionCompression>(obj.tx))); }
+    
+    SERIALIZE_METHODS(PrefilledTransaction, obj) { READWRITE(COMPACTSIZE(obj.index), Using<TransactionCompression>(obj.tx)); }
 };
 
 typedef enum ReadStatus_t

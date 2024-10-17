@@ -179,6 +179,6 @@ extern CRPCTable tableRPC;
 void StartRPC();
 void InterruptRPC();
 void StopRPC();
-UniValue JSONRPCExec(const JSONRPCRequest& jreq, bool catch_errors);
+UniValue JSONRPCExec(const node::JSONRPCRequest& jreq, bool catch_errors);
 
 #endif // BITCOIN_RPC_SERVER_H

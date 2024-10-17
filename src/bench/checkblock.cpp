@@ -18,21 +18,22 @@
 
 static void DeserializeBlockTest(benchmark::Bench& bench)
 {
-    DataStream stream(benchmark::data::block413567);
+    CDataStream stream(benchmark::data::block413567, SER_NETWORK, PROTOCOL_VERSION);
     std::byte a{0};
     stream.write({&a, 1}); // Prevent compaction
 
     bench.unit("block").run([&] {
         CBlock block;
-        stream >> TX_WITH_WITNESS(block);
+        stream >> block;
         bool rewound = stream.Rewind(benchmark::data::block413567.size());
         assert(rewound);
     });
 }
 
-static void DeserializeAndCheckBlockTest(benchmark::Bench& bench)
+// SYSCOIN TODO block413567 for bellscoin
+/*static void DeserializeAndCheckBlockTest(benchmark::State& state)
 {
-    DataStream stream(benchmark::data::block413567);
+    CDataStream stream(benchmark::data::block413567, SER_NETWORK, PROTOCOL_VERSION);
     std::byte a{0};
     stream.write({&a, 1}); // Prevent compaction
 
@@ -41,15 +42,15 @@ static void DeserializeAndCheckBlockTest(benchmark::Bench& bench)
 
     bench.unit("block").run([&] {
         CBlock block; // Note that CBlock caches its checked state, so we need to recreate it here
-        stream >> TX_WITH_WITNESS(block);
+        stream >> block;
         bool rewound = stream.Rewind(benchmark::data::block413567.size());
         assert(rewound);
 
         BlockValidationState validationState;
         bool checked = CheckBlock(block, validationState, chainParams->GetConsensus());
         assert(checked);
-    });
-}
+    }
+}*/
 
 BENCHMARK(DeserializeBlockTest, benchmark::PriorityLevel::HIGH);
-BENCHMARK(DeserializeAndCheckBlockTest, benchmark::PriorityLevel::HIGH);
+// BENCHMARK(DeserializeAndCheckBlockTest, benchmark::PriorityLevel::HIGH);

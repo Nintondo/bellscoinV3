@@ -40,7 +40,7 @@ static CService ip(uint32_t i)
 {
     struct in_addr s;
     s.s_addr = i;
-    return CService{CNetAddr{s}, Params().GetDefaultPort()};
+    return CService{CNetAddr{s}, GlobParams().GetDefaultPort()};
 }
 
 /** Create a peer and connect to it. If the optional `address` (IP/CJDNS only) isn't passed, a random address is created. */
@@ -49,7 +49,7 @@ static void AddPeer(NodeId& id, std::vector<CNode*>& nodes, PeerManager& peerman
     CAddress addr{};
 
     if (address.has_value()) {
-        addr = CAddress{MaybeFlipIPv6toCJDNS(LookupNumeric(address.value(), Params().GetDefaultPort())), NODE_NONE};
+        addr = CAddress{MaybeFlipIPv6toCJDNS(LookupNumeric(address.value(), GlobParams().GetDefaultPort())), NODE_NONE};
     } else if (onion_peer) {
         auto tor_addr{g_insecure_rand_ctx.randbytes(ADDR_TORV3_SIZE)};
         BOOST_REQUIRE(addr.SetSpecial(OnionToString(tor_addr)));

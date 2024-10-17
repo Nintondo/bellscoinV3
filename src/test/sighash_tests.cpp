@@ -138,7 +138,7 @@ BOOST_AUTO_TEST_CASE(sighash_test)
         sh = SignatureHash(scriptCode, txTo, nIn, nHashType, 0, SigVersion::BASE);
         #if defined(PRINT_SIGHASH_JSON)
         DataStream ss;
-        ss << TX_WITH_WITNESS(txTo);
+        CDataStream ss(SER_NETWORK, PROTOCOL_VERSION);
 
         std::cout << "\t[\"" ;
         std::cout << HexStr(ss) << "\", \"";
