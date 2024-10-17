@@ -581,7 +581,7 @@ class CTransaction:
             self.sha256 = None
             self.hash = None
         else:
-            self.version = tx.version
+            self.version = tx.nVersion
             self.vin = copy.deepcopy(tx.vin)
             self.vout = copy.deepcopy(tx.vout)
             self.nLockTime = tx.nLockTime

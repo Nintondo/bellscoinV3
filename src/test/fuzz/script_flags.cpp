@@ -18,9 +18,18 @@
 FUZZ_TARGET(script_flags)
 {
     if (buffer.size() > 100'000) return;
-    DataStream ds{buffer};
+    
+    CDataStream ds(buffer, SER_NETWORK, INIT_PROTO_VERSION);
     try {
-        const CTransaction tx(deserialize, TX_WITH_WITNESS, ds);
+        int nVersion;
+        ds >> nVersion;
+        ds.SetVersion(nVersion);
+    } catch (const std::ios_base::failure&) {
+        return;
+    }
+
+    try {
+        const CTransaction tx(deserialize, ds);
 
         unsigned int verify_flags;
         ds >> verify_flags;

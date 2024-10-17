@@ -402,6 +402,7 @@ bool TestBlockValidity(BlockValidationState& state,
 
 /** Check with the proof of work on each blockheader matches the value in nBits */
 bool HasValidProofOfWork(const std::vector<CBlockHeader>& headers, const Consensus::Params& consensusParams);
+bool HasValidProofOfWorkTests(const std::vector<CBlockHeader>& headers, const Consensus::Params& consensusParams);
 
 /** Check if a block has been mutated (with respect to its merkle root and witness commitments). */
 bool IsBlockMutated(const CBlock& block, bool check_witness_root);
@@ -1325,6 +1326,8 @@ public:
 
     ~ChainstateManager();
 };
+
+int RPCSerializationFlags();
 
 /** Deployment* info via ChainstateManager */
 template<typename DEP>

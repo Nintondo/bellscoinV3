@@ -205,8 +205,8 @@ UniValue blockToJSON(BlockManager& blockman, const CBlock& block, const CBlockIn
 {
     UniValue result = blockheaderToJSON(tip, blockindex);
 
-    result.pushKV("strippedsize", (int)::GetSerializeSize(TX_NO_WITNESS(block)));
-    result.pushKV("size", (int)::GetSerializeSize(TX_WITH_WITNESS(block)));
+    result.pushKV("strippedsize", (int)::GetSerializeSize(block, PROTOCOL_VERSION | SERIALIZE_TRANSACTION_NO_WITNESS));
+    result.pushKV("size", (int)::GetSerializeSize(block, PROTOCOL_VERSION));
     result.pushKV("weight", (int)::GetBlockWeight(block));
     UniValue txs(UniValue::VARR);
 
@@ -821,9 +821,12 @@ static RPCHelpMan getblock()
         return HexStr(block_data);
     }
 
-    DataStream block_stream{block_data};
-    CBlock block{};
-    block_stream >> TX_WITH_WITNESS(block);
+    const CBlock block{GetBlockChecked(chainman.m_blockman, *pblockindex)};
+    // SYSCOIN
+    CDataStream ssBlock(SER_DISK, PROTOCOL_VERSION | RPCSerializationFlags());
+    ssBlock << block;
+    std::string strHex = HexStr(ssBlock);
+    return strHex;
 
     TxVerbosity tx_verbosity;
     if (verbosity == 1) {

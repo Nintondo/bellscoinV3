@@ -110,7 +110,7 @@ class BIP68_112_113Test(BellscoinTestFramework):
 
     def create_bip112special(self, input, txversion):
         tx = self.create_self_transfer_from_utxo(input)
-        tx.version = txversion
+        tx.nVersion = txversion
         self.miniwallet.sign_tx(tx)
         tx.vin[0].scriptSig = CScript([-1, OP_CHECKSEQUENCEVERIFY, OP_DROP] + list(CScript(tx.vin[0].scriptSig)))
         tx.rehash()
@@ -118,7 +118,7 @@ class BIP68_112_113Test(BellscoinTestFramework):
 
     def create_bip112emptystack(self, input, txversion):
         tx = self.create_self_transfer_from_utxo(input)
-        tx.version = txversion
+        tx.nVersion = txversion
         self.miniwallet.sign_tx(tx)
         tx.vin[0].scriptSig = CScript([OP_CHECKSEQUENCEVERIFY] + list(CScript(tx.vin[0].scriptSig)))
         tx.rehash()
@@ -136,7 +136,7 @@ class BIP68_112_113Test(BellscoinTestFramework):
         for i, (sdf, srhb, stf, srlb) in enumerate(product(*[[True, False]] * 4)):
             locktime = relative_locktime(sdf, srhb, stf, srlb)
             tx = self.create_self_transfer_from_utxo(bip68inputs[i])
-            tx.version = txversion
+            tx.nVersion = txversion
             tx.vin[0].nSequence = locktime + locktime_delta
             self.miniwallet.sign_tx(tx)
             txs.append({'tx': tx, 'sdf': sdf, 'stf': stf})
@@ -154,7 +154,7 @@ class BIP68_112_113Test(BellscoinTestFramework):
                 tx.vin[0].nSequence = BASE_RELATIVE_LOCKTIME + locktime_delta
             else:  # vary nSequence instead, OP_CSV is fixed
                 tx.vin[0].nSequence = locktime + locktime_delta
-            tx.version = txversion
+            tx.nVersion = txversion
             self.miniwallet.sign_tx(tx)
             if varyOP_CSV:
                 tx.vin[0].scriptSig = CScript([locktime, OP_CHECKSEQUENCEVERIFY, OP_DROP] + list(CScript(tx.vin[0].scriptSig)))

@@ -56,7 +56,7 @@ CMutableTransaction TxFromHex(const std::string& str)
 {
     CMutableTransaction tx;
     try {
-        SpanReader{CheckedParseHex(str)} >> TX_NO_WITNESS(tx);
+        SpanReader{SERIALIZE_TRANSACTION_NO_WITNESS, CheckedParseHex(str)} >> tx;
     } catch (const std::ios_base::failure&) {
         throw std::runtime_error("Tx deserialization failure");
     }

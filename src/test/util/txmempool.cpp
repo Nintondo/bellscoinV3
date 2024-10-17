@@ -146,7 +146,7 @@ void CheckMempoolTRUCInvariants(const CTxMemPool& tx_pool)
     LOCK(tx_pool.cs);
     for (const auto& tx_info : tx_pool.infoAll()) {
         const auto& entry = *Assert(tx_pool.GetEntry(tx_info.tx->GetHash()));
-        if (tx_info.tx->version == TRUC_VERSION) {
+        if (tx_info.tx->nVersion == TRUC_VERSION) {
             // Check that special maximum virtual size is respected
             Assert(entry.GetTxSize() <= TRUC_MAX_VSIZE);
 
@@ -161,12 +161,12 @@ void CheckMempoolTRUCInvariants(const CTxMemPool& tx_pool)
                 Assert(entry.GetTxSize() <= TRUC_CHILD_MAX_VSIZE);
                 // All TRUC transactions must only have TRUC unconfirmed parents.
                 const auto& parents = entry.GetMemPoolParentsConst();
-                Assert(parents.begin()->get().GetSharedTx()->version == TRUC_VERSION);
+                Assert(parents.begin()->get().GetSharedTx()->nVersion == TRUC_VERSION);
             }
         } else if (entry.GetCountWithAncestors() > 1) {
             // All non-TRUC transactions must only have non-TRUC unconfirmed parents.
             for (const auto& parent : entry.GetMemPoolParentsConst()) {
-                Assert(parent.get().GetSharedTx()->version != TRUC_VERSION);
+                Assert(parent.get().GetSharedTx()->nVersion != TRUC_VERSION);
             }
         }
     }

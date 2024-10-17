@@ -1643,8 +1643,8 @@ RPCHelpMan walletprocesspsbt()
         CMutableTransaction mtx;
         // Returns true if complete, which we already think it is.
         CHECK_NONFATAL(FinalizeAndExtractPSBT(psbtx, mtx));
-        DataStream ssTx_final;
-        ssTx_final << TX_WITH_WITNESS(mtx);
+        CDataStream ssTx_final(SER_NETWORK, PROTOCOL_VERSION);
+        ssTx_final << mtx;
         result.pushKV("hex", HexStr(ssTx_final));
     }
 

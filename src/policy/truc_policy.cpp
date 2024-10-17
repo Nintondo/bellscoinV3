@@ -44,12 +44,12 @@ struct ParentInfo {
     /** Wtxid used for debug string */
     const Wtxid& m_wtxid;
     /** version used to check inheritance of TRUC and non-TRUC */
-    decltype(CTransaction::version) m_version;
+    decltype(CTransaction::nVersion) m_version;
     /** If parent is in mempool, whether it has any descendants in mempool. */
     bool m_has_mempool_descendant;
 
     ParentInfo() = delete;
-    ParentInfo(const Txid& txid, const Wtxid& wtxid, decltype(CTransaction::version) version, bool has_mempool_descendant) :
+    ParentInfo(const Txid& txid, const Wtxid& wtxid, decltype(CTransaction::nVersion) version, bool has_mempool_descendant) :
         m_txid{txid}, m_wtxid{wtxid}, m_version{version},
         m_has_mempool_descendant{has_mempool_descendant}
     {}
@@ -66,7 +66,7 @@ std::optional<std::string> PackageTRUCChecks(const CTransactionRef& ptx, int64_t
     const auto in_package_parents{FindInPackageParents(package, ptx)};
 
     // Now we have all ancestors, so we can start checking TRUC rules.
-    if (ptx->version == TRUC_VERSION) {
+    if (ptx->nVersion == TRUC_VERSION) {
         // SingleTRUCChecks should have checked this already.
         if (!Assume(vsize <= TRUC_MAX_VSIZE)) {
             return strprintf("version=3 tx %s (wtxid=%s) is too big: %u > %u virtual bytes",
@@ -93,14 +93,14 @@ std::optional<std::string> PackageTRUCChecks(const CTransactionRef& ptx, int64_t
                     auto& mempool_parent = *mempool_ancestors.begin();
                     return ParentInfo{mempool_parent->GetTx().GetHash(),
                                       mempool_parent->GetTx().GetWitnessHash(),
-                                      mempool_parent->GetTx().version,
+                                      mempool_parent->GetTx().nVersion,
                                       /*has_mempool_descendant=*/mempool_parent->GetCountWithDescendants() > 1};
                 } else {
                     auto& parent_index = in_package_parents.front();
                     auto& package_parent = package.at(parent_index);
                     return ParentInfo{package_parent->GetHash(),
                                       package_parent->GetWitnessHash(),
-                                      package_parent->version,
+                                      package_parent->nVersion,
                                       /*has_mempool_descendant=*/false};
                 }
             }();
@@ -142,14 +142,14 @@ std::optional<std::string> PackageTRUCChecks(const CTransactionRef& ptx, int64_t
     } else {
         // Non-TRUC transactions cannot have TRUC parents.
         for (auto it : mempool_ancestors) {
-            if (it->GetTx().version == TRUC_VERSION) {
+            if (it->GetTx().nVersion == TRUC_VERSION) {
                 return strprintf("non-version=3 tx %s (wtxid=%s) cannot spend from version=3 tx %s (wtxid=%s)",
                                  ptx->GetHash().ToString(), ptx->GetWitnessHash().ToString(),
                                  it->GetSharedTx()->GetHash().ToString(), it->GetSharedTx()->GetWitnessHash().ToString());
             }
         }
         for (const auto& index: in_package_parents) {
-            if (package.at(index)->version == TRUC_VERSION) {
+            if (package.at(index)->nVersion == TRUC_VERSION) {
                 return strprintf("non-version=3 tx %s (wtxid=%s) cannot spend from version=3 tx %s (wtxid=%s)",
                                  ptx->GetHash().ToString(),
                                  ptx->GetWitnessHash().ToString(),
@@ -168,12 +168,12 @@ std::optional<std::pair<std::string, CTransactionRef>> SingleTRUCChecks(const CT
 {
     // Check TRUC and non-TRUC inheritance.
     for (const auto& entry : mempool_ancestors) {
-        if (ptx->version != TRUC_VERSION && entry->GetTx().version == TRUC_VERSION) {
+        if (ptx->nVersion != TRUC_VERSION && entry->GetTx().nVersion == TRUC_VERSION) {
             return std::make_pair(strprintf("non-version=3 tx %s (wtxid=%s) cannot spend from version=3 tx %s (wtxid=%s)",
                              ptx->GetHash().ToString(), ptx->GetWitnessHash().ToString(),
                              entry->GetSharedTx()->GetHash().ToString(), entry->GetSharedTx()->GetWitnessHash().ToString()),
                 nullptr);
-        } else if (ptx->version == TRUC_VERSION && entry->GetTx().version != TRUC_VERSION) {
+        } else if (ptx->nVersion == TRUC_VERSION && entry->GetTx().nVersion != TRUC_VERSION) {
             return std::make_pair(strprintf("version=3 tx %s (wtxid=%s) cannot spend from non-version=3 tx %s (wtxid=%s)",
                              ptx->GetHash().ToString(), ptx->GetWitnessHash().ToString(),
                              entry->GetSharedTx()->GetHash().ToString(), entry->GetSharedTx()->GetWitnessHash().ToString()),
@@ -186,7 +186,7 @@ std::optional<std::pair<std::string, CTransactionRef>> SingleTRUCChecks(const CT
     static_assert(TRUC_DESCENDANT_LIMIT == 2);
 
     // The rest of the rules only apply to transactions with version=3.
-    if (ptx->version != TRUC_VERSION) return std::nullopt;
+    if (ptx->nVersion != TRUC_VERSION) return std::nullopt;
 
     if (vsize > TRUC_MAX_VSIZE) {
         return std::make_pair(strprintf("version=3 tx %s (wtxid=%s) is too big: %u > %u virtual bytes",

@@ -1541,11 +1541,11 @@ static RPCHelpMan finalizepsbt()
     bool complete = FinalizeAndExtractPSBT(psbtx, mtx);
 
     UniValue result(UniValue::VOBJ);
-    DataStream ssTx{};
+    CDataStream ssTx(SER_NETWORK, PROTOCOL_VERSION);
     std::string result_str;
 
     if (complete && extract) {
-        ssTx << TX_WITH_WITNESS(mtx);
+        ssTx << mtx;
         result_str = HexStr(ssTx);
         result.pushKV("hex", result_str);
     } else {
@@ -1750,8 +1750,8 @@ static RPCHelpMan joinpsbts()
         }
         psbtxs.push_back(psbtx);
         // Choose the highest version number
-        if (psbtx.tx->version > best_version) {
-            best_version = psbtx.tx->version;
+        if (psbtx.tx->nVersion > best_version) {
+            best_version = psbtx.tx->nVersion;
         }
         // Choose the lowest lock time
         if (psbtx.tx->nLockTime < best_locktime) {
@@ -1762,7 +1762,7 @@ static RPCHelpMan joinpsbts()
     // Create a blank psbt where everything will be added
     PartiallySignedTransaction merged_psbt;
     merged_psbt.tx = CMutableTransaction();
-    merged_psbt.tx->version = best_version;
+    merged_psbt.tx->nVersion = best_version;
     merged_psbt.tx->nLockTime = best_locktime;
 
     // Merge
@@ -1797,7 +1797,7 @@ static RPCHelpMan joinpsbts()
 
     PartiallySignedTransaction shuffled_psbt;
     shuffled_psbt.tx = CMutableTransaction();
-    shuffled_psbt.tx->version = merged_psbt.tx->version;
+    shuffled_psbt.tx->nVersion = merged_psbt.tx->nVersion;
     shuffled_psbt.tx->nLockTime = merged_psbt.tx->nLockTime;
     for (int i : input_indices) {
         shuffled_psbt.AddInput(merged_psbt.tx->vin[i], merged_psbt.inputs[i]);
@@ -1987,7 +1987,7 @@ RPCHelpMan descriptorprocesspsbt()
         complete &= PSBTInputSigned(input);
     }
 
-    DataStream ssTx{};
+    CDataStream ssTx(SER_NETWORK, PROTOCOL_VERSION);
     ssTx << psbtx;
 
     UniValue result(UniValue::VOBJ);
@@ -1998,8 +1998,8 @@ RPCHelpMan descriptorprocesspsbt()
         CMutableTransaction mtx;
         PartiallySignedTransaction psbtx_copy = psbtx;
         CHECK_NONFATAL(FinalizeAndExtractPSBT(psbtx_copy, mtx));
-        DataStream ssTx_final;
-        ssTx_final << TX_WITH_WITNESS(mtx);
+        CDataStream ssTx_final(SER_NETWORK, PROTOCOL_VERSION);
+        ssTx_final << mtx;
         result.pushKV("hex", HexStr(ssTx_final));
     }
     return result;

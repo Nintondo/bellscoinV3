@@ -1975,7 +1975,7 @@ class SegWitTest(BellscoinTestFramework):
         def serialize_with_bogus_witness(tx):
             flags = 3
             r = b""
-            r += tx.version.to_bytes(4, "little")
+            r += tx.nVersion.to_bytes(4, "little")
             if flags:
                 dummy = []
                 r += ser_vector(dummy)

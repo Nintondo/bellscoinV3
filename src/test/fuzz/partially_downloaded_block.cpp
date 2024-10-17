@@ -46,7 +46,7 @@ FUZZ_TARGET(partially_downloaded_block, .init = initialize_pdb)
 {
     FuzzedDataProvider fuzzed_data_provider{buffer.data(), buffer.size()};
 
-    auto block{ConsumeDeserializable<CBlock>(fuzzed_data_provider, TX_WITH_WITNESS)};
+    auto block{ConsumeDeserializable<CBlock>(fuzzed_data_provider)};
     if (!block || block->vtx.size() == 0 ||
         block->vtx.size() >= std::numeric_limits<uint16_t>::max()) {
         return;

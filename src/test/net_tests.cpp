@@ -857,14 +857,14 @@ BOOST_AUTO_TEST_CASE(initial_advertise_from_version_message)
     std::chrono::microseconds time_received_dummy{0};
 
     const auto msg_version =
-        NetMsg::Make(NetMsgType::VERSION, PROTOCOL_VERSION, services, time, services, CAddress::V1_NETWORK(peer_us));
-    DataStream msg_version_stream{msg_version.data};
+        msg_maker.Make(NetMsgType::VERSION, PROTOCOL_VERSION, services, time, services, CAddress::V1_NETWORK(peer_us));
+    CDataStream msg_version_stream{msg_version.data, SER_NETWORK, PROTOCOL_VERSION};
 
     m_node.peerman->ProcessMessage(
         peer, NetMsgType::VERSION, msg_version_stream, time_received_dummy, interrupt_dummy);
 
-    const auto msg_verack = NetMsg::Make(NetMsgType::VERACK);
-    DataStream msg_verack_stream{msg_verack.data};
+    const auto msg_verack = msg_maker.Make(NetMsgType::VERACK);
+    CDataStream msg_verack_stream{msg_verack.data, SER_NETWORK, PROTOCOL_VERSION};
 
     // Will set peer.fSuccessfullyConnected to true (necessary in SendMessages()).
     m_node.peerman->ProcessMessage(

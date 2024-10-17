@@ -27,7 +27,7 @@ BOOST_FIXTURE_TEST_CASE(tx_mempool_reject_coinbase, TestChain100Setup)
     CScript scriptPubKey = CScript() << ToByteVector(coinbaseKey.GetPubKey()) << OP_CHECKSIG;
     CMutableTransaction coinbaseTx;
 
-    coinbaseTx.version = 1;
+    coinbasetx.nVersion = 1;
     coinbaseTx.vin.resize(1);
     coinbaseTx.vout.resize(1);
     coinbaseTx.vin[0].scriptSig = CScript() << OP_11 << OP_EQUAL;
@@ -76,7 +76,7 @@ static inline std::vector<CPubKey> random_keys(size_t num_keys) {
 static inline CTransactionRef make_tx(const std::vector<COutPoint>& inputs, int32_t version)
 {
     CMutableTransaction mtx = CMutableTransaction{};
-    mtx.version = version;
+    mtx.nVersion = version;
     mtx.vin.resize(inputs.size());
     mtx.vout.resize(25);
     for (size_t i{0}; i < inputs.size(); ++i) {

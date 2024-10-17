@@ -28,11 +28,11 @@ void initialize_transaction()
 
 FUZZ_TARGET(transaction, .init = initialize_transaction)
 {
-    DataStream ds{buffer};
+    CDataStream ds(buffer, SER_NETWORK, INIT_PROTO_VERSION);
     bool valid_tx = true;
     const CTransaction tx = [&] {
         try {
-            return CTransaction(deserialize, TX_WITH_WITNESS, ds);
+            return CTransaction(deserialize, ds);
         } catch (const std::ios_base::failure&) {
             valid_tx = false;
             return CTransaction{CMutableTransaction{}};
@@ -42,7 +42,10 @@ FUZZ_TARGET(transaction, .init = initialize_transaction)
     DataStream ds_mtx{buffer};
     CMutableTransaction mutable_tx;
     try {
-        ds_mtx >> TX_WITH_WITNESS(mutable_tx);
+        int nVersion;
+        ds_mtx >> nVersion;
+        ds_mtx.SetVersion(nVersion);
+        ds_mtx >> mutable_tx;
     } catch (const std::ios_base::failure&) {
         valid_mutable_tx = false;
     }

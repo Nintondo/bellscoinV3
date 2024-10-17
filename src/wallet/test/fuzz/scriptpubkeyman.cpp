@@ -165,7 +165,7 @@ FUZZ_TARGET(scriptpubkeyman, .init = initialize_spkm)
             },
             [&] {
                 CMutableTransaction tx_to;
-                const std::optional<CMutableTransaction> opt_tx_to{ConsumeDeserializable<CMutableTransaction>(fuzzed_data_provider, TX_WITH_WITNESS)};
+                const std::optional<CMutableTransaction> opt_tx_to{ConsumeDeserializable<CMutableTransaction>(fuzzed_data_provider)};
                 if (!opt_tx_to) {
                     good_data = false;
                     return;

@@ -48,7 +48,7 @@ public:
         READWRITE(obj.boolval);
         READWRITE(obj.stringval);
         READWRITE(obj.charstrval);
-        READWRITE(TX_WITH_WITNESS(obj.txval));
+        READWRITE(obj.txval);
     }
 
     bool operator==(const CSerializeMethodsTestSingle& rhs) const
@@ -68,7 +68,7 @@ public:
 
     SERIALIZE_METHODS(CSerializeMethodsTestMany, obj)
     {
-        READWRITE(obj.intval, obj.boolval, obj.stringval, obj.charstrval, TX_WITH_WITNESS(obj.txval));
+        READWRITE(obj.intval, obj.boolval, obj.stringval, obj.charstrval, obj.txval);
     }
 };
 
@@ -262,8 +262,8 @@ BOOST_AUTO_TEST_CASE(class_methods)
     BOOST_CHECK(methodtest2 == methodtest3);
     BOOST_CHECK(methodtest3 == methodtest4);
 
-    DataStream ss2;
-    ss2 << intval << boolval << stringval << charstrval << TX_WITH_WITNESS(txval);
+    CDataStream ss2{SER_DISK, PROTOCOL_VERSION};
+    ss2 << intval << boolval << stringval << charstrval << txval;
     ss2 >> methodtest3;
     BOOST_CHECK(methodtest3 == methodtest4);
     {

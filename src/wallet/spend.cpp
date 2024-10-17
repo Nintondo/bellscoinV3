@@ -1424,7 +1424,7 @@ util::Result<CreatedTransactionResult> FundTransaction(CWallet& wallet, const CM
     coinControl.m_locktime = tx.nLockTime;
 
     // Set the user desired version
-    coinControl.m_version = tx.version;
+    coinControl.m_version = tx.nVersion;
 
     // Acquire the locks to prevent races to the new locked unspents between the
     // CreateTransaction call and LockCoin calls (when lockUnspents is true).

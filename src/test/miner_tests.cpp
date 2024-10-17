@@ -147,7 +147,7 @@ void MinerTestingSetup::TestPackageSelection(const CScript& scriptPubKey, const 
     tx.vout[0].nValue = 5000000000LL - 1000 - 50000; // 0 fee
     Txid hashFreeTx = tx.GetHash();
     tx_mempool.addUnchecked(entry.Fee(0).FromTx(tx));
-    size_t freeTxSize = ::GetSerializeSize(TX_WITH_WITNESS(tx));
+    size_t freeTxSize = ::GetSerializeSize(tx, PROTOCOL_VERSION);
 
     // Calculate a fee on child transaction that will put the package just
     // below the block min tx fee (assuming 1 child tx of the same size).
@@ -425,7 +425,7 @@ void MinerTestingSetup::TestBasicMining(const CScript& scriptPubKey, const std::
     std::vector<int> prevheights;
 
     // relative height locked
-    tx.version = 2;
+    tx.nVersion = 2;
     tx.vin.resize(1);
     prevheights.resize(1);
     tx.vin[0].prevout.hash = txFirst[0]->GetHash(); // only 1 transaction

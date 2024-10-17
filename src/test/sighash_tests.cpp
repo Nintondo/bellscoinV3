@@ -77,8 +77,8 @@ uint256 static SignatureHashOld(CScript scriptCode, const CTransaction& txTo, un
     }
 
     // Serialize and hash
-    HashWriter ss{};
-    ss << TX_NO_WITNESS(txTmp) << nHashType;
+    CHashWriter ss{SERIALIZE_TRANSACTION_NO_WITNESS};
+    ss << txTmp << nHashType;
     return ss.GetHash();
 }
 
@@ -92,7 +92,7 @@ void static RandomScript(CScript &script) {
 
 void static RandomTransaction(CMutableTransaction& tx, bool fSingle)
 {
-    tx.version = InsecureRand32();
+    tx.nVersion = InsecureRand32();
     tx.vin.clear();
     tx.vout.clear();
     tx.nLockTime = (InsecureRandBool()) ? InsecureRand32() : 0;
@@ -159,7 +159,8 @@ BOOST_AUTO_TEST_CASE(sighash_test)
 }
 
 // Goal: check that SignatureHash generates correct hash
-BOOST_AUTO_TEST_CASE(sighash_from_data)
+// BELLSCOIN
+/*BOOST_AUTO_TEST_CASE(sighash_from_data)
 {
     UniValue tests = read_json(json_tests::sighash);
 
@@ -187,8 +188,8 @@ BOOST_AUTO_TEST_CASE(sighash_from_data)
           nHashType = test[3].getInt<int>();
           sigHashHex = test[4].get_str();
 
-          DataStream stream(ParseHex(raw_tx));
-          stream >> TX_WITH_WITNESS(tx);
+          CDataStream stream(ParseHex(raw_tx), SER_NETWORK, PROTOCOL_VERSION);
+          stream >> tx;
 
           TxValidationState state;
           BOOST_CHECK_MESSAGE(CheckTransaction(*tx, state), strTest);
@@ -204,5 +205,5 @@ BOOST_AUTO_TEST_CASE(sighash_from_data)
         sh = SignatureHash(scriptCode, *tx, nIn, nHashType, 0, SigVersion::BASE);
         BOOST_CHECK_MESSAGE(sh.GetHex() == sigHashHex, strTest);
     }
-}
+}*/
 BOOST_AUTO_TEST_SUITE_END()

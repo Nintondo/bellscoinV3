@@ -53,7 +53,7 @@ FUZZ_TARGET(rbf, .init = initialize_rbf)
 {
     FuzzedDataProvider fuzzed_data_provider(buffer.data(), buffer.size());
     SetMockTime(ConsumeTime(fuzzed_data_provider));
-    std::optional<CMutableTransaction> mtx = ConsumeDeserializable<CMutableTransaction>(fuzzed_data_provider, TX_WITH_WITNESS);
+    std::optional<CMutableTransaction> mtx = ConsumeDeserializable<CMutableTransaction>(fuzzed_data_provider);
     if (!mtx) {
         return;
     }
@@ -64,7 +64,7 @@ FUZZ_TARGET(rbf, .init = initialize_rbf)
 
     LIMITED_WHILE(fuzzed_data_provider.ConsumeBool(), NUM_ITERS)
     {
-        const std::optional<CMutableTransaction> another_mtx = ConsumeDeserializable<CMutableTransaction>(fuzzed_data_provider, TX_WITH_WITNESS);
+        const std::optional<CMutableTransaction> another_mtx = ConsumeDeserializable<CMutableTransaction>(fuzzed_data_provider);
         if (!another_mtx) {
             break;
         }

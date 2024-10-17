@@ -159,7 +159,7 @@ class BIP68Test(BellscoinTestFramework):
             using_sequence_locks = False
 
             tx = CTransaction()
-            tx.version = 2
+            tx.nVersion = 2
             value = 0
             for j in range(num_inputs):
                 sequence_value = 0xfffffffe # this disables sequence locks
@@ -246,7 +246,7 @@ class BIP68Test(BellscoinTestFramework):
                 sequence_value |= SEQUENCE_LOCKTIME_TYPE_FLAG
 
             tx = CTransaction()
-            tx.version = 2
+            tx.nVersion = 2
             tx.vin = [CTxIn(COutPoint(orig_tx.sha256, 0), nSequence=sequence_value)]
             tx.wit.vtxinwit = [CTxInWitness()]
             tx.wit.vtxinwit[0].scriptWitness.stack = [CScript([OP_TRUE])]

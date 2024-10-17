@@ -27,7 +27,7 @@ FUZZ_TARGET(merkleblock)
         },
         [&] {
             CMerkleBlock merkle_block;
-            const std::optional<CBlock> opt_block = ConsumeDeserializable<CBlock>(fuzzed_data_provider, TX_WITH_WITNESS);
+            const std::optional<CBlock> opt_block = ConsumeDeserializable<CBlock>(fuzzed_data_provider);
             CBloomFilter bloom_filter;
             std::set<Txid> txids;
             if (opt_block && !opt_block->vtx.empty()) {

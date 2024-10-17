@@ -710,7 +710,8 @@ bool BlockManager::UndoReadFromDisk(CBlockUndo& blockundo, const CBlockIndex& in
     const FlatFilePos pos{WITH_LOCK(::cs_main, return index.GetUndoPos())};
 
     if (pos.IsNull()) {
-        return error("%s: no undo data available", __func__);
+        LogError("%s: no undo data available\n", __func__);
+        return false;
     }
 
     // Open history file to read
@@ -990,7 +991,8 @@ bool BlockManager::WriteBlockToDisk(const CBlock& block, FlatFilePos& pos) const
     // Open history file to append
     CAutoFile fileout{OpenBlockFile(pos)};
     if (fileout.IsNull()) {
-        return error("WriteBlockToDisk: OpenBlockFile failed");
+        LogError("WriteBlockToDisk: OpenBlockFile failed");
+        return false;
     }
 
     // Write index header
@@ -1071,16 +1073,21 @@ bool BlockManager::ReadBlockOrHeader(T& block, const FlatFilePos& pos) const
         filein >> block;
     }
     catch (const std::exception& e) {
-        return error("%s: Deserialize or I/O error - %s at %s", __func__, e.what(), pos.ToString());
+        LogError("%s: Deserialize or I/O error - %s at %s", __func__, e.what(), pos.ToString());
+        return false;
     }
     const auto& consensus = GetConsensus();
     // Check the header
     if (!HasValidProofOfWork({block}, consensus))
-        return error("ReadBlockFromDisk: Errors in block header at %s", pos.ToString());
+    {
+        LogError("ReadBlockFromDisk: Errors in block header at %s", pos.ToString());
+        return false;
+    }
 
     // Signet only: check block solution
     if (consensus.signet_blocks && !CheckSignetBlockSolution(block, consensus)) {
-        return error("ReadBlockFromDisk: Errors in block solution at %s", pos.ToString());
+        LogError("ReadBlockFromDisk: Errors in block solution at %s", pos.ToString());
+        return false;
     }
 
     return true;
@@ -1094,8 +1101,12 @@ bool BlockManager::ReadBlockOrHeader(T& block, const CBlockIndex& pindex) const
     if (!ReadBlockOrHeader(block, block_pos))
         return false;
     if (block.GetHash() != pindex.GetBlockHash())
-        return error("ReadBlockFromDisk(CBlock&, CBlockIndex*): GetHash() doesn't match index for %s at %s",
-                pindex.ToString(), block_pos.ToString());
+    {
+        LogError("ReadBlockFromDisk(CBlock&, CBlockIndex*): GetHash() doesn't match index for %s at %s",
+            pindex.ToString(), block_pos.ToString());
+        return false;
+    }
+
     return true;
 }
 
@@ -1104,7 +1115,7 @@ bool BlockManager::ReadBlockFromDisk(CBlock& block, const FlatFilePos& pos) cons
     block.SetNull();
 
     // Open history file to read
-    AutoFile filein{OpenBlockFile(pos, true)};
+    CAutoFile filein{OpenBlockFile(pos, true)};
     if (filein.IsNull()) {
         LogError("%s: OpenBlockFile failed for %s\n", __func__, pos.ToString());
         return false;
@@ -1161,7 +1172,7 @@ bool BlockManager::ReadRawBlockFromDisk(std::vector<uint8_t>& block, const FlatF
         return false;
     }
     hpos.nPos -= 8; // Seek back 8 bytes for meta header
-    AutoFile filein{OpenBlockFile(hpos, true)};
+    CAutoFile filein{OpenBlockFile(hpos, true)};
     if (filein.IsNull()) {
         LogError("%s: OpenBlockFile failed for %s\n", __func__, pos.ToString());
         return false;
@@ -1294,7 +1305,7 @@ void ImportBlocks(ChainstateManager& chainman, std::vector<fs::path> vImportFile
             if (!fs::exists(chainman.m_blockman.GetBlockPosFilename(pos))) {
                 break; // No block files left to reindex
             }
-            AutoFile file{chainman.m_blockman.OpenBlockFile(pos, true)};
+            CAutoFile file{chainman.m_blockman.OpenBlockFile(pos, true)};
             if (file.IsNull()) {
                 break; // This error is logged in OpenBlockFile
             }

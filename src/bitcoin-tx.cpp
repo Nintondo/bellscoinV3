@@ -213,7 +213,7 @@ static void MutateTxVersion(CMutableTransaction& tx, const std::string& cmdVal)
         throw std::runtime_error("Invalid TX version requested: '" + cmdVal + "'");
     }
 
-    tx.version = newVersion;
+    tx.nVersion = newVersion;
 }
 
 static void MutateTxLocktime(CMutableTransaction& tx, const std::string& cmdVal)
