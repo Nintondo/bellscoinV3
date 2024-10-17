@@ -24,7 +24,6 @@ std::unique_ptr<CWallet> CreateSyncedWallet(interfaces::Chain& chain, CChain& cc
         LOCK2(wallet->cs_wallet, ::cs_main);
         wallet->SetLastBlockProcessed(cchain.Height(), cchain.Tip()->GetBlockHash());
     }
-    wallet->LoadWallet();
     {
         LOCK(wallet->cs_wallet);
         wallet->SetWalletFlag(WALLET_FLAG_DESCRIPTORS);
@@ -72,9 +71,10 @@ std::shared_ptr<CWallet> TestLoadWallet(WalletContext& context)
 
 void TestUnloadWallet(std::shared_ptr<CWallet>&& wallet)
 {
-    SyncWithValidationInterfaceQueue();
+    // Calls SyncWithValidationInterfaceQueue
+    wallet->chain().waitForNotificationsIfTipChanged({});
     wallet->m_chain_notifications_handler.reset();
-    UnloadWallet(std::move(wallet));
+    WaitForDeleteWallet(std::move(wallet));
 }
 
 std::unique_ptr<WalletDatabase> DuplicateMockDatabase(WalletDatabase& database)
@@ -92,11 +92,6 @@ CTxDestination getNewDestination(CWallet& w, OutputType output_type)
 {
     return *Assert(w.GetNewDestination(output_type, ""));
 }
-
-// BytePrefix compares equality with other byte spans that begin with the same prefix.
-struct BytePrefix { Span<const std::byte> prefix; };
-bool operator<(BytePrefix a, Span<const std::byte> b) { return a.prefix < b.subspan(0, std::min(a.prefix.size(), b.size())); }
-bool operator<(Span<const std::byte> a, BytePrefix b) { return a.subspan(0, std::min(a.size(), b.prefix.size())) < b.prefix; }
 
 MockableCursor::MockableCursor(const MockableData& records, bool pass, Span<const std::byte> prefix)
 {

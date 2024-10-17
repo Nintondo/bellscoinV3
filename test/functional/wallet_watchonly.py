@@ -111,4 +111,4 @@ class CreateWalletWatchonlyTest(BellscoinTestFramework):
 
 
 if __name__ == '__main__':
-    CreateWalletWatchonlyTest().main()
+    CreateWalletWatchonlyTest(__file__).main()

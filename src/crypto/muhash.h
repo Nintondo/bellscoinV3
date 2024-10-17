@@ -5,10 +5,6 @@
 #ifndef BITCOIN_CRYPTO_MUHASH_H
 #define BITCOIN_CRYPTO_MUHASH_H
 
-#if defined(HAVE_CONFIG_H)
-#include <config/bitcoin-config.h>
-#endif
-
 #include <serialize.h>
 #include <uint256.h>
 
@@ -101,7 +97,7 @@ private:
 
 public:
     /* The empty set. */
-    MuHash3072() noexcept {};
+    MuHash3072() noexcept = default;
 
     /* A singleton with variable sized data in it. */
     explicit MuHash3072(Span<const unsigned char> in) noexcept;

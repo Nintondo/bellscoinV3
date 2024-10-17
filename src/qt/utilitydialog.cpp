@@ -2,9 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#if defined(HAVE_CONFIG_H)
-#include <config/bitcoin-config.h>
-#endif
+#include <config/bitcoin-config.h> // IWYU pragma: keep
 
 #include <qt/utilitydialog.h>
 
@@ -58,7 +56,8 @@ HelpMessageDialog::HelpMessageDialog(QWidget *parent, bool about) :
         ui->helpMessage->setVisible(false);
     } else {
         setWindowTitle(tr("Command-line options"));
-        QString header = "Usage:  bells-qt [command-line options]                     \n";
+        QString header = "Usage: bells-qt [command-line options] [URI]\n\n"
+                         "Optional URI is a bells address in BIP21 URI format.\n";
         QTextCursor cursor(ui->helpMessage->document());
         cursor.insertText(version);
         cursor.insertBlock();
@@ -116,7 +115,7 @@ HelpMessageDialog::~HelpMessageDialog()
 void HelpMessageDialog::printToConsole()
 {
     // On other operating systems, the expected action is to print the message to the console.
-    tfm::format(std::cout, "%s\n", qPrintable(text));
+    tfm::format(std::cout, "%s", qPrintable(text));
 }
 
 void HelpMessageDialog::showOrPrint()

@@ -17,6 +17,10 @@
 
 #include <optional>
 
+namespace node {
+enum class TransactionError;
+} // namespace node
+
 // Magic bytes
 static constexpr uint8_t PSBT_MAGIC_BYTES[5] = {'p', 's', 'b', 't', 0xff};
 
@@ -95,7 +99,7 @@ void SerializeToVector(Stream& s, const X&... args)
 
 // Takes a stream and multiple arguments and unserializes them first as a vector then each object individually in the order provided in the arguments
 template<typename Stream, typename... X>
-void UnserializeFromVector(Stream& s, X&... args)
+void UnserializeFromVector(Stream& s, X&&... args)
 {
     size_t expected_size = ReadCompactSize(s);
     size_t remaining_before = s.size();
@@ -219,15 +223,14 @@ struct PSBTInput
     void FillSignatureData(SignatureData& sigdata) const;
     void FromSignatureData(const SignatureData& sigdata);
     void Merge(const PSBTInput& input);
-    PSBTInput() {}
+    PSBTInput() = default;
 
     template <typename Stream>
     inline void Serialize(Stream& s) const {
         // Write the utxo
         if (non_witness_utxo) {
             SerializeToVector(s, CompactSizeWriter(PSBT_IN_NON_WITNESS_UTXO));
-            OverrideStream<Stream> os{&s, s.GetVersion() | SERIALIZE_TRANSACTION_NO_WITNESS};
-            SerializeToVector(os, non_witness_utxo);
+            SerializeToVector(s, TX_NO_WITNESS(non_witness_utxo));
         }
         if (!witness_utxo.IsNull()) {
             SerializeToVector(s, CompactSizeWriter(PSBT_IN_WITNESS_UTXO));
@@ -236,7 +239,7 @@ struct PSBTInput
 
         if (final_script_sig.empty() && final_script_witness.IsNull()) {
             // Write any partial signatures
-            for (auto sig_pair : partial_sigs) {
+            for (const auto& sig_pair : partial_sigs) {
                 SerializeToVector(s, CompactSizeWriter(PSBT_IN_PARTIAL_SIG), Span{sig_pair.second.first});
                 s << sig_pair.second.second;
             }
@@ -381,7 +384,7 @@ struct PSBTInput
             }
 
             // Type is compact size uint at beginning of key
-            SpanReader skey{s.GetVersion(), key};
+            SpanReader skey{key};
             uint64_t type = ReadCompactSize(skey);
 
             // Do stuff based on type
@@ -394,8 +397,7 @@ struct PSBTInput
                         throw std::ios_base::failure("Non-witness utxo key is more than one byte type");
                     }
                     // Set the stream to unserialize with witness since this is always a valid network transaction
-                    OverrideStream<Stream> os{&s, s.GetVersion() & ~SERIALIZE_TRANSACTION_NO_WITNESS};
-                    UnserializeFromVector(os, non_witness_utxo);
+                    UnserializeFromVector(s, TX_WITH_WITNESS(non_witness_utxo));
                     break;
                 }
                 case PSBT_IN_WITNESS_UTXO:
@@ -590,7 +592,7 @@ struct PSBTInput
                     } else if (key.size() != 65) {
                         throw std::ios_base::failure("Input Taproot script signature key is not 65 bytes");
                     }
-                    SpanReader s_key{s.GetVersion(), Span{key}.subspan(1)};
+                    SpanReader s_key{Span{key}.subspan(1)};
                     XOnlyPubKey xonly;
                     uint256 hash;
                     s_key >> xonly;
@@ -632,7 +634,7 @@ struct PSBTInput
                     } else if (key.size() != 33) {
                         throw std::ios_base::failure("Input Taproot BIP32 keypath key is not at 33 bytes");
                     }
-                    SpanReader s_key{s.GetVersion(), Span{key}.subspan(1)};
+                    SpanReader s_key{Span{key}.subspan(1)};
                     XOnlyPubKey xonly;
                     s_key >> xonly;
                     std::set<uint256> leaf_hashes;
@@ -722,7 +724,7 @@ struct PSBTOutput
     void FillSignatureData(SignatureData& sigdata) const;
     void FromSignatureData(const SignatureData& sigdata);
     void Merge(const PSBTOutput& output);
-    PSBTOutput() {}
+    PSBTOutput() = default;
 
     template <typename Stream>
     inline void Serialize(Stream& s) const {
@@ -807,7 +809,7 @@ struct PSBTOutput
             }
 
             // Type is compact size uint at beginning of key
-            SpanReader skey{s.GetVersion(), key};
+            SpanReader skey{key};
             uint64_t type = ReadCompactSize(skey);
 
             // Do stuff based on type
@@ -856,7 +858,7 @@ struct PSBTOutput
                     }
                     std::vector<unsigned char> tree_v;
                     s >> tree_v;
-                    SpanReader s_tree{s.GetVersion(), tree_v};
+                    SpanReader s_tree{tree_v};
                     if (s_tree.empty()) {
                         throw std::ios_base::failure("Output Taproot tree must not be empty");
                     }
@@ -963,7 +965,7 @@ struct PartiallySignedTransaction
     [[nodiscard]] bool Merge(const PartiallySignedTransaction& psbt);
     bool AddInput(const CTxIn& txin, PSBTInput& psbtin);
     bool AddOutput(const CTxOut& txout, const PSBTOutput& psbtout);
-    PartiallySignedTransaction() {}
+    PartiallySignedTransaction() = default;
     explicit PartiallySignedTransaction(const CMutableTransaction& tx);
     /**
      * Finds the UTXO for a given input index
@@ -984,8 +986,7 @@ struct PartiallySignedTransaction
         SerializeToVector(s, CompactSizeWriter(PSBT_GLOBAL_UNSIGNED_TX));
 
         // Write serialized tx to a stream
-        OverrideStream<Stream> os{&s, s.GetVersion() | SERIALIZE_TRANSACTION_NO_WITNESS};
-        SerializeToVector(os, *tx);
+        SerializeToVector(s, TX_NO_WITNESS(*tx));
 
         // Write xpubs
         for (const auto& xpub_pair : m_xpubs) {
@@ -1061,7 +1062,7 @@ struct PartiallySignedTransaction
             }
 
             // Type is compact size uint at beginning of key
-            SpanReader skey{s.GetVersion(), key};
+            SpanReader skey{key};
             uint64_t type = ReadCompactSize(skey);
 
             // Do stuff based on type
@@ -1075,8 +1076,7 @@ struct PartiallySignedTransaction
                     }
                     CMutableTransaction mtx;
                     // Set the stream to serialize with non-witness since this should always be non-witness
-                    OverrideStream<Stream> os{&s, s.GetVersion() | SERIALIZE_TRANSACTION_NO_WITNESS};
-                    UnserializeFromVector(os, mtx);
+                    UnserializeFromVector(s, TX_NO_WITNESS(mtx));
                     tx = std::move(mtx);
                     // Make sure that all scriptSigs and scriptWitnesses are empty
                     for (const CTxIn& txin : tx->vin) {
@@ -1175,8 +1175,13 @@ struct PartiallySignedTransaction
             inputs.push_back(input);
 
             // Make sure the non-witness utxo matches the outpoint
-            if (input.non_witness_utxo && input.non_witness_utxo->GetHash() != tx->vin[i].prevout.hash) {
-                throw std::ios_base::failure("Non-witness UTXO does not match outpoint hash");
+            if (input.non_witness_utxo) {
+                if (input.non_witness_utxo->GetHash() != tx->vin[i].prevout.hash) {
+                    throw std::ios_base::failure("Non-witness UTXO does not match outpoint hash");
+                }
+                if (tx->vin[i].prevout.n >= input.non_witness_utxo->vout.size()) {
+                    throw std::ios_base::failure("Input specifies output index that does not exist");
+                }
             }
             ++i;
         }
@@ -1265,9 +1270,9 @@ bool FinalizeAndExtractPSBT(PartiallySignedTransaction& psbtx, CMutableTransacti
  *
  * @param[out] out   the combined PSBT, if successful
  * @param[in]  psbtxs the PSBTs to combine
- * @return error (OK if we successfully combined the transactions, other error if they were not compatible)
+ * @return True if we successfully combined the transactions, false if they were not compatible
  */
-[[nodiscard]] TransactionError CombinePSBTs(PartiallySignedTransaction& out, const std::vector<PartiallySignedTransaction>& psbtxs);
+[[nodiscard]] bool CombinePSBTs(PartiallySignedTransaction& out, const std::vector<PartiallySignedTransaction>& psbtxs);
 
 //! Decode a base64ed PSBT into a PartiallySignedTransaction
 [[nodiscard]] bool DecodeBase64PSBT(PartiallySignedTransaction& decoded_psbt, const std::string& base64_psbt, std::string& error);

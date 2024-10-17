@@ -32,7 +32,8 @@ class InvalidBlockRequestTest(BellscoinTestFramework):
     def set_test_params(self):
         self.num_nodes = 1
         self.setup_clean_chain = True
-        self.extra_args = [["-whitelist=noban@127.0.0.1"]]
+        # whitelist peers to speed up tx relay / mempool sync
+        self.noban_tx_relay = True
 
     def run_test(self):
         # Add p2p connection to node0
@@ -137,4 +138,4 @@ class InvalidBlockRequestTest(BellscoinTestFramework):
 
 
 if __name__ == '__main__':
-    InvalidBlockRequestTest().main()
+    InvalidBlockRequestTest(__file__).main()

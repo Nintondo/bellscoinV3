@@ -2,9 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#if defined(HAVE_CONFIG_H)
-#include <config/bitcoin-config.h>
-#endif
+#include <config/bitcoin-config.h> // IWYU pragma: keep
 
 #include <arith_uint256.h>
 #include <chain.h>
@@ -19,7 +17,6 @@
 #include <util/exception.h>
 #include <util/strencodings.h>
 #include <util/translation.h>
-#include <version.h>
 
 #include <atomic>
 #include <cstdio>

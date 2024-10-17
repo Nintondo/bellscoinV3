@@ -21,6 +21,8 @@
 #include <system_error>
 #include <vector>
 
+using util::ToString;
+
 inline bool operator==(const common::SettingsValue& a, const common::SettingsValue& b)
 {
     return a.write() == b.write();
@@ -99,7 +101,9 @@ BOOST_AUTO_TEST_CASE(ReadWrite)
     // Check invalid json not allowed
     WriteText(path, R"(invalid json)");
     BOOST_CHECK(!common::ReadSettings(path, values, errors));
-    std::vector<std::string> fail_parse = {strprintf("Unable to parse settings file %s", fs::PathToString(path))};
+    std::vector<std::string> fail_parse = {strprintf("Settings file %s does not contain valid JSON. This is probably caused by disk corruption or a crash, "
+                                                     "and can be fixed by removing the file, which will reset settings to default values.",
+                                                     fs::PathToString(path))};
     BOOST_CHECK_EQUAL_COLLECTIONS(errors.begin(), errors.end(), fail_parse.begin(), fail_parse.end());
 }
 

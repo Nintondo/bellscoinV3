@@ -9,6 +9,7 @@
 #ifndef BITCOIN_UTIL_STRENCODINGS_H
 #define BITCOIN_UTIL_STRENCODINGS_H
 
+#include <crypto/hex_base.h> // IWYU pragma: export
 #include <span.h>
 #include <util/string.h>
 
@@ -66,7 +67,6 @@ std::vector<Byte> ParseHex(std::string_view hex_str)
 {
     return TryParseHex<Byte>(hex_str).value_or(std::vector<Byte>{});
 }
-signed char HexDigit(char c);
 /* Returns true if each character in str is a hex character, and has an even
  * number of hex digits.*/
 bool IsHex(std::string_view str);
@@ -122,7 +122,7 @@ T LocaleIndependentAtoi(std::string_view str)
     static_assert(std::is_integral<T>::value);
     T result;
     // Emulate atoi(...) handling of white space and leading +/-.
-    std::string_view s = TrimStringView(str);
+    std::string_view s = util::TrimStringView(str);
     if (!s.empty() && s[0] == '+') {
         if (s.length() >= 2 && s[1] == '-') {
             return 0;
@@ -232,13 +232,6 @@ std::optional<T> ToIntegral(std::string_view str)
 [[nodiscard]] bool ParseUInt64(std::string_view str, uint64_t *out);
 
 /**
- * Convert a span of bytes to a lower-case hexadecimal string.
- */
-std::string HexStr(const Span<const uint8_t> s);
-inline std::string HexStr(const Span<const char> s) { return HexStr(MakeUCharSpan(s)); }
-inline std::string HexStr(const Span<const std::byte> s) { return HexStr(MakeUCharSpan(s)); }
-
-/**
  * Format a paragraph of text to a fixed width, adding spaces for
  * indentation to any added line.
  */
@@ -260,7 +253,6 @@ bool TimingResistantEqual(const T& a, const T& b)
 }
 
 /** Parse number as fixed point according to JSON number syntax.
- * See https://json.org/number.gif
  * @returns true on success, false on error.
  * @note The result must be in the range (-10^18,10^18), otherwise an overflow error will trigger.
  */

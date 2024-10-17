@@ -93,19 +93,12 @@ public:
  */
 class CVectorWriter
 {
- public:
-
+public:
 /*
- * @param[in]  nVersionIn Serialization Version (including any flags)
  * @param[in]  vchDataIn  Referenced byte vector to overwrite/append
  * @param[in]  nPosIn Starting position. Vector index where writes should start. The vector will initially
  *                    grow as necessary to max(nPosIn, vec.size()). So to append, use vec.size().
 */
-    CVectorWriter(int nVersionIn, std::vector<unsigned char>& vchDataIn, size_t nPosIn) : nVersion{nVersionIn}, vchData{vchDataIn}, nPos{nPosIn}
-    {
-        if(nPos > vchData.size())
-            vchData.resize(nPos);
-    }
 
     // BELLSCOIN
     CVectorWriter(int nTypeIn, int nVersionIn, std::vector<unsigned char>& vchDataIn, size_t nPosIn) : nType(nTypeIn), nVersion(nVersionIn), vchData(vchDataIn), nPos(nPosIn)
@@ -117,17 +110,14 @@ class CVectorWriter
  * (other params same as above)
  * @param[in]  args  A list of items to serialize starting at nPosIn.
 */
-    template <typename... Args>
-    CVectorWriter(int nVersionIn, std::vector<unsigned char>& vchDataIn, size_t nPosIn, Args&&... args) : CVectorWriter{nVersionIn, vchDataIn, nPosIn}
-    {
-        ::SerializeMany(*this, std::forward<Args>(args)...);
-    }
+
     // BELLSCOIN
     template <typename... Args>
     CVectorWriter(int nTypeIn, int nVersionIn, std::vector<unsigned char>& vchDataIn, size_t nPosIn, Args&&... args) : CVectorWriter{nTypeIn, nVersionIn, vchDataIn, nPosIn}
     {
         ::SerializeMany(*this, std::forward<Args>(args)...);
     }
+
     void write(Span<const std::byte> src)
     {
         assert(nPos <= vchData.size());
@@ -140,7 +130,7 @@ class CVectorWriter
         }
         nPos += src.size();
     }
-    template<typename T>
+    template <typename T>
     CVectorWriter& operator<<(const T& obj)
     {
         ::Serialize(*this, obj);
@@ -202,6 +192,11 @@ public:
         }
         memcpy(dst.data(), m_data.data(), dst.size());
         m_data = m_data.subspan(dst.size());
+    }
+
+    void ignore(size_t n)
+    {
+        m_data = m_data.subspan(n);
     }
 };
 
@@ -493,10 +488,11 @@ class AutoFile
 {
 protected:
     std::FILE* m_file;
-    const std::vector<std::byte> m_xor;
+    std::vector<std::byte> m_xor;
+    std::optional<int64_t> m_position;
 
 public:
-    explicit AutoFile(std::FILE* file, std::vector<std::byte> data_xor={}) : m_file{file}, m_xor{std::move(data_xor)} {}
+    explicit AutoFile(std::FILE* file, std::vector<std::byte> data_xor={});
 
     ~AutoFile() { fclose(); }
 
@@ -523,18 +519,18 @@ public:
         return ret;
     }
 
-    /** Get wrapped FILE* without transfer of ownership.
-     * @note Ownership of the FILE* will remain with this class. Use this only if the scope of the
-     * AutoFile outlives use of the passed pointer.
-     */
-    std::FILE* Get() const { return m_file; }
-
     /** Return true if the wrapped FILE* is nullptr, false otherwise.
      */
     bool IsNull() const { return m_file == nullptr; }
 
+    /** Continue with a different XOR key */
+    void SetXor(std::vector<std::byte> data_xor) { m_xor = data_xor; }
+
     /** Implementation detail, only used internally. */
     std::size_t detail_fread(Span<std::byte> dst);
+
+    void seek(int64_t offset, int origin);
+    int64_t tell();
 
     //
     // Stream subset
@@ -556,6 +552,10 @@ public:
         ::Unserialize(*this, obj);
         return *this;
     }
+
+    bool Commit();
+    bool IsError();
+    bool Truncate(unsigned size);
 };
 
 class CAutoFile : public AutoFile

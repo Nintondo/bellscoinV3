@@ -3,14 +3,18 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include <config/bitcoin-config.h> // IWYU pragma: keep
+
 #include <rpc/server.h>
 
 #include <common/args.h>
 #include <common/system.h>
 #include <logging.h>
+#include <node/context.h>
+#include <rpc/server_util.h>
 #include <rpc/util.h>
-#include <shutdown.h>
 #include <sync.h>
+#include <util/signalinterrupt.h>
 #include <util/strencodings.h>
 #include <util/string.h>
 #include <util/time.h>
@@ -22,6 +26,8 @@
 #include <memory>
 #include <mutex>
 #include <unordered_map>
+
+using util::SplitString;
 
 static GlobalMutex g_rpc_warmup_mutex;
 static std::atomic<bool> g_rpc_running{false};
@@ -179,7 +185,7 @@ static RPCHelpMan stop()
 {
     // Event loop will exit after current HTTP requests have been handled, so
     // this reply will get back to the client.
-    StartShutdown();
+    CHECK_NONFATAL((*CHECK_NONFATAL(EnsureAnyNodeContext(jsonRequest.context).shutdown))());
     if (jsonRequest.params[0].isNum()) {
         UninterruptibleSleep(std::chrono::milliseconds{jsonRequest.params[0].getInt<int>()});
     }
@@ -237,15 +243,15 @@ static RPCHelpMan getrpcinfo()
         UniValue entry(UniValue::VOBJ);
         entry.pushKV("method", info.method);
         entry.pushKV("duration", int64_t{Ticks<std::chrono::microseconds>(SteadyClock::now() - info.start)});
-        active_commands.push_back(entry);
+        active_commands.push_back(std::move(entry));
     }
 
     UniValue result(UniValue::VOBJ);
-    result.pushKV("active_commands", active_commands);
+    result.pushKV("active_commands", std::move(active_commands));
 
-    const std::string path = LogInstance().m_file_path.u8string();
+    const std::string path = LogInstance().m_file_path.utf8string();
     UniValue log_path(UniValue::VSTR, path);
-    result.pushKV("logpath", log_path);
+    result.pushKV("logpath", std::move(log_path));
 
     return result;
 }
@@ -356,36 +362,22 @@ bool IsDeprecatedRPCEnabled(const std::string& method)
     return find(enabled_methods.begin(), enabled_methods.end(), method) != enabled_methods.end();
 }
 
-static UniValue JSONRPCExecOne(node::JSONRPCRequest jreq, const UniValue& req)
+UniValue JSONRPCExec(const JSONRPCRequest& jreq, bool catch_errors)
 {
-    UniValue rpc_result(UniValue::VOBJ);
-
-    try {
-        jreq.parse(req);
-
-        UniValue result = tableRPC.execute(jreq);
-        rpc_result = JSONRPCReplyObj(result, NullUniValue, jreq.id);
-    }
-    catch (const UniValue& objError)
-    {
-        rpc_result = JSONRPCReplyObj(NullUniValue, objError, jreq.id);
-    }
-    catch (const std::exception& e)
-    {
-        rpc_result = JSONRPCReplyObj(NullUniValue,
-                                     JSONRPCError(RPC_PARSE_ERROR, e.what()), jreq.id);
+    UniValue result;
+    if (catch_errors) {
+        try {
+            result = tableRPC.execute(jreq);
+        } catch (UniValue& e) {
+            return JSONRPCReplyObj(NullUniValue, std::move(e), jreq.id, jreq.m_json_version);
+        } catch (const std::exception& e) {
+            return JSONRPCReplyObj(NullUniValue, JSONRPCError(RPC_MISC_ERROR, e.what()), jreq.id, jreq.m_json_version);
+        }
+    } else {
+        result = tableRPC.execute(jreq);
     }
 
-    return rpc_result;
-}
-
-std::string JSONRPCExecBatch(const node::JSONRPCRequest& jreq, const UniValue& vReq)
-{
-    UniValue ret(UniValue::VARR);
-    for (unsigned int reqIdx = 0; reqIdx < vReq.size(); reqIdx++)
-        ret.push_back(JSONRPCExecOne(jreq, vReq[reqIdx]));
-
-    return ret.write() + "\n";
+    return JSONRPCReplyObj(std::move(result), NullUniValue, jreq.id, jreq.m_json_version);
 }
 
 /**
@@ -409,7 +401,7 @@ static inline node::JSONRPCRequest transformNamedArguments(const node::JSONRPCRe
     }
     // Process expected parameters. If any parameters were left unspecified in
     // the request before a parameter that was specified, null values need to be
-    // inserted at the unspecifed parameter positions, and the "hole" variable
+    // inserted at the unspecified parameter positions, and the "hole" variable
     // below tracks the number of null values that need to be inserted.
     // The "initial_hole_size" variable stores the size of the initial hole,
     // i.e. how many initial positional arguments were left unspecified. This is
@@ -593,14 +585,6 @@ void RPCRunLater(const std::string& name, std::function<void()> func, int64_t nS
     deadlineTimers.erase(name);
     LogPrint(BCLog::RPC, "queue run of timer %s in %i seconds (using %s)\n", name, nSeconds, timerInterface->Name());
     deadlineTimers.emplace(name, std::unique_ptr<RPCTimerBase>(timerInterface->NewTimer(func, nSeconds*1000)));
-}
-
-int RPCSerializationFlags()
-{
-    int flag = 0;
-    if (gArgs.GetIntArg("-rpcserialversion", DEFAULT_RPC_SERIALIZE_VERSION) == 0)
-        flag |= SERIALIZE_TRANSACTION_NO_WITNESS;
-    return flag;
 }
 
 CRPCTable tableRPC;

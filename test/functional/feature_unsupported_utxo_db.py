@@ -58,4 +58,4 @@ class UnsupportedUtxoDbTest(BellscoinTestFramework):
 
 
 if __name__ == "__main__":
-    UnsupportedUtxoDbTest().main()
+    UnsupportedUtxoDbTest(__file__).main()

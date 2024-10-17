@@ -65,7 +65,8 @@ std::shared_ptr<CBlock> MinerTestingSetup::Block(const uint256& prev_hash)
     static int i = 0;
     static uint64_t time = GlobParams().GenesisBlock().nTime;
 
-    auto ptemplate = BlockAssembler{m_node.chainman->ActiveChainstate(), m_node.mempool.get()}.CreateNewBlock(CScript{} << i++ << OP_TRUE);
+    BlockAssembler::Options options;
+    auto ptemplate = BlockAssembler{m_node.chainman->ActiveChainstate(), m_node.mempool.get(), options}.CreateNewBlock(CScript{} << i++ << OP_TRUE);
     auto pblock = std::make_shared<CBlock>(ptemplate->block);
     pblock->hashPrevBlock = prev_hash;
     pblock->nTime = ++time;
@@ -127,6 +128,7 @@ std::shared_ptr<const CBlock> MinerTestingSetup::BadBlock(const uint256& prev_ha
     return ret;
 }
 
+// NOLINTNEXTLINE(misc-no-recursion)
 void MinerTestingSetup::BuildChain(const uint256& root, int height, const unsigned int invalid_rate, const unsigned int branch_rate, const unsigned int max_size, std::vector<std::shared_ptr<const CBlock>>& blocks)
 {
     if (height <= 0 || blocks.size() >= max_size) return;
@@ -157,8 +159,8 @@ BOOST_AUTO_TEST_CASE(processnewblock_signals_ordering)
 
     // bool ignored;
     // // Connect the genesis block and drain any outstanding events
-    // BOOST_CHECK(Assert(m_node.chainman)->ProcessNewBlock(std::make_shared<CBlock>(GlobParams().GenesisBlock()), true, true, &ignored));
-    // SyncWithValidationInterfaceQueue();
+    // BOOST_CHECK(Assert(m_node.chainman)->ProcessNewBlock(std::make_shared<CBlock>(Params().GenesisBlock()), true, true, &ignored));
+    // m_node.validation_signals->SyncWithValidationInterfaceQueue();
 
     // // subscribe to events (this subscriber will validate event ordering)
     // const CBlockIndex* initial_tip = nullptr;
@@ -167,7 +169,7 @@ BOOST_AUTO_TEST_CASE(processnewblock_signals_ordering)
     //     initial_tip = m_node.chainman->ActiveChain().Tip();
     // }
     // auto sub = std::make_shared<TestSubscriber>(initial_tip->GetBlockHash());
-    // RegisterSharedValidationInterface(sub);
+    // m_node.validation_signals->RegisterSharedValidationInterface(sub);
 
     // // create a bunch of threads that repeatedly process a block generated above at random
     // // this will create parallelism and randomness inside validation - the ValidationInterface
@@ -196,9 +198,9 @@ BOOST_AUTO_TEST_CASE(processnewblock_signals_ordering)
     // for (auto& t : threads) {
     //     t.join();
     // }
-    // SyncWithValidationInterfaceQueue();
+    // m_node.validation_signals->SyncWithValidationInterfaceQueue();
 
-    // UnregisterSharedValidationInterface(sub);
+    // m_node.validation_signals->UnregisterSharedValidationInterface(sub);
 
     // LOCK(cs_main);
     // BOOST_CHECK_EQUAL(sub->m_expected_tip, m_node.chainman->ActiveChain().Tip()->GetBlockHash());
@@ -281,36 +283,35 @@ BOOST_AUTO_TEST_CASE(mempool_locks_reorg)
     //         }
     //     }
 
-    //     // Check that all txs are in the pool
-    //     {
-    //         LOCK(m_node.mempool->cs);
-    //         BOOST_CHECK_EQUAL(m_node.mempool->mapTx.size(), txs.size());
-    //     }
+        // Check that all txs are in the pool
+        // {
+        //     BOOST_CHECK_EQUAL(m_node.mempool->size(), txs.size());
+        // }
 
-    //     // Run a thread that simulates an RPC caller that is polling while
-    //     // validation is doing a reorg
-    //     std::thread rpc_thread{[&]() {
-    //         // This thread is checking that the mempool either contains all of
-    //         // the transactions invalidated by the reorg, or none of them, and
-    //         // not some intermediate amount.
-    //         while (true) {
-    //             LOCK(m_node.mempool->cs);
-    //             if (m_node.mempool->mapTx.size() == 0) {
-    //                 // We are done with the reorg
-    //                 break;
-    //             }
-    //             // Internally, we might be in the middle of the reorg, but
-    //             // externally the reorg to the most-proof-of-work chain should
-    //             // be atomic. So the caller assumes that the returned mempool
-    //             // is consistent. That is, it has all txs that were there
-    //             // before the reorg.
-    //             assert(m_node.mempool->mapTx.size() == txs.size());
-    //             continue;
-    //         }
-    //         LOCK(cs_main);
-    //         // We are done with the reorg, so the tip must have changed
-    //         assert(tip_init != m_node.chainman->ActiveChain().Tip()->GetBlockHash());
-    //     }};
+        // // Run a thread that simulates an RPC caller that is polling while
+        // // validation is doing a reorg
+        // std::thread rpc_thread{[&]() {
+        //     // This thread is checking that the mempool either contains all of
+        //     // the transactions invalidated by the reorg, or none of them, and
+        //     // not some intermediate amount.
+        //     while (true) {
+        //         LOCK(m_node.mempool->cs);
+        //         if (m_node.mempool->size() == 0) {
+        //             // We are done with the reorg
+        //             break;
+        //         }
+        //         // Internally, we might be in the middle of the reorg, but
+        //         // externally the reorg to the most-proof-of-work chain should
+        //         // be atomic. So the caller assumes that the returned mempool
+        //         // is consistent. That is, it has all txs that were there
+        //         // before the reorg.
+        //         assert(m_node.mempool->size() == txs.size());
+        //         continue;
+        //     }
+        //     LOCK(cs_main);
+        //     // We are done with the reorg, so the tip must have changed
+        //     assert(tip_init != m_node.chainman->ActiveChain().Tip()->GetBlockHash());
+        // }};
 
     //     // Submit the reorg in this thread to invalidate and remove the txs from the tx pool
     //     for (const auto& b : reorg) {
@@ -329,7 +330,8 @@ BOOST_AUTO_TEST_CASE(witness_commitment_index)
     LOCK(Assert(m_node.chainman)->GetMutex());
     CScript pubKey;
     pubKey << 1 << OP_TRUE;
-    auto ptemplate = BlockAssembler{m_node.chainman->ActiveChainstate(), m_node.mempool.get()}.CreateNewBlock(pubKey);
+    BlockAssembler::Options options;
+    auto ptemplate = BlockAssembler{m_node.chainman->ActiveChainstate(), m_node.mempool.get(), options}.CreateNewBlock(pubKey);
     CBlock pblock = ptemplate->block;
 
     CTxOut witness;

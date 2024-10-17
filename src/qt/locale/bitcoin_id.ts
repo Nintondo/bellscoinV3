@@ -3,15 +3,15 @@
     <name>AddressBookPage</name>
     <message>
         <source>Right-click to edit address or label</source>
-        <translation type="unfinished">Klik kanan untuk mengedit atau label</translation>
+        <translation type="unfinished">Klik kanan untuk mengedit alamat atau label</translation>
     </message>
     <message>
         <source>Create a new address</source>
-        <translation type="unfinished">O3@outlook.co.id</translation>
+        <translation type="unfinished">Membuat alamat baru</translation>
     </message>
     <message>
         <source>Copy the currently selected address to the system clipboard</source>
-        <translation type="unfinished">Salin alamat yang saat ini dipilih ke papan klip sistem</translation>
+        <translation type="unfinished">Salin alamat terpilih ke papan klip</translation>
     </message>
     <message>
         <source>C&amp;lose</source>
@@ -28,6 +28,15 @@
     <message>
         <source>Export the data in the current tab to a file</source>
         <translation type="unfinished">Ekspor data di tab saat ini ke sebuah file</translation>
+    </message>
+    <message>
+        <source>&amp;Export</source>
+        <translation type="unfinished">&amp;Ekspor
+wallet</translation>
+    </message>
+    <message>
+        <source>&amp;Delete</source>
+        <translation type="unfinished">&amp;Hapus</translation>
     </message>
     <message>
         <source>Choose the address to send coins to</source>
@@ -49,7 +58,7 @@ Tanda tangan hanya bisa digunakan dengan tipe alamat 'warisan'</translation>
     </message>
     <message>
         <source>&amp;Copy Address</source>
-        <translation type="unfinished">&amp;Copy Alamat</translation>
+        <translation type="unfinished">&amp;Salin Alamat</translation>
     </message>
     <message>
         <source>Copy &amp;Label</source>
@@ -70,6 +79,14 @@ Tanda tangan hanya bisa digunakan dengan tipe alamat 'warisan'</translation>
         <translation type="unfinished">Terjadi sebuah kesalahan saat mencoba menyimpan daftar alamat ke %1. Silakan coba lagi.</translation>
     </message>
     <message>
+        <source>Sending addresses - %1</source>
+        <translation type="unfinished">Alamat pengirim - %1</translation>
+    </message>
+    <message>
+        <source>Receiving addresses - %1</source>
+        <translation type="unfinished">Penerima alamat - %1</translation>
+    </message>
+    <message>
         <source>Exporting Failed</source>
         <translation type="unfinished">Gagal Mengekspor</translation>
     </message>
@@ -78,7 +95,7 @@ Tanda tangan hanya bisa digunakan dengan tipe alamat 'warisan'</translation>
     <name>AddressTableModel</name>
     <message>
         <source>Address</source>
-        <translation type="unfinished">Alamat</translation>
+        <translation type="unfinished">0x5a52E96BAcdaBb82fd05763E25335261B270Efcb</translation>
     </message>
     <message>
         <source>(no label)</source>
@@ -89,23 +106,23 @@ Tanda tangan hanya bisa digunakan dengan tipe alamat 'warisan'</translation>
     <name>AskPassphraseDialog</name>
     <message>
         <source>Passphrase Dialog</source>
-        <translation type="unfinished">Dialog passphrase</translation>
+        <translation type="unfinished">Dialog frasa sandi</translation>
     </message>
     <message>
         <source>Enter passphrase</source>
-        <translation type="unfinished">Masukan passphrase</translation>
+        <translation type="unfinished">Masukan frasa sandi</translation>
     </message>
     <message>
         <source>New passphrase</source>
-        <translation type="unfinished">Passphrase baru</translation>
+        <translation type="unfinished">Frasa sandi baru</translation>
     </message>
     <message>
         <source>Repeat new passphrase</source>
-        <translation type="unfinished">Ulangi passphrase baru</translation>
+        <translation type="unfinished">Ulangi frasa sandi baru</translation>
     </message>
     <message>
         <source>Show passphrase</source>
-        <translation type="unfinished">Perlihatkan passphrase</translation>
+        <translation type="unfinished">Tampilkan frasa sandi</translation>
     </message>
     <message>
         <source>Encrypt wallet</source>
@@ -177,11 +194,11 @@ Tanda tangan hanya bisa digunakan dengan tipe alamat 'warisan'</translation>
     </message>
     <message>
         <source>The supplied passphrases do not match.</source>
-        <translation type="unfinished">Passphrase yang dimasukan tidak cocok.</translation>
+        <translation type="unfinished">Passphrase yang dimasukan tidak sesuai.</translation>
     </message>
     <message>
         <source>Wallet unlock failed</source>
-        <translation type="unfinished">Gagal membuka wallet</translation>
+        <translation type="unfinished">Gagal membuka dompet</translation>
     </message>
     <message>
         <source>The passphrase entered for the wallet decryption was incorrect.</source>
@@ -250,6 +267,18 @@ Tanda tangan hanya bisa digunakan dengan tipe alamat 'warisan'</translation>
         <extracomment>Explanatory text shown on startup when the settings file could not be written. Prompts user to check that we have the ability to write to the file. Explains that the user has the option of running without a settings file.</extracomment>
         <translation type="unfinished">Error yang fatal telah terjadi. Periksa bahwa file pengaturan dapat ditulis atau coba jalankan dengan -nosettings</translation>
     </message>
+    <message>
+        <source>Embedded "%1"</source>
+        <translation type="unfinished">Di embed "%1"</translation>
+    </message>
+    <message>
+        <source>Default system font "%1"</source>
+        <translation type="unfinished">Font bawaan sistem "%1"</translation>
+    </message>
+    <message>
+        <source>Custom…</source>
+        <translation type="unfinished">Pilihan...</translation>
+    </message>
     <message numerus="yes">
         <source>%n second(s)</source>
         <translation type="unfinished">
@@ -286,9 +315,101 @@ Tanda tangan hanya bisa digunakan dengan tipe alamat 'warisan'</translation>
             <numerusform>%n year(s)</numerusform>
         </translation>
     </message>
-    </context>
+    <message>
+        <source>default wallet</source>
+        <translation type="unfinished">wallet default</translation>
+    </message>
+</context>
 <context>
     <name>BitcoinGUI</name>
+    <message>
+        <source>Change the passphrase used for wallet encryption</source>
+        <translation type="unfinished">Ubah kata kunci yang digunakan untuk enkripsi dompet</translation>
+    </message>
+    <message>
+        <source>&amp;Encrypt Wallet…</source>
+        <translation type="unfinished">&amp;Enkripsi wallet...</translation>
+    </message>
+    <message>
+        <source>Encrypt the private keys that belong to your wallet</source>
+        <translation type="unfinished">Enkripsi private key yang dimiliki dompet Anda</translation>
+    </message>
+    <message>
+        <source>&amp;Backup Wallet…</source>
+        <translation type="unfinished">&amp;Cadangkan Dompet...</translation>
+    </message>
+    <message>
+        <source>&amp;Change Passphrase…</source>
+        <translation type="unfinished">&amp;Ganti kata sandi...</translation>
+    </message>
+    <message>
+        <source>Sign &amp;message…</source>
+        <translation type="unfinished">Tanda tangani dan kirim pessan...</translation>
+    </message>
+    <message>
+        <source>Sign messages with your Bitcoin addresses to prove you own them</source>
+        <translation type="unfinished">Tanda tangani sebuah pesan menggunakan alamat Bitcoin Anda untuk membuktikan bahwa Anda adalah pemiliknya</translation>
+    </message>
+    <message>
+        <source>&amp;Verify message…</source>
+        <translation type="unfinished">&amp;Verifikasi pesan...</translation>
+    </message>
+    <message>
+        <source>Verify messages to ensure they were signed with specified Bitcoin addresses</source>
+        <translation type="unfinished">Verifikasi pesan untuk memastikan bahwa pesan tersebut ditanda tangani oleh suatu alamat Bitcoin tertentu</translation>
+    </message>
+    <message>
+        <source>&amp;Load PSBT from file…</source>
+        <translation type="unfinished">&amp;Muat PSBT dari file...</translation>
+    </message>
+    <message>
+        <source>Open &amp;URI…</source>
+        <translation type="unfinished">Buka &amp;URI...</translation>
+    </message>
+    <message>
+        <source>Close Wallet…</source>
+        <translation type="unfinished">Tutup Dompet...</translation>
+    </message>
+    <message>
+        <source>Create Wallet…</source>
+        <translation type="unfinished">Bikin dompet...</translation>
+    </message>
+    <message>
+        <source>Close All Wallets…</source>
+        <translation type="unfinished">Tutup semua dompet...</translation>
+    </message>
+    <message>
+        <source>&amp;File</source>
+        <translation type="unfinished">&amp;Berkas</translation>
+    </message>
+    <message>
+        <source>&amp;Settings</source>
+        <translation type="unfinished">&amp;Pengaturan</translation>
+    </message>
+    <message>
+        <source>&amp;Help</source>
+        <translation type="unfinished">&amp;Bantuan</translation>
+    </message>
+    <message>
+        <source>Tabs toolbar</source>
+        <translation type="unfinished">Baris tab</translation>
+    </message>
+    <message>
+        <source>Syncing Headers (%1%)…</source>
+        <translation type="unfinished">Singkronisasi Header (%1%)...</translation>
+    </message>
+    <message>
+        <source>Synchronizing with network…</source>
+        <translation type="unfinished">Mensinkronisasi dengan jaringan</translation>
+    </message>
+    <message>
+        <source>Indexing blocks on disk…</source>
+        <translation type="unfinished">Mengindeks blok pada disk...</translation>
+    </message>
+    <message>
+        <source>Processing blocks on disk…</source>
+        <translation type="unfinished">Memproses blok pada disk ...</translation>
+    </message>
     <message>
         <source>Connecting to peers…</source>
         <translation type="unfinished">Menghubungkan ke peers...</translation>
@@ -312,7 +433,7 @@ Tanda tangan hanya bisa digunakan dengan tipe alamat 'warisan'</translation>
     <message numerus="yes">
         <source>Processed %n block(s) of transaction history.</source>
         <translation type="unfinished">
-            <numerusform>Processed %n block(s) of transaction history.</numerusform>
+            <numerusform>%n blok riwayat transaksi diproses.</numerusform>
         </translation>
     </message>
     <message>
@@ -348,6 +469,50 @@ Tanda tangan hanya bisa digunakan dengan tipe alamat 'warisan'</translation>
         <translation type="unfinished">Terbaru</translation>
     </message>
     <message>
+        <source>Load Partially Signed Bitcoin Transaction</source>
+        <translation type="unfinished">Muat transaksi Bitcoin yang ditandatangani seperapat</translation>
+    </message>
+    <message>
+        <source>Load PSBT from &amp;clipboard…</source>
+        <translation type="unfinished">Masukkan PSBT dari &amp;clipboard</translation>
+    </message>
+    <message>
+        <source>Load Partially Signed Bitcoin Transaction from clipboard</source>
+        <translation type="unfinished">Muat transaksi Bitcoin yang ditandatangani seperapat dari clipboard</translation>
+    </message>
+    <message>
+        <source>Node window</source>
+        <translation type="unfinished">Jendela Node</translation>
+    </message>
+    <message>
+        <source>Open node debugging and diagnostic console</source>
+        <translation type="unfinished">Buka konsol debug dan diagnosa node</translation>
+    </message>
+    <message>
+        <source>&amp;Sending addresses</source>
+        <translation type="unfinished">Address &amp;Pengirim</translation>
+    </message>
+    <message>
+        <source>&amp;Receiving addresses</source>
+        <translation type="unfinished">Address &amp;Penerima</translation>
+    </message>
+    <message>
+        <source>Open a bitcoin: URI</source>
+        <translation type="unfinished">Buka URI bitcoin:</translation>
+    </message>
+    <message>
+        <source>Open Wallet</source>
+        <translation type="unfinished">Buka Wallet</translation>
+    </message>
+    <message>
+        <source>Open a wallet</source>
+        <translation type="unfinished">Buka sebuah wallet</translation>
+    </message>
+    <message>
+        <source>Close wallet</source>
+        <translation type="unfinished">Tutup wallet</translation>
+    </message>
+    <message>
         <source>Restore Wallet…</source>
         <extracomment>Name of the menu item that restores wallet from a backup file.</extracomment>
         <translation type="unfinished">Pulihkan Dompet…</translation>
@@ -362,6 +527,14 @@ Tanda tangan hanya bisa digunakan dengan tipe alamat 'warisan'</translation>
         <translation type="unfinished">Tutup semua dompet</translation>
     </message>
     <message>
+        <source>Migrate Wallet</source>
+        <translation type="unfinished">Migrasi dompet</translation>
+    </message>
+    <message>
+        <source>Migrate a wallet</source>
+        <translation type="unfinished">Migrasi sebuah dompet</translation>
+    </message>
+    <message>
         <source>Show the %1 help message to get a list with possible Bitcoin command-line options</source>
         <translation type="unfinished">Tampilkan %1 pesan bantuan untuk mendapatkan daftar opsi baris perintah Bitcoin yang memungkinkan</translation>
     </message>
@@ -372,10 +545,6 @@ Tanda tangan hanya bisa digunakan dengan tipe alamat 'warisan'</translation>
     <message>
         <source>Mask the values in the Overview tab</source>
         <translation type="unfinished">Mask nilai yang ada di tab Overview</translation>
-    </message>
-    <message>
-        <source>default wallet</source>
-        <translation type="unfinished">wallet default</translation>
     </message>
     <message>
         <source>No wallets available</source>
@@ -409,18 +578,6 @@ Tanda tangan hanya bisa digunakan dengan tipe alamat 'warisan'</translation>
         <source>Main Window</source>
         <translation type="unfinished">Jendela Utama</translation>
     </message>
-    <message>
-        <source>%1 client</source>
-        <translation type="unfinished">%1 klien</translation>
-    </message>
-    <message>
-        <source>&amp;Hide</source>
-        <translation type="unfinished">Sembunyi</translation>
-    </message>
-    <message>
-        <source>S&amp;how</source>
-        <translation type="unfinished">Tampilkan</translation>
-    </message>
     <message numerus="yes">
         <source>%n active connection(s) to Bitcoin network.</source>
         <extracomment>A substring of the tooltip.</extracomment>
@@ -451,6 +608,25 @@ Tanda tangan hanya bisa digunakan dengan tipe alamat 'warisan'</translation>
     <message>
         <source>Pre-syncing Headers (%1%)…</source>
         <translation type="unfinished">Pra-Singkronisasi Header (%1%)...</translation>
+    </message>
+    <message>
+        <source>Error creating wallet</source>
+        <translation type="unfinished">Gagal saat membuat dompet</translation>
+    </message>
+    <message>
+        <source>Cannot create new wallet, the software was compiled without sqlite support (required for descriptor wallets)</source>
+        <translation type="unfinished">Tidak bisa membuat dompet baru, perangkat lunak dikompilasi tanpa dukungan sqlite (yang diperlukan untuk dompet deskriptor)</translation>
+    </message>
+    </context>
+<context>
+    <name>CoinControlDialog</name>
+    <message>
+        <source>Copy change</source>
+        <translation type="unfinished">Salin Perubahan</translation>
+    </message>
+    <message>
+        <source>(%1 locked)</source>
+        <translation type="unfinished">(%1 terkunci)</translation>
     </message>
     </context>
 <context>
@@ -494,6 +670,57 @@ Tanda tangan hanya bisa digunakan dengan tipe alamat 'warisan'</translation>
     </message>
 </context>
 <context>
+    <name>MigrateWalletActivity</name>
+    <message>
+        <source>Migrate wallet</source>
+        <translation type="unfinished">Migrasi dompet</translation>
+    </message>
+    <message>
+        <source>Are you sure you wish to migrate the wallet &lt;i&gt;%1&lt;/i&gt;?</source>
+        <translation type="unfinished">Anda yakin ingin memindahkan dompet &lt;i&gt;%1&lt;/i&gt;?</translation>
+    </message>
+    <message>
+        <source>Migrating the wallet will convert this wallet to one or more descriptor wallets. A new wallet backup will need to be made.
+If this wallet contains any watchonly scripts, a new wallet will be created which contains those watchonly scripts.
+If this wallet contains any solvable but not watched scripts, a different and new wallet will be created which contains those scripts.
+
+The migration process will create a backup of the wallet before migrating. This backup file will be named &lt;wallet name&gt;-&lt;timestamp&gt;.legacy.bak and can be found in the directory for this wallet. In the event of an incorrect migration, the backup can be restored with the "Restore Wallet" functionality.</source>
+        <translation type="unfinished">Memindahkan dompet akan mengubah dompet ini menjadi satu atau beberapa dompet deskriptor. Cadangan dompet baru perlu dibuat.
+Jika dompet ini berisi skrip yang hanya bisa dilihat, dompet baru akan dibuat yang berisi skrip tersebut.
+Jika dompet ini berisi skrip yang dapat dipecahkan tetapi tidak dapat ditonton, dompet yang berbeda dan baru akan dibuat yang berisi skrip tersebut.
+
+Proses migrasi akan mencadangkan dompet sebelum melakukan pemindahan. Fail cadangan ini akan diberi nama -.legacy.bak dan dapat ditemukan di direktori untuk dompet ini. Jika terjadi gagal pemindahan, cadangan dapat dipulihkan dengan fungsi "Pulihkan Dompet".</translation>
+    </message>
+    <message>
+        <source>Migrate Wallet</source>
+        <translation type="unfinished">Migrasi dompet</translation>
+    </message>
+    <message>
+        <source>Migrating Wallet &lt;b&gt;%1&lt;/b&gt;…</source>
+        <translation type="unfinished">Memindahkan Dompet &lt;b&gt;%1&lt;/b&gt;…</translation>
+    </message>
+    <message>
+        <source>The wallet '%1' was migrated successfully.</source>
+        <translation type="unfinished">Dompet '%1' berhasil dipindahkan.</translation>
+    </message>
+    <message>
+        <source>Watchonly scripts have been migrated to a new wallet named '%1'.</source>
+        <translation type="unfinished">Skrip hanya lihat telah dimigrasikan ke dompet yang baru '%1'.</translation>
+    </message>
+    <message>
+        <source>Solvable but not watched scripts have been migrated to a new wallet named '%1'.</source>
+        <translation type="unfinished">Skrip hanya lihat telah diimigrasikan ke dompet baru yang bernama '%1'.</translation>
+    </message>
+    <message>
+        <source>Migration failed</source>
+        <translation type="unfinished">Migrasi gagal</translation>
+    </message>
+    <message>
+        <source>Migration Successful</source>
+        <translation type="unfinished">Migrasi berhasil</translation>
+    </message>
+</context>
+<context>
     <name>OpenWalletActivity</name>
     <message>
         <source>Open wallet failed</source>
@@ -502,10 +729,6 @@ Tanda tangan hanya bisa digunakan dengan tipe alamat 'warisan'</translation>
     <message>
         <source>Open wallet warning</source>
         <translation type="unfinished">Peringatan membuka wallet</translation>
-    </message>
-    <message>
-        <source>default wallet</source>
-        <translation type="unfinished">wallet default</translation>
     </message>
     <message>
         <source>Opening Wallet &lt;b&gt;%1&lt;/b&gt;…</source>
@@ -565,6 +788,14 @@ Tanda tangan hanya bisa digunakan dengan tipe alamat 'warisan'</translation>
     <message>
         <source>Create Wallet</source>
         <translation type="unfinished">Bikin dompet</translation>
+    </message>
+    <message>
+        <source>You are one step away from creating your new wallet!</source>
+        <translation type="unfinished">Anda hanya selangkah lagi untuk membuat dompet baru anda!</translation>
+    </message>
+    <message>
+        <source>Please provide a name and, if desired, enable any advanced options</source>
+        <translation type="unfinished">Mohon sertakan nama, dan jika diinginkan, aktifkan pilihan lanjut apapun</translation>
     </message>
     <message>
         <source>Wallet Name</source>
@@ -898,6 +1129,10 @@ Tanda tangan hanya bisa digunakan dengan tipe alamat 'warisan'</translation>
         <translation type="unfinished">Minimalisasi aplikasi ketika jendela ditutup. Ketika pilihan ini dipilih, aplikasi akan menutup seluruhnya jika anda memilih Keluar di menu yang tersedia.</translation>
     </message>
     <message>
+        <source>Font in the Overview tab: </source>
+        <translation type="unfinished">Font pada tab Overview:</translation>
+    </message>
+    <message>
         <source>Options set in this dialog are overridden by the command line:</source>
         <translation type="unfinished">Set opsi pengaturan pada jendela dialog ini tertutup oleh baris perintah:</translation>
     </message>
@@ -1036,6 +1271,10 @@ Tanda tangan hanya bisa digunakan dengan tipe alamat 'warisan'</translation>
         <source>PSBT Operations</source>
         <translation type="unfinished">Operasi PBST</translation>
     </message>
+    <message>
+        <source>Sends %1 to %2</source>
+        <translation type="unfinished">Mengirim %1 ke %2</translation>
+    </message>
     </context>
 <context>
     <name>PeerTableModel</name>
@@ -1045,6 +1284,11 @@ Tanda tangan hanya bisa digunakan dengan tipe alamat 'warisan'</translation>
         <translation type="unfinished">Umur</translation>
     </message>
     <message>
+        <source>Received</source>
+        <extracomment>Title of Peers Table column which indicates the total amount of network information we have received from the peer.</extracomment>
+        <translation type="unfinished">Diterima</translation>
+    </message>
+    <message>
         <source>Address</source>
         <extracomment>Title of Peers Table column which contains the IP/Onion/I2P address of the connected peer.</extracomment>
         <translation type="unfinished">Alamat</translation>
@@ -1052,6 +1296,34 @@ Tanda tangan hanya bisa digunakan dengan tipe alamat 'warisan'</translation>
     </context>
 <context>
     <name>RPCConsole</name>
+    <message>
+        <source>Current number of transactions</source>
+        <translation type="unfinished">Jumlah transaksi saat ini</translation>
+    </message>
+    <message>
+        <source>Memory usage</source>
+        <translation type="unfinished">Penggunaan memori</translation>
+    </message>
+    <message>
+        <source>Received</source>
+        <translation type="unfinished">Diterima</translation>
+    </message>
+    <message>
+        <source>The transport layer version: %1</source>
+        <translation type="unfinished">Versi lapisan transportasi: %1</translation>
+    </message>
+    <message>
+        <source>Transport</source>
+        <translation type="unfinished">Transpor</translation>
+    </message>
+    <message>
+        <source>Session ID</source>
+        <translation type="unfinished">ID sesi</translation>
+    </message>
+    <message>
+        <source>Version</source>
+        <translation type="unfinished">Versi</translation>
+    </message>
     <message>
         <source>Whether we relay transactions to this peer.</source>
         <translation type="unfinished">Apakah kita merelay transaksi ke peer ini.</translation>
@@ -1071,8 +1343,27 @@ Tanda tangan hanya bisa digunakan dengan tipe alamat 'warisan'</translation>
         <translation type="unfinished">Jumlah total alamat yang diterima dari rekan ini yang dihapus (tidak diproses) karena pembatasan tarif.</translation>
     </message>
     <message>
+        <source>Node window</source>
+        <translation type="unfinished">Jendela Node</translation>
+    </message>
+    <message>
         <source>Last block time</source>
         <translation type="unfinished">Waktu blok terakhir</translation>
+    </message>
+    <message>
+        <source>detecting: peer could be v1 or v2</source>
+        <extracomment>Explanatory text for "detecting" transport type.</extracomment>
+        <translation type="unfinished">mendeteksi: peer bisa jadi v1 atau v2</translation>
+    </message>
+    <message>
+        <source>v1: unencrypted, plaintext transport protocol</source>
+        <extracomment>Explanatory text for v1 transport type.</extracomment>
+        <translation type="unfinished">v1: protokol transportasi teks biasa tanpa enkripsi</translation>
+    </message>
+    <message>
+        <source>v2: BIP324 encrypted transport protocol</source>
+        <extracomment>Explanatory text for v2 transport type.</extracomment>
+        <translation type="unfinished">v2: BIP324 protokol transportasi terenkripsi</translation>
     </message>
     </context>
 <context>
@@ -1110,6 +1401,14 @@ Tanda tangan hanya bisa digunakan dengan tipe alamat 'warisan'</translation>
     <message>
         <source>Hide</source>
         <translation type="unfinished">Sembunyikan</translation>
+    </message>
+    <message>
+        <source>Copy change</source>
+        <translation type="unfinished">Salin Perubahan</translation>
+    </message>
+    <message>
+        <source>%1 from wallet '%2'</source>
+        <translation type="unfinished">%1 dari dompet '%2'</translation>
     </message>
     <message>
         <source>Unsigned Transaction</source>
@@ -1154,6 +1453,17 @@ Tanda tangan hanya bisa digunakan dengan tipe alamat 'warisan'</translation>
             <numerusform>matures in %n more block(s)</numerusform>
         </translation>
     </message>
+    <message>
+        <source>%1 (Certificate was not verified)</source>
+        <translation type="unfinished">%1 (Sertifikat tidak terverifikasi)</translation>
+    </message>
+    </context>
+<context>
+    <name>TransactionTableModel</name>
+    <message>
+        <source>(no label)</source>
+        <translation type="unfinished">(tidak ada label)</translation>
+    </message>
     </context>
 <context>
     <name>TransactionTableModel</name>
@@ -1186,19 +1496,12 @@ Tanda tangan hanya bisa digunakan dengan tipe alamat 'warisan'</translation>
     </message>
     </context>
 <context>
-    <name>WalletModel</name>
-    <message>
-        <source>Copied to clipboard</source>
-        <comment>Fee-bump PSBT saved</comment>
-        <translation type="unfinished">Disalin ke clipboard</translation>
-    </message>
-    <message>
-        <source>default wallet</source>
-        <translation type="unfinished">wallet default</translation>
-    </message>
-</context>
-<context>
     <name>WalletView</name>
+    <message>
+        <source>&amp;Export</source>
+        <translation type="unfinished">&amp;Ekspor
+wallet</translation>
+    </message>
     <message>
         <source>Export the data in the current tab to a file</source>
         <translation type="unfinished">Ekspor data di tab saat ini ke sebuah file</translation>
@@ -1211,6 +1514,10 @@ Tanda tangan hanya bisa digunakan dengan tipe alamat 'warisan'</translation>
     </context>
 <context>
     <name>bitcoin-core</name>
+    <message>
+        <source>%s failed to validate the -assumeutxo snapshot state. This indicates a hardware problem, or a bug in the software, or a bad software modification that allowed an invalid snapshot to be loaded. As a result of this, the node will shut down and stop using any state that was built on the snapshot, resetting the chain height from %d to %d. On the next restart, the node will resume syncing from %d without using any snapshot data. Please report this incident to %s, including how you obtained the snapshot. The invalid snapshot chainstate will be left on disk in case it is helpful in diagnosing the issue that caused this error.</source>
+        <translation type="unfinished">%s gagal memvalidasi status snapshot -asumsikan UTXO (Keluaran Transaksi yang tidak terpakai). Ini mengindikasikan masalah perangkat keras, atau bug pada perangkat lunak, atau modifikasi perangkat lunak yang buruk yang memungkinkan snapshot yang tidak valid dimuat. Sebagai akibatnya, node akan dimatikan dan berhenti menggunakan status apa pun yang dibangun di atas snapshot, mengatur ulang tinggi rantai dari %d ke %d. Pada restart berikutnya, node akan melanjutkan sinkronisasi dari %d tanpa menggunakan data snapshot apa pun. Silakan laporkan kejadian ini ke %s, termasuk bagaimana Anda mendapatkan snapshot tersebut. Status rantai snapshot yang tidak valid akan dibiarkan di disk jika hal ini membantu dalam mendiagnosis masalah yang menyebabkan kesalahan ini.</translation>
+    </message>
     <message>
         <source>%s request to listen on port %u. This port is considered "bad" and thus it is unlikely that any peer will connect to it. See doc/p2p-bad-ports.md for details and a full list.</source>
         <translation type="unfinished">%s meminta mendengarkan di port %u. Port ini dianggap "buruk" dan oleh karena itu tidak mungkin peer lain akan terhubung kesini. Lihat doc/p2p-bad-ports.md untuk detail dan daftar lengkap.</translation>
@@ -1232,8 +1539,16 @@ Tanda tangan hanya bisa digunakan dengan tipe alamat 'warisan'</translation>
         <translation type="unfinished">Mode pangkas tidak kompatibel dengan -reindex-chainstate. Gunakan full -reindex sebagai gantinya.</translation>
     </message>
     <message>
+        <source>Rename of '%s' -&gt; '%s' failed. You should resolve this by manually moving or deleting the invalid snapshot directory %s, otherwise you will encounter the same error again on the next startup.</source>
+        <translation type="unfinished">Penggantian nama '%s' -&gt; '%s' gagal. Anda harus menyelesaikannya dengan memindahkan atau menghapus secara manual direktori snapshot %s yang tidak valid, jika tidak, Anda akan menemukan kesalahan yang sama lagi pada startup berikutnya.</translation>
+    </message>
+    <message>
         <source>This is the maximum transaction fee you pay (in addition to the normal fee) to prioritize partial spend avoidance over regular coin selection.</source>
         <translation type="unfinished">Ini adalah biaya transaksi maksimum yang Anda bayarkan (selain biaya normal) untuk memprioritaskan penghindaran pengeluaran sebagian daripada pemilihan koin biasa.</translation>
+    </message>
+    <message>
+        <source>Unsupported category-specific logging level %1$s=%2$s. Expected %1$s=&lt;category&gt;:&lt;loglevel&gt;. Valid categories: %3$s. Valid loglevels: %4$s.</source>
+        <translation type="unfinished">Tingkat penebangan khusus kategori yang tidak didukung %1$s=%2$s. Diharapkan %1$s=&lt;category&gt;:&lt;loglevel&gt;. Kategori yang valid: %3$s. Tingkat pencatatan yang valid: %4$s.</translation>
     </message>
     <message>
         <source>Unsupported chainstate database format found. Please restart with -reindex-chainstate. This will rebuild the chainstate database.</source>
@@ -1242,6 +1557,22 @@ Tanda tangan hanya bisa digunakan dengan tipe alamat 'warisan'</translation>
     <message>
         <source>Wallet created successfully. The legacy wallet type is being deprecated and support for creating and opening legacy wallets will be removed in the future.</source>
         <translation type="unfinished">Dompet berhasil dibuat. Jenis dompet lama tidak digunakan lagi dan dukungan untuk membuat dan membuka dompet lama akan dihapus di masa mendatang.</translation>
+    </message>
+    <message>
+        <source>Wallet loaded successfully. The legacy wallet type is being deprecated and support for creating and opening legacy wallets will be removed in the future. Legacy wallets can be migrated to a descriptor wallet with migratewallet.</source>
+        <translation type="unfinished">Dompet berhasil dimuat. Tipe dompet lama akan ditinggalkan dan dukungan untuk membuat dan membuka dompet ini akan dihapus di masa depan. Dompet lama dapat dimigrasikan ke dompet deskriptor dengan migratewallet.</translation>
+    </message>
+    <message>
+        <source>Cannot write to data directory '%s'; check permissions.</source>
+        <translation type="unfinished">Tidak dapat menulis ke direktori data '%s'; periksa izinnya.</translation>
+    </message>
+    <message>
+        <source>%s is set very high! Fees this large could be paid on a single transaction.</source>
+        <translation type="unfinished">%s ditetapkan sangat tinggi! Biaya sebesar ini dapat dibayarkan dalam satu transaksi.</translation>
+    </message>
+    <message>
+        <source>Error reading %s! All keys read correctly, but transaction data or address metadata may be missing or incorrect.</source>
+        <translation type="unfinished">Kesalahan membaca %s! Semua kunci dibaca dengan benar, tetapi data transaksi atau metadata alamat mungkin hilang atau salah.</translation>
     </message>
     <message>
         <source>Error: Address book data in wallet cannot be identified to belong to migrated wallets</source>
@@ -1256,8 +1587,20 @@ Tanda tangan hanya bisa digunakan dengan tipe alamat 'warisan'</translation>
         <translation type="unfinished">Kesalahan: %s transaksi di dompet tidak dapat diidentifikasi sebagai dompet yang dimigrasikan</translation>
     </message>
     <message>
+        <source>Failed to calculate bump fees, because unconfirmed UTXOs depend on enormous cluster of unconfirmed transactions.</source>
+        <translation type="unfinished">Gagal menghitung biaya peningkatan, karena UTXO yang belum dikonfirmasi bergantung pada kelompok besar transaksi yang belum dikonfirmasi.</translation>
+    </message>
+    <message>
+        <source>Fee estimation failed. Fallbackfee is disabled. Wait a few blocks or enable %s.</source>
+        <translation type="unfinished">Estimasi biaya gagal. Biaya cadangan dinonaktifkan. Tunggu beberapa blok atau aktifkan %s.</translation>
+    </message>
+    <message>
         <source>Incompatible options: -dnsseed=1 was explicitly specified, but -onlynet forbids connections to IPv4/IPv6</source>
         <translation type="unfinished">Opsi yang tidak kompatibel: -dnsseed=1 secara eksplisit ditentukan, tetapi -onlynet melarang koneksi ke IPv4/IPv6</translation>
+    </message>
+    <message>
+        <source>Invalid amount for %s=&lt;amount&gt;: '%s' (must be at least the minrelay fee of %s to prevent stuck transactions)</source>
+        <translation type="unfinished">Jumlah yang tidak valid untuk %s=&lt;amount&gt;: '%s' (harus setidaknya biaya minrelay sebesar %s untuk mencegah transaksi macet)</translation>
     </message>
     <message>
         <source>Outbound connections restricted to CJDNS (-onlynet=cjdns) but -cjdnsreachable is not provided</source>
@@ -1282,6 +1625,18 @@ Tanda tangan hanya bisa digunakan dengan tipe alamat 'warisan'</translation>
     <message>
         <source>The preselected coins total amount does not cover the transaction target. Please allow other inputs to be automatically selected or include more coins manually</source>
         <translation type="unfinished">Jumlah total koin yang dipilih tidak menutupi transaksi target. Silahkan izinkan input yang lain untuk secara otomatis dipilih atau masukkan lebih banyak koin secara manual.</translation>
+    </message>
+    <message>
+        <source>Transaction requires one destination of non-0 value, a non-0 feerate, or a pre-selected input</source>
+        <translation type="unfinished">Transaksi membutuhkan satu tujuan dengan nilai non-0, feerate non-0, atau input yang telah dipilih sebelumnya</translation>
+    </message>
+    <message>
+        <source>UTXO snapshot failed to validate. Restart to resume normal initial block download, or try loading a different snapshot.</source>
+        <translation type="unfinished">Snapshot UTXO gagal divalidasi. Mulai ulang untuk melanjutkan pengunduhan blok awal normal, atau coba muat snapshot yang berbeda.</translation>
+    </message>
+    <message>
+        <source>Unconfirmed UTXOs are available, but spending them creates a chain of transactions that will be rejected by the mempool</source>
+        <translation type="unfinished">UTXO yang belum dikonfirmasi tersedia, tetapi menghabiskannya menciptakan rantai transaksi yang akan ditolak oleh mempool</translation>
     </message>
     <message>
         <source>Unexpected legacy entry in descriptor wallet found. Loading wallet %s
@@ -1318,24 +1673,28 @@ Unable to restore backup of wallet.</source>
 Tidak dapat memulihkan cadangan dompet..</translation>
     </message>
     <message>
+        <source>Block verification was interrupted</source>
+        <translation type="unfinished">Verifikasi Blok terganggu</translation>
+    </message>
+    <message>
+        <source>Error committing db txn for wallet transactions removal</source>
+        <translation type="unfinished">Kesalahan dalam melakukan db txn untuk penghapusan transaksi dompet</translation>
+    </message>
+    <message>
+        <source>Error reading configuration file: %s</source>
+        <translation type="unfinished">Kesalahan membaca file konfigurasi: %s</translation>
+    </message>
+    <message>
+        <source>Error starting db txn for wallet transactions removal</source>
+        <translation type="unfinished">Kesalahan memulai db txn untuk penghapusan transaksi dompet</translation>
+    </message>
+    <message>
         <source>Error: Cannot extract destination from the generated scriptpubkey</source>
         <translation type="unfinished">Eror: Tidak dapat mengekstrak destinasi dari scriptpubkey yang dibuat</translation>
     </message>
     <message>
-        <source>Error: Could not add watchonly tx to watchonly wallet</source>
-        <translation type="unfinished">Kesalahan: Tidak dapat menambahkan watchonly tx ke dompet watchonly</translation>
-    </message>
-    <message>
-        <source>Error: Could not delete watchonly transactions</source>
-        <translation type="unfinished">Kesalahan: Tidak dapat menghapus transaksi hanya menonton</translation>
-    </message>
-    <message>
         <source>Error: Failed to create new watchonly wallet</source>
         <translation type="unfinished">Kesalahan: Gagal membuat dompet baru yang hanya dilihat</translation>
-    </message>
-    <message>
-        <source>Error: Not all watchonly txs could be deleted</source>
-        <translation type="unfinished">Kesalahan: Tidak semua txs watchonly dapat dihapus</translation>
     </message>
     <message>
         <source>Error: This wallet already uses SQLite</source>
@@ -1358,12 +1717,48 @@ Tidak dapat memulihkan cadangan dompet..</translation>
         <translation type="unfinished">Kesalahan: Tidak dapat membaca semua catatan dalam database</translation>
     </message>
     <message>
+        <source>Error: Unable to read wallet's best block locator record</source>
+        <translation type="unfinished">Kesalahan: Tidak dapat membaca catatan pencari blok terbaik dompet</translation>
+    </message>
+    <message>
         <source>Error: Unable to remove watchonly address book data</source>
         <translation type="unfinished">Kesalahan: Tidak dapat menghapus data buku alamat yang hanya dilihat</translation>
     </message>
     <message>
+        <source>Error: Unable to write solvable wallet best block locator record</source>
+        <translation type="unfinished">Kesalahan: Tidak dapat menulis catatan pencari blok terbaik dompet solvable</translation>
+    </message>
+    <message>
+        <source>Error: Unable to write watchonly wallet best block locator record</source>
+        <translation type="unfinished">Kesalahan: Tidak dapat menulis catatan pencari blok terbaik dompet watchonly</translation>
+    </message>
+    <message>
+        <source>Error: address book copy failed for wallet %s</source>
+        <translation type="unfinished">Kesalahan: penyalinan daftar kontak gagal untuk dompet %s</translation>
+    </message>
+    <message>
+        <source>Error: database transaction cannot be executed for wallet %s</source>
+        <translation type="unfinished">Kesalahan: database transaksi tidak dapat dilakukan untuk dompet %s</translation>
+    </message>
+    <message>
+        <source>Failed to start indexes, shutting down..</source>
+        <translation type="unfinished">Gagal memulai indeks, mematikan..</translation>
+    </message>
+    <message>
+        <source>Failure removing transaction: %s</source>
+        <translation type="unfinished">Gagal menghapus transaksi: %s</translation>
+    </message>
+    <message>
         <source>Insufficient dbcache for block verification</source>
         <translation type="unfinished">Kekurangan dbcache untuk verifikasi blok</translation>
+    </message>
+    <message>
+        <source>Invalid amount for %s=&lt;amount&gt;: '%s' (must be at least %s)</source>
+        <translation type="unfinished">Jumlah yang tidak valid untuk %s=&lt;amount&gt;: '%s' (harus minimal %s)</translation>
+    </message>
+    <message>
+        <source>Invalid amount for %s=&lt;amount&gt;: '%s'</source>
+        <translation type="unfinished">Jumlah yang tidak valid untuk %s=&lt;amount&gt;: '%s'</translation>
     </message>
     <message>
         <source>Invalid port specified in %s: '%s'</source>
@@ -1386,8 +1781,12 @@ Tidak dapat memulihkan cadangan dompet..</translation>
         <translation type="unfinished">Tidak dapat diselesaikan input yang dipilih %s</translation>
     </message>
     <message>
-        <source>Unable to allocate memory for -maxsigcachesize: '%s' MiB</source>
-        <translation type="unfinished">Tidak dapat mengalokasikan memori untuk -maxsigcachesize: '%s' MiB</translation>
+        <source>Specified data directory "%s" does not exist.</source>
+        <translation type="unfinished">Direktori data yang ditentukan "%s" tidak ada.</translation>
+    </message>
+    <message>
+        <source>Transaction %s does not belong to this wallet</source>
+        <translation type="unfinished">Transaksi %s tidak termasuk dompet ini</translation>
     </message>
     <message>
         <source>Unable to find UTXO for external input</source>
@@ -1396,6 +1795,26 @@ Tidak dapat memulihkan cadangan dompet..</translation>
     <message>
         <source>Unable to unload the wallet before migrating</source>
         <translation type="unfinished">Tidak dapat membongkar dompet sebelum bermigrasi</translation>
+    </message>
+    <message>
+        <source>Unsupported global logging level %s=%s. Valid values: %s.</source>
+        <translation type="unfinished">Tingkat penebangan global yang tidak didukung %s = %s. Nilai yang valid: %s.</translation>
+    </message>
+    <message>
+        <source>Wallet file creation failed: %s</source>
+        <translation type="unfinished">Pembuatan berkas dompet gagal: %s</translation>
+    </message>
+    <message>
+        <source>acceptstalefeeestimates is not supported on %s chain.</source>
+        <translation type="unfinished">menerima estimasi biaya basi tidak didukung pada %s rantai.</translation>
+    </message>
+    <message>
+        <source>Error: Could not add watchonly tx %s to watchonly wallet</source>
+        <translation type="unfinished">Kesalahan: Tidak mampu menambahkan watchonly tx %s ke dompet watchonly</translation>
+    </message>
+    <message>
+        <source>Error: Could not delete watchonly transactions. </source>
+        <translation type="unfinished">Kesalahan: Tidak mampu menghapus transaksi watchonly.</translation>
     </message>
     </context>
 </TS>

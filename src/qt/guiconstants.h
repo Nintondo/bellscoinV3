@@ -25,7 +25,7 @@ static const int STATUSBAR_ICONSIZE = 16;
 static const bool DEFAULT_SPLASHSCREEN = true;
 
 /* Invalid field background style */
-#define STYLE_INVALID "background:#FF8080"
+#define STYLE_INVALID "border: 3px solid #FF8080"
 
 /* Transaction list -- unconfirmed transaction */
 #define COLOR_UNCONFIRMED QColor(128, 128, 128)
@@ -50,6 +50,7 @@ static const int TOOLTIP_WRAP_THRESHOLD = 80;
 #define QAPP_ORG_DOMAIN "bellscoin.com"
 #define QAPP_APP_NAME_DEFAULT "Bells-Qt"
 #define QAPP_APP_NAME_TESTNET "Bells-Qt-testnet"
+#define QAPP_APP_NAME_TESTNET4 "Bells-Qt-testnet4"
 #define QAPP_APP_NAME_SIGNET "Bells-Qt-signet"
 #define QAPP_APP_NAME_REGTEST "Bells-Qt-regtest"
 

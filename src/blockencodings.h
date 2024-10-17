@@ -59,13 +59,13 @@ public:
     uint256 blockhash;
     std::vector<CTransactionRef> txn;
 
-    BlockTransactions() {}
+    BlockTransactions() = default;
     explicit BlockTransactions(const BlockTransactionsRequest& req) :
         blockhash(req.blockhash), txn(req.indexes.size()) {}
 
     SERIALIZE_METHODS(BlockTransactions, obj)
     {
-        READWRITE(obj.blockhash, Using<VectorFormatter<TransactionCompression>>(obj.txn));
+        READWRITE(obj.blockhash, TX_WITH_WITNESS(Using<VectorFormatter<TransactionCompression>>(obj.txn)));
     }
 };
 
@@ -76,7 +76,7 @@ struct PrefilledTransaction {
     uint16_t index;
     CTransactionRef tx;
 
-    SERIALIZE_METHODS(PrefilledTransaction, obj) { READWRITE(COMPACTSIZE(obj.index), Using<TransactionCompression>(obj.tx)); }
+    SERIALIZE_METHODS(PrefilledTransaction, obj) { READWRITE(COMPACTSIZE(obj.index), TX_WITH_WITNESS(Using<TransactionCompression>(obj.tx))); }
 };
 
 typedef enum ReadStatus_t
@@ -106,12 +106,17 @@ public:
 
     CBlockHeader header;
 
-    // Dummy for deserialization
-    CBlockHeaderAndShortTxIDs() {}
+    /**
+     * Dummy for deserialization
+     */
+    CBlockHeaderAndShortTxIDs() = default;
 
-    CBlockHeaderAndShortTxIDs(const CBlock& block);
+    /**
+     * @param[in]  nonce  This should be randomly generated, and is used for the siphash secret key
+     */
+    CBlockHeaderAndShortTxIDs(const CBlock& block, const uint64_t nonce);
 
-    uint64_t GetShortID(const uint256& txhash) const;
+    uint64_t GetShortID(const Wtxid& wtxid) const;
 
     size_t BlockTxCount() const { return shorttxids.size() + prefilledtxn.size(); }
 
@@ -141,8 +146,8 @@ public:
 
     explicit PartiallyDownloadedBlock(CTxMemPool* poolIn) : pool(poolIn) {}
 
-    // extra_txn is a list of extra transactions to look at, in <witness hash, reference> form
-    ReadStatus InitData(const CBlockHeaderAndShortTxIDs& cmpctblock, const std::vector<std::pair<uint256, CTransactionRef>>& extra_txn);
+    // extra_txn is a list of extra orphan/conflicted/etc transactions to look at
+    ReadStatus InitData(const CBlockHeaderAndShortTxIDs& cmpctblock, const std::vector<CTransactionRef>& extra_txn);
     bool IsTxAvailable(size_t index) const;
     ReadStatus FillBlock(CBlock& block, const std::vector<CTransactionRef>& vtx_missing);
 };

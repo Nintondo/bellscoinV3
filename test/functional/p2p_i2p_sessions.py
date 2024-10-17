@@ -33,4 +33,4 @@ class I2PSessions(BellscoinTestFramework):
 
 
 if __name__ == '__main__':
-    I2PSessions().main()
+    I2PSessions(__file__).main()

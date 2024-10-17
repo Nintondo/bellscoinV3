@@ -5,7 +5,6 @@
 """Test segwit transactions and blocks on P2P network."""
 from decimal import Decimal
 import random
-import struct
 import time
 
 from test_framework.blocktools import (
@@ -191,31 +190,32 @@ class TestP2PConn(P2PInterface):
     def announce_block_and_wait_for_getdata(self, block, use_header, timeout=60):
         with p2p_lock:
             self.last_message.pop("getdata", None)
-            self.last_message.pop("getheaders", None)
         msg = msg_headers()
         msg.headers = [CBlockHeader(block)]
         if use_header:
             self.send_message(msg)
         else:
             self.send_message(msg_inv(inv=[CInv(MSG_BLOCK, block.sha256)]))
-            self.wait_for_getheaders()
+            self.wait_for_getheaders(block_hash=block.hashPrevBlock, timeout=timeout)
             self.send_message(msg)
-        self.wait_for_getdata([block.sha256])
+        self.wait_for_getdata([block.sha256], timeout=timeout)
 
     def request_block(self, blockhash, inv_type, timeout=60):
         with p2p_lock:
             self.last_message.pop("block", None)
         self.send_message(msg_getdata(inv=[CInv(inv_type, blockhash)]))
-        self.wait_for_block(blockhash, timeout)
+        self.wait_for_block(blockhash, timeout=timeout)
         return self.last_message["block"].block
 
 class SegWitTest(BellscoinTestFramework):
     def set_test_params(self):
         self.setup_clean_chain = True
         self.num_nodes = 2
+        # whitelist peers to speed up tx relay / mempool sync
+        self.noban_tx_relay = True
         # This test tests SegWit both pre and post-activation, so use the normal BIP9 activation.
         self.extra_args = [
-            ["-acceptnonstdtxn=1", f"-testactivationheight=segwit@{SEGWIT_HEIGHT}", "-whitelist=noban@127.0.0.1", "-par=1"],
+            ["-acceptnonstdtxn=1", f"-testactivationheight=segwit@{SEGWIT_HEIGHT}", "-par=1"],
             ["-acceptnonstdtxn=0", f"-testactivationheight=segwit@{SEGWIT_HEIGHT}"],
         ]
         self.supports_cli = False
@@ -1053,7 +1053,7 @@ class SegWitTest(BellscoinTestFramework):
 
     @subtest
     def test_max_witness_push_length(self):
-        """Test that witness stack can only allow up to 520 byte pushes."""
+        """Test that witness stack can only allow up to MAX_SCRIPT_ELEMENT_SIZE byte pushes."""
 
         block = self.build_next_block()
 
@@ -1164,16 +1164,16 @@ class SegWitTest(BellscoinTestFramework):
                 if not self.wit.is_null():
                     flags |= 1
                 r = b""
-                r += struct.pack("<i", self.nVersion)
+                r += self.version.to_bytes(4, "little")
                 if flags:
                     dummy = []
                     r += ser_vector(dummy)
-                    r += struct.pack("<B", flags)
+                    r += flags.to_bytes(1, "little")
                 r += ser_vector(self.vin)
                 r += ser_vector(self.vout)
                 if flags & 1:
                     r += self.wit.serialize()
-                r += struct.pack("<I", self.nLockTime)
+                r += self.nLockTime.to_bytes(4, "little")
                 return r
 
         tx2 = BrokenCTransaction()
@@ -1975,11 +1975,11 @@ class SegWitTest(BellscoinTestFramework):
         def serialize_with_bogus_witness(tx):
             flags = 3
             r = b""
-            r += struct.pack("<i", tx.nVersion)
+            r += tx.version.to_bytes(4, "little")
             if flags:
                 dummy = []
                 r += ser_vector(dummy)
-                r += struct.pack("<B", flags)
+                r += flags.to_bytes(1, "little")
             r += ser_vector(tx.vin)
             r += ser_vector(tx.vout)
             if flags & 1:
@@ -1989,7 +1989,7 @@ class SegWitTest(BellscoinTestFramework):
                     for _ in range(len(tx.wit.vtxinwit), len(tx.vin)):
                         tx.wit.vtxinwit.append(CTxInWitness())
                 r += tx.wit.serialize()
-            r += struct.pack("<I", tx.nLockTime)
+            r += tx.nLockTime.to_bytes(4, "little")
             return r
 
         class msg_bogus_tx(msg_tx):
@@ -2054,7 +2054,7 @@ class SegWitTest(BellscoinTestFramework):
         test_transaction_acceptance(self.nodes[0], self.wtx_node, tx2, with_witness=True, accepted=False)
 
         # Expect a request for parent (tx) by txid despite use of WTX peer
-        self.wtx_node.wait_for_getdata([tx.sha256], 60)
+        self.wtx_node.wait_for_getdata([tx.sha256], timeout=60)
         with p2p_lock:
             lgd = self.wtx_node.lastgetdata[:]
         assert_equal(lgd, [CInv(MSG_WITNESS_TX, tx.sha256)])
@@ -2067,4 +2067,4 @@ class SegWitTest(BellscoinTestFramework):
 
 
 if __name__ == '__main__':
-    SegWitTest().main()
+    SegWitTest(__file__).main()

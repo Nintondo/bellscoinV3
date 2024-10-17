@@ -12,10 +12,11 @@
 #include <streams.h>
 #include <util/result.h>
 #include <util/strencodings.h>
-#include <version.h>
 
 #include <algorithm>
 #include <string>
+
+using util::SplitString;
 
 namespace {
 class OpCodeParser
@@ -143,9 +144,9 @@ static bool DecodeTx(CMutableTransaction& tx, const std::vector<unsigned char>& 
     // Try decoding with extended serialization support, and remember if the result successfully
     // consumes the entire input.
     if (try_witness) {
-        CDataStream ssData(tx_data, SER_NETWORK, PROTOCOL_VERSION);
+        DataStream ssData(tx_data);
         try {
-            ssData >> tx_extended;
+            ssData >> TX_WITH_WITNESS(tx_extended);
             if (ssData.empty()) ok_extended = true;
         } catch (const std::exception&) {
             // Fall through.
@@ -161,9 +162,9 @@ static bool DecodeTx(CMutableTransaction& tx, const std::vector<unsigned char>& 
 
     // Try decoding with legacy serialization, and remember if the result successfully consumes the entire input.
     if (try_no_witness) {
-        CDataStream ssData(tx_data, SER_NETWORK, PROTOCOL_VERSION | SERIALIZE_TRANSACTION_NO_WITNESS);
+        DataStream ssData(tx_data);
         try {
-            ssData >> tx_legacy;
+            ssData >> TX_NO_WITNESS(tx_legacy);
             if (ssData.empty()) ok_legacy = true;
         } catch (const std::exception&) {
             // Fall through.
@@ -223,9 +224,9 @@ bool DecodeHexBlk(CBlock& block, const std::string& strHexBlk)
         return false;
 
     std::vector<unsigned char> blockData(ParseHex(strHexBlk));
-    CDataStream ssBlock(blockData, SER_NETWORK, PROTOCOL_VERSION);
+    DataStream ssBlock(blockData);
     try {
-        ssBlock >> block;
+        ssBlock >> TX_WITH_WITNESS(block);
     }
     catch (const std::exception&) {
         return false;
@@ -234,18 +235,9 @@ bool DecodeHexBlk(CBlock& block, const std::string& strHexBlk)
     return true;
 }
 
-bool ParseHashStr(const std::string& strHex, uint256& result)
-{
-    if ((strHex.size() != 64) || !IsHex(strHex))
-        return false;
-
-    result.SetHex(strHex);
-    return true;
-}
-
 util::Result<int> SighashFromStr(const std::string& sighash)
 {
-    static std::map<std::string, int> map_sighash_values = {
+    static const std::map<std::string, int> map_sighash_values = {
         {std::string("DEFAULT"), int(SIGHASH_DEFAULT)},
         {std::string("ALL"), int(SIGHASH_ALL)},
         {std::string("ALL|ANYONECANPAY"), int(SIGHASH_ALL|SIGHASH_ANYONECANPAY)},
@@ -258,6 +250,6 @@ util::Result<int> SighashFromStr(const std::string& sighash)
     if (it != map_sighash_values.end()) {
         return it->second;
     } else {
-        return util::Error{Untranslated(sighash + " is not a valid sighash parameter.")};
+        return util::Error{Untranslated("'" + sighash + "' is not a valid sighash parameter.")};
     }
 }

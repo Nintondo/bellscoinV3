@@ -6,7 +6,9 @@
 
 from decimal import Decimal
 
-from test_framework.blocktools import COINBASE_MATURITY
+from test_framework.mempool_util import (
+    fill_mempool,
+)
 from test_framework.p2p import P2PTxInvStore
 from test_framework.test_framework import BellscoinTestFramework
 from test_framework.util import (
@@ -14,8 +16,6 @@ from test_framework.util import (
     assert_fee_amount,
     assert_greater_than,
     assert_raises_rpc_error,
-    create_lots_of_big_transactions,
-    gen_return_txouts,
 )
 from test_framework.wallet import (
     COIN,
@@ -33,50 +33,6 @@ class MempoolLimitTest(BellscoinTestFramework):
             "-maxmempool=5",
         ]]
         self.supports_cli = False
-
-    def fill_mempool(self):
-        """Fill mempool until eviction."""
-        self.log.info("Fill the mempool until eviction is triggered and the mempoolminfee rises")
-        txouts = gen_return_txouts()
-        node = self.nodes[0]
-        miniwallet = self.wallet
-        relayfee = node.getnetworkinfo()['relayfee']
-
-        tx_batch_size = 1
-        num_of_batches = 75
-        # Generate UTXOs to flood the mempool
-        # 1 to create a tx initially that will be evicted from the mempool later
-        # 75 transactions each with a fee rate higher than the previous one
-        # And 1 more to verify that this tx does not get added to the mempool with a fee rate less than the mempoolminfee
-        # And 2 more for the package cpfp test
-        self.generate(miniwallet, 1 + (num_of_batches * tx_batch_size))
-
-        # Mine 99 blocks so that the UTXOs are allowed to be spent
-        self.generate(node, COINBASE_MATURITY - 1)
-
-        self.log.debug("Create a mempool tx that will be evicted")
-        tx_to_be_evicted_id = miniwallet.send_self_transfer(from_node=node, fee_rate=relayfee)["txid"]
-
-        # Increase the tx fee rate to give the subsequent transactions a higher priority in the mempool
-        # The tx has an approx. vsize of 65k, i.e. multiplying the previous fee rate (in sats/kvB)
-        # by 130 should result in a fee that corresponds to 2x of that fee rate
-        base_fee = relayfee * 130
-
-        self.log.debug("Fill up the mempool with txs with higher fee rate")
-        with node.assert_debug_log(["rolling minimum fee bumped"]):
-            for batch_of_txid in range(num_of_batches):
-                fee = (batch_of_txid + 1) * base_fee
-                create_lots_of_big_transactions(miniwallet, node, fee, tx_batch_size, txouts)
-
-        self.log.debug("The tx should be evicted by now")
-        # The number of transactions created should be greater than the ones present in the mempool
-        assert_greater_than(tx_batch_size * num_of_batches, len(node.getrawmempool()))
-        # Initial tx created should not be present in the mempool anymore as it had a lower fee rate
-        assert tx_to_be_evicted_id not in node.getrawmempool()
-
-        self.log.debug("Check that mempoolminfee is larger than minrelaytxfee")
-        assert_equal(node.getmempoolinfo()['minrelaytxfee'], Decimal('0.00001000'))
-        assert_greater_than(node.getmempoolinfo()['mempoolminfee'], Decimal('0.00001000'))
 
     def test_rbf_carveout_disallowed(self):
         node = self.nodes[0]
@@ -103,7 +59,7 @@ class MempoolLimitTest(BellscoinTestFramework):
         mempoolmin_feerate = node.getmempoolinfo()["mempoolminfee"]
         tx_A = self.wallet.send_self_transfer(
             from_node=node,
-            fee=(mempoolmin_feerate / 1000) * (A_weight // 4) + Decimal('0.000001'),
+            fee_rate=mempoolmin_feerate,
             target_weight=A_weight,
             utxo_to_spend=rbf_utxo,
             confirmed_only=True
@@ -121,12 +77,13 @@ class MempoolLimitTest(BellscoinTestFramework):
         non_cpfp_carveout_weight = 40001 # EXTRA_DESCENDANT_TX_SIZE_LIMIT + 1
         tx_C = self.wallet.create_self_transfer(
             target_weight=non_cpfp_carveout_weight,
-            fee = (mempoolmin_feerate / 1000) * (non_cpfp_carveout_weight // 4) + Decimal('0.000001'),
+            fee_rate=mempoolmin_feerate,
             utxo_to_spend=tx_B["new_utxo"],
             confirmed_only=True
         )
-
-        assert_raises_rpc_error(-26, "too-long-mempool-chain", node.submitpackage, [tx_B["hex"], tx_C["hex"]])
+        res = node.submitpackage([tx_B["hex"], tx_C["hex"]])
+        assert_equal(res["package_msg"], "transaction failed")
+        assert "too-long-mempool-chain" in res["tx-results"][tx_C["wtxid"]]["error"]
 
     def test_mid_package_eviction(self):
         node = self.nodes[0]
@@ -138,7 +95,7 @@ class MempoolLimitTest(BellscoinTestFramework):
         assert_equal(node.getmempoolinfo()['minrelaytxfee'], Decimal('0.00001000'))
         assert_equal(node.getmempoolinfo()['mempoolminfee'], Decimal('0.00001000'))
 
-        self.fill_mempool()
+        fill_mempool(self, node)
         current_info = node.getmempoolinfo()
         mempoolmin_feerate = current_info["mempoolminfee"]
 
@@ -152,7 +109,7 @@ class MempoolLimitTest(BellscoinTestFramework):
         # happen in the middle of package evaluation, as it can invalidate the coins cache.
         mempool_evicted_tx = self.wallet.send_self_transfer(
             from_node=node,
-            fee=(mempoolmin_feerate / 1000) * (evicted_weight // 4) + Decimal('0.000001'),
+            fee_rate=mempoolmin_feerate,
             target_weight=evicted_weight,
             confirmed_only=True
         )
@@ -178,11 +135,11 @@ class MempoolLimitTest(BellscoinTestFramework):
         parent_weight = 100000
         num_big_parents = 3
         assert_greater_than(parent_weight * num_big_parents, current_info["maxmempool"] - current_info["bytes"])
-        parent_fee = (100 * mempoolmin_feerate / 1000) * (parent_weight // 4)
+        parent_feerate = 100 * mempoolmin_feerate
 
         big_parent_txids = []
         for i in range(num_big_parents):
-            parent = self.wallet.create_self_transfer(fee=parent_fee, target_weight=parent_weight, confirmed_only=True)
+            parent = self.wallet.create_self_transfer(fee_rate=parent_feerate, target_weight=parent_weight, confirmed_only=True)
             parent_utxos.append(parent["new_utxo"])
             package_hex.append(parent["hex"])
             big_parent_txids.append(parent["txid"])
@@ -205,7 +162,7 @@ class MempoolLimitTest(BellscoinTestFramework):
 
         # Package should be submitted, temporarily exceeding maxmempool, and then evicted.
         with node.assert_debug_log(expected_msgs=["rolling minimum fee bumped"]):
-            assert_raises_rpc_error(-26, "mempool full", node.submitpackage, package_hex)
+            assert_equal(node.submitpackage(package_hex)["package_msg"], "transaction failed")
 
         # Maximum size must never be exceeded.
         assert_greater_than(node.getmempoolinfo()["maxmempool"], node.getmempoolinfo()["bytes"])
@@ -228,7 +185,7 @@ class MempoolLimitTest(BellscoinTestFramework):
         assert_equal(node.getmempoolinfo()['minrelaytxfee'], Decimal('0.00001000'))
         assert_equal(node.getmempoolinfo()['mempoolminfee'], Decimal('0.00001000'))
 
-        self.fill_mempool()
+        fill_mempool(self, node)
         current_info = node.getmempoolinfo()
         mempoolmin_feerate = current_info["mempoolminfee"]
 
@@ -273,7 +230,9 @@ class MempoolLimitTest(BellscoinTestFramework):
         package_hex = [cpfp_parent["hex"], replacement_tx["hex"], child["hex"]]
 
         # Package should be submitted, temporarily exceeding maxmempool, and then evicted.
-        assert_raises_rpc_error(-26, "bad-txns-inputs-missingorspent", node.submitpackage, package_hex)
+        res = node.submitpackage(package_hex)
+        assert_equal(res["package_msg"], "transaction failed")
+        assert len([tx_res for _, tx_res in res["tx-results"].items() if "error" in tx_res and tx_res["error"] == "bad-txns-inputs-missingorspent"])
 
         # Maximum size must never be exceeded.
         assert_greater_than(node.getmempoolinfo()["maxmempool"], node.getmempoolinfo()["bytes"])
@@ -300,7 +259,7 @@ class MempoolLimitTest(BellscoinTestFramework):
         assert_equal(node.getmempoolinfo()['minrelaytxfee'], Decimal('0.00001000'))
         assert_equal(node.getmempoolinfo()['mempoolminfee'], Decimal('0.00001000'))
 
-        self.fill_mempool()
+        fill_mempool(self, node)
 
         # Deliberately try to create a tx with a fee less than the minimum mempool fee to assert that it does not get added to the mempool
         self.log.info('Create a mempool tx that will not pass mempoolminfee')
@@ -321,6 +280,7 @@ class MempoolLimitTest(BellscoinTestFramework):
         package_txns.append(tx_child)
 
         submitpackage_result = node.submitpackage([tx["hex"] for tx in package_txns])
+        assert_equal(submitpackage_result["package_msg"], "success")
 
         rich_parent_result = submitpackage_result["tx-results"][tx_rich["wtxid"]]
         poor_parent_result = submitpackage_result["tx-results"][tx_poor["wtxid"]]
@@ -354,19 +314,23 @@ class MempoolLimitTest(BellscoinTestFramework):
         target_weight_each = 200000
         assert_greater_than(target_weight_each * 2, node.getmempoolinfo()["maxmempool"] - node.getmempoolinfo()["bytes"])
         # Should be a true CPFP: parent's feerate is just below mempool min feerate
-        parent_fee = (mempoolmin_feerate / 1000) * (target_weight_each // 4) - Decimal("0.00001")
+        parent_feerate = mempoolmin_feerate - Decimal("0.000001")  # 0.1 sats/vbyte below min feerate
         # Parent + child is above mempool minimum feerate
-        child_fee = (worst_feerate_btcvb) * (target_weight_each // 4) - Decimal("0.00001")
+        child_feerate = (worst_feerate_btcvb * 1000) - Decimal("0.000001")  # 0.1 sats/vbyte below worst feerate
         # However, when eviction is triggered, these transactions should be at the bottom.
         # This assertion assumes parent and child are the same size.
         miniwallet.rescan_utxos()
-        tx_parent_just_below = miniwallet.create_self_transfer(fee=parent_fee, target_weight=target_weight_each)
-        tx_child_just_above = miniwallet.create_self_transfer(utxo_to_spend=tx_parent_just_below["new_utxo"], fee=child_fee, target_weight=target_weight_each)
+        tx_parent_just_below = miniwallet.create_self_transfer(fee_rate=parent_feerate, target_weight=target_weight_each)
+        tx_child_just_above = miniwallet.create_self_transfer(utxo_to_spend=tx_parent_just_below["new_utxo"], fee_rate=child_feerate, target_weight=target_weight_each)
         # This package ranks below the lowest descendant package in the mempool
-        assert_greater_than(worst_feerate_btcvb, (parent_fee + child_fee) / (tx_parent_just_below["tx"].get_vsize() + tx_child_just_above["tx"].get_vsize()))
-        assert_greater_than(mempoolmin_feerate, (parent_fee) / (tx_parent_just_below["tx"].get_vsize()))
-        assert_greater_than((parent_fee + child_fee) / (tx_parent_just_below["tx"].get_vsize() + tx_child_just_above["tx"].get_vsize()), mempoolmin_feerate / 1000)
-        assert_raises_rpc_error(-26, "mempool full", node.submitpackage, [tx_parent_just_below["hex"], tx_child_just_above["hex"]])
+        package_fee = tx_parent_just_below["fee"] + tx_child_just_above["fee"]
+        package_vsize = tx_parent_just_below["tx"].get_vsize() + tx_child_just_above["tx"].get_vsize()
+        assert_greater_than(worst_feerate_btcvb, package_fee / package_vsize)
+        assert_greater_than(mempoolmin_feerate, tx_parent_just_below["fee"] / (tx_parent_just_below["tx"].get_vsize()))
+        assert_greater_than(package_fee / package_vsize, mempoolmin_feerate / 1000)
+        res = node.submitpackage([tx_parent_just_below["hex"], tx_child_just_above["hex"]])
+        for wtxid in [tx_parent_just_below["wtxid"], tx_child_just_above["wtxid"]]:
+            assert_equal(res["tx-results"][wtxid]["error"], "mempool full")
 
         self.log.info('Test passing a value below the minimum (5 MB) to -maxmempool throws an error')
         self.stop_node(0)
@@ -378,4 +342,4 @@ class MempoolLimitTest(BellscoinTestFramework):
 
 
 if __name__ == '__main__':
-    MempoolLimitTest().main()
+    MempoolLimitTest(__file__).main()

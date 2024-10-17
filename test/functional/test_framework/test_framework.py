@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2014-2022 The Bitcoin Core developers
+# Copyright (c) 2014-present The Bitcoin Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Base class for RPC testing."""
@@ -19,7 +19,6 @@ import sys
 import tempfile
 import time
 
-from typing import List
 from .address import create_deterministic_address_bcrt1_p2tr_op_true
 from .authproxy import JSONRPCException
 from . import coverage
@@ -30,6 +29,7 @@ from .util import (
     PortSeed,
     assert_equal,
     check_json_precision,
+    find_vout_for_address,
     get_datadir_path,
     initialize_datadir,
     p2p_port,
@@ -92,17 +92,18 @@ class BellscoinTestFramework(metaclass=BellscoinTestMetaClass):
 
     This class also contains various public and private helper methods."""
 
-    def __init__(self) -> None:
+    def __init__(self, test_file) -> None:
         """Sets test framework defaults. Do not override this method. Instead, override the set_test_params() method"""
         self.chain: str = 'regtest'
         self.setup_clean_chain: bool = False
-        self.nodes: List[TestNode] = []
+        self.noban_tx_relay: bool = False
+        self.nodes: list[TestNode] = []
         self.extra_args = None
         self.network_thread = None
         self.rpc_timeout = 60  # Wait for up to 60 seconds for the RPC server to respond
         self.supports_cli = True
         self.bind_to_localhost_only = True
-        self.parse_args()
+        self.parse_args(test_file)
         self.default_wallet_name = "default_wallet" if self.options.descriptors else ""
         self.wallet_data_filename = "wallet.dat"
         # Optional list of wallet names that can be set in set_test_params to
@@ -154,16 +155,16 @@ class BellscoinTestFramework(metaclass=BellscoinTestMetaClass):
             exit_code = self.shutdown()
             sys.exit(exit_code)
 
-    def parse_args(self):
+    def parse_args(self, test_file):
         previous_releases_path = os.getenv("PREVIOUS_RELEASES_DIR") or os.getcwd() + "/releases"
         parser = argparse.ArgumentParser(usage="%(prog)s [options]")
         parser.add_argument("--nocleanup", dest="nocleanup", default=False, action="store_true",
                             help="Leave bellsds and test.* datadir on exit or error")
         parser.add_argument("--noshutdown", dest="noshutdown", default=False, action="store_true",
                             help="Don't stop bellsds after the test execution")
-        parser.add_argument("--cachedir", dest="cachedir", default=os.path.abspath(os.path.dirname(os.path.realpath(__file__)) + "/../../cache"),
+        parser.add_argument("--cachedir", dest="cachedir", default=os.path.abspath(os.path.dirname(test_file) + "/../cache"),
                             help="Directory for caching pregenerated datadirs (default: %(default)s)")
-        parser.add_argument("--tmpdir", dest="tmpdir", help="Root directory for datadirs")
+        parser.add_argument("--tmpdir", dest="tmpdir", help="Root directory for datadirs (must not exist)")
         parser.add_argument("-l", "--loglevel", dest="loglevel", default="INFO",
                             help="log events at this level and higher to the console. Can be set to DEBUG, INFO, WARNING, ERROR or CRITICAL. Passing --loglevel DEBUG will output all logs to console. Note that logs at all levels are always written to the test_framework.log file in the temporary test directory.")
         parser.add_argument("--tracerpc", dest="trace_rpc", default=False, action="store_true",
@@ -176,7 +177,7 @@ class BellscoinTestFramework(metaclass=BellscoinTestMetaClass):
         parser.add_argument("--coveragedir", dest="coveragedir",
                             help="Write tested RPC commands into this directory")
         parser.add_argument("--configfile", dest="configfile",
-                            default=os.path.abspath(os.path.dirname(os.path.realpath(__file__)) + "/../../config.ini"),
+                            default=os.path.abspath(os.path.dirname(test_file) + "/../config.ini"),
                             help="Location of the test framework config file (default: %(default)s)")
         parser.add_argument("--pdbonfailure", dest="pdbonfailure", default=False, action="store_true",
                             help="Attach a python debugger if test fails")
@@ -191,6 +192,8 @@ class BellscoinTestFramework(metaclass=BellscoinTestMetaClass):
         parser.add_argument("--timeout-factor", dest="timeout_factor", type=float, help="adjust test timeouts by a factor. Setting it to 0 disables all timeouts")
         parser.add_argument("--v2transport", dest="v2transport", default=False, action="store_true",
                             help="use BIP324 v2 connections between all nodes by default")
+        parser.add_argument("--v1transport", dest="v1transport", default=False, action="store_true",
+                            help="Explicitly use v1 transport (can be used to overwrite global --v2transport option)")
 
         self.add_options(parser)
         # Running TestShell in a Jupyter notebook causes an additional -f argument
@@ -206,6 +209,8 @@ class BellscoinTestFramework(metaclass=BellscoinTestMetaClass):
         config = configparser.ConfigParser()
         config.read_file(open(self.options.configfile))
         self.config = config
+        if self.options.v1transport:
+            self.options.v2transport=False
 
         if "descriptors" not in self.options:
             # Wallet is not required by the test at all and the value of self.options.descriptors won't matter.
@@ -439,6 +444,10 @@ class BellscoinTestFramework(metaclass=BellscoinTestMetaClass):
                 n.createwallet(wallet_name=wallet_name, descriptors=self.options.descriptors, load_on_startup=True)
             n.importprivkey(privkey=n.get_deterministic_priv_key().key, label='coinbase', rescan=True)
 
+    # Only enables wallet support when the module is available
+    def enable_wallet_if_possible(self):
+        self._requires_wallet = self.is_wallet_compiled()
+
     def run_test(self):
         """Tests must override this method to define test logic"""
         raise NotImplementedError
@@ -494,6 +503,10 @@ class BellscoinTestFramework(metaclass=BellscoinTestMetaClass):
             extra_confs = [[]] * num_nodes
         if extra_args is None:
             extra_args = [[]] * num_nodes
+        # Whitelist peers to speed up tx relay / mempool sync. Don't use it if testing tx relay or timing.
+        if self.noban_tx_relay:
+            for i in range(len(extra_args)):
+                extra_args[i] = extra_args[i] + ["-whitelist=noban,in,out@127.0.0.1"]
         if versions is None:
             versions = [None] * num_nodes
         if binary is None:
@@ -507,8 +520,6 @@ class BellscoinTestFramework(metaclass=BellscoinTestMetaClass):
         assert_equal(len(binary_cli), num_nodes)
         for i in range(num_nodes):
             args = list(extra_args[i])
-            if self.options.v2transport and ("-v2transport=0" not in args):
-                args.append("-v2transport=1")
             test_node_i = TestNode(
                 i,
                 get_datadir_path(self.options.tmpdir, i),
@@ -527,6 +538,7 @@ class BellscoinTestFramework(metaclass=BellscoinTestMetaClass):
                 start_perf=self.options.perf,
                 use_valgrind=self.options.valgrind,
                 descriptors=self.options.descriptors,
+                v2transport=self.options.v2transport,
             )
             self.nodes.append(test_node_i)
             if not test_node_i.version_is_at_least(170000):
@@ -578,10 +590,16 @@ class BellscoinTestFramework(metaclass=BellscoinTestMetaClass):
             # Wait for nodes to stop
             node.wait_until_stopped()
 
-    def restart_node(self, i, extra_args=None):
+    def restart_node(self, i, extra_args=None, clear_addrman=False):
         """Stop and start a test node"""
         self.stop_node(i)
-        self.start_node(i, extra_args)
+        if clear_addrman:
+            peers_dat = self.nodes[i].chain_path / "peers.dat"
+            os.remove(peers_dat)
+            with self.nodes[i].assert_debug_log(expected_msgs=[f'Creating peers.dat because the file was not found ("{peers_dat}")']):
+                self.start_node(i, extra_args)
+        else:
+            self.start_node(i, extra_args)
 
     def wait_for_node_exit(self, i, timeout):
         self.nodes[i].process.wait(timeout)
@@ -596,36 +614,43 @@ class BellscoinTestFramework(metaclass=BellscoinTestMetaClass):
         """
         from_connection = self.nodes[a]
         to_connection = self.nodes[b]
-        from_num_peers = 1 + len(from_connection.getpeerinfo())
-        to_num_peers = 1 + len(to_connection.getpeerinfo())
         ip_port = "127.0.0.1:" + str(p2p_port(b))
 
         if peer_advertises_v2 is None:
-            peer_advertises_v2 = self.options.v2transport
+            peer_advertises_v2 = from_connection.use_v2transport
 
-        if peer_advertises_v2:
-            from_connection.addnode(node=ip_port, command="onetry", v2transport=True)
+        if peer_advertises_v2 != from_connection.use_v2transport:
+            from_connection.addnode(node=ip_port, command="onetry", v2transport=peer_advertises_v2)
         else:
-            # skip the optional third argument (default false) for
+            # skip the optional third argument if it matches the default, for
             # compatibility with older clients
             from_connection.addnode(ip_port, "onetry")
 
         if not wait_for_connect:
             return
 
-        # poll until version handshake complete to avoid race conditions
-        # with transaction relaying
-        # See comments in net_processing:
-        # * Must have a version message before anything else
-        # * Must have a verack message before anything else
-        self.wait_until(lambda: sum(peer['version'] != 0 for peer in from_connection.getpeerinfo()) == from_num_peers)
-        self.wait_until(lambda: sum(peer['version'] != 0 for peer in to_connection.getpeerinfo()) == to_num_peers)
-        self.wait_until(lambda: sum(peer['bytesrecv_per_msg'].pop('verack', 0) >= 21 for peer in from_connection.getpeerinfo()) == from_num_peers)
-        self.wait_until(lambda: sum(peer['bytesrecv_per_msg'].pop('verack', 0) >= 21 for peer in to_connection.getpeerinfo()) == to_num_peers)
-        # The message bytes are counted before processing the message, so make
-        # sure it was fully processed by waiting for a ping.
-        self.wait_until(lambda: sum(peer["bytesrecv_per_msg"].pop("pong", 0) >= 29 for peer in from_connection.getpeerinfo()) == from_num_peers)
-        self.wait_until(lambda: sum(peer["bytesrecv_per_msg"].pop("pong", 0) >= 29 for peer in to_connection.getpeerinfo()) == to_num_peers)
+        # Use subversion as peer id. Test nodes have their node number appended to the user agent string
+        from_connection_subver = from_connection.getnetworkinfo()['subversion']
+        to_connection_subver = to_connection.getnetworkinfo()['subversion']
+
+        def find_conn(node, peer_subversion, inbound):
+            return next(filter(lambda peer: peer['subver'] == peer_subversion and peer['inbound'] == inbound, node.getpeerinfo()), None)
+
+        self.wait_until(lambda: find_conn(from_connection, to_connection_subver, inbound=False) is not None)
+        self.wait_until(lambda: find_conn(to_connection, from_connection_subver, inbound=True) is not None)
+
+        def check_bytesrecv(peer, msg_type, min_bytes_recv):
+            assert peer is not None, "Error: peer disconnected"
+            return peer['bytesrecv_per_msg'].pop(msg_type, 0) >= min_bytes_recv
+
+        # Poll until version handshake (fSuccessfullyConnected) is complete to
+        # avoid race conditions, because some message types are blocked from
+        # being sent or received before fSuccessfullyConnected.
+        #
+        # As the flag fSuccessfullyConnected is not exposed, check it by
+        # waiting for a pong, which can only happen after the flag was set.
+        self.wait_until(lambda: check_bytesrecv(find_conn(from_connection, to_connection_subver, inbound=False), 'pong', 29))
+        self.wait_until(lambda: check_bytesrecv(find_conn(to_connection, from_connection_subver, inbound=True), 'pong', 29))
 
     def disconnect_nodes(self, a, b):
         def disconnect_nodes_helper(node_a, node_b):
@@ -696,6 +721,22 @@ class BellscoinTestFramework(metaclass=BellscoinTestMetaClass):
         blocks = generator.generatetodescriptor(*args, invalid_call=False, **kwargs)
         sync_fun() if sync_fun else self.sync_all()
         return blocks
+
+    def create_outpoints(self, node, *, outputs):
+        """Send funds to a given list of `{address: amount}` targets using the bitcoind
+        wallet and return the corresponding outpoints as a list of dictionaries
+        `[{"txid": txid, "vout": vout1}, {"txid": txid, "vout": vout2}, ...]`.
+        The result can be used to specify inputs for RPCs like `createrawtransaction`,
+        `createpsbt`, `lockunspent` etc."""
+        assert all(len(output.keys()) == 1 for output in outputs)
+        send_res = node.send(outputs)
+        assert send_res["complete"]
+        utxos = []
+        for output in outputs:
+            address = list(output.keys())[0]
+            vout = find_vout_for_address(node, send_res["txid"], address)
+            utxos.append({"txid": send_res["txid"], "vout": vout})
+        return utxos
 
     def sync_blocks(self, nodes=None, wait=1, timeout=60):
         """
@@ -1006,5 +1047,4 @@ class BellscoinTestFramework(metaclass=BellscoinTestMetaClass):
         return self.config["components"].getboolean("USE_BDB")
 
     def has_blockfile(self, node, filenum: str):
-        blocksdir = node.datadir_path / self.chain / 'blocks'
-        return (blocksdir / f"blk{filenum}.dat").is_file()
+        return (node.blocks_path/ f"blk{filenum}.dat").is_file()

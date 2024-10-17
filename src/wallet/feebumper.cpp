@@ -5,6 +5,7 @@
 #include <common/system.h>
 #include <consensus/validation.h>
 #include <interfaces/chain.h>
+#include <node/types.h>
 #include <policy/fees.h>
 #include <policy/policy.h>
 #include <util/moneystr.h>
@@ -86,13 +87,13 @@ static feebumper::Result CheckFeeRate(const CWallet& wallet, const CMutableTrans
         reused_inputs.push_back(txin.prevout);
     }
 
-    std::optional<CAmount> combined_bump_fee = wallet.chain().CalculateCombinedBumpFee(reused_inputs, newFeerate);
+    std::optional<CAmount> combined_bump_fee = wallet.chain().calculateCombinedBumpFee(reused_inputs, newFeerate);
     if (!combined_bump_fee.has_value()) {
         errors.push_back(strprintf(Untranslated("Failed to calculate bump fees, because unconfirmed UTXOs depend on enormous cluster of unconfirmed transactions.")));
     }
     CAmount new_total_fee = newFeerate.GetFee(maxTxSize) + combined_bump_fee.value();
 
-    CFeeRate incrementalRelayFee = std::max(wallet.chain().relayIncrementalFee(), CFeeRate(WALLET_INCREMENTAL_RELAY_FEE));
+    CFeeRate incrementalRelayFee = wallet.chain().relayIncrementalFee();
 
     // Min total fee is old fee + relay fee
     CAmount minTotalFee = old_fee + incrementalRelayFee.GetFee(maxTxSize);
@@ -170,7 +171,7 @@ Result CreateRateBumpTransaction(CWallet& wallet, const uint256& txid, const CCo
         return Result::INVALID_PARAMETER;
     }
 
-    // We are going to modify coin control later, copy to re-use
+    // We are going to modify coin control later, copy to reuse
     CCoinControl new_coin_control(coin_control);
 
     LOCK(wallet.cs_wallet);
@@ -203,10 +204,9 @@ Result CreateRateBumpTransaction(CWallet& wallet, const uint256& txid, const CCo
             errors.push_back(Untranslated(strprintf("%s:%u is already spent", txin.prevout.hash.GetHex(), txin.prevout.n)));
             return Result::MISC_ERROR;
         }
-        if (wallet.IsMine(txin.prevout)) {
-            new_coin_control.Select(txin.prevout);
-        } else {
-            new_coin_control.SelectExternal(txin.prevout, coin.out);
+        PreselectedInput& preset_txin = new_coin_control.Select(txin.prevout);
+        if (!wallet.IsMine(txin.prevout)) {
+            preset_txin.SetTxOut(coin.out);
         }
         input_value += coin.out.nValue;
         spent_outputs.push_back(coin.out);
@@ -317,8 +317,7 @@ Result CreateRateBumpTransaction(CWallet& wallet, const uint256& txid, const CCo
     // We cannot source new unconfirmed inputs(bip125 rule 2)
     new_coin_control.m_min_depth = 1;
 
-    constexpr int RANDOM_CHANGE_POSITION = -1;
-    auto res = CreateTransaction(wallet, recipients, RANDOM_CHANGE_POSITION, new_coin_control, false);
+    auto res = CreateTransaction(wallet, recipients, /*change_pos=*/std::nullopt, new_coin_control, false);
     if (!res) {
         errors.push_back(Untranslated("Unable to create transaction.") + Untranslated(" ") + util::ErrorString(res));
         return Result::WALLET_ERROR;
@@ -345,8 +344,8 @@ bool SignTransaction(CWallet& wallet, CMutableTransaction& mtx) {
         // so external signers are not asked to sign more than once.
         bool complete;
         wallet.FillPSBT(psbtx, complete, SIGHASH_ALL, false /* sign */, true /* bip32derivs */);
-        const TransactionError err = wallet.FillPSBT(psbtx, complete, SIGHASH_ALL, true /* sign */, false  /* bip32derivs */);
-        if (err != TransactionError::OK) return false;
+        auto err{wallet.FillPSBT(psbtx, complete, SIGHASH_ALL, true /* sign */, false  /* bip32derivs */)};
+        if (err) return false;
         complete = FinalizeAndExtractPSBT(psbtx, mtx);
         return complete;
     } else {
