@@ -15,7 +15,7 @@
     </message>
     <message>
         <source>Copy the currently selected address to the system clipboard</source>
-        <translation type="unfinished">העתק את הכתובת המסומנת ללוח</translation>
+        <translation type="unfinished">העתקת הכתובת המסומנת ללוח</translation>
     </message>
     <message>
         <source>&amp;Copy</source>
@@ -92,6 +92,14 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <source>There was an error trying to save the address list to %1. Please try again.</source>
         <extracomment>An error message. %1 is a stand-in argument for the name of the file we attempted to save to.</extracomment>
         <translation type="unfinished">אירעה שגיאה בעת הניסיון לשמור את רשימת הכתובת אל %1. נא לנסות שוב.</translation>
+    </message>
+    <message>
+        <source>Sending addresses - %1</source>
+        <translation type="unfinished">כתובות שליחה - %1</translation>
+    </message>
+    <message>
+        <source>Receiving addresses - %1</source>
+        <translation type="unfinished">כתובות קבלה - %1</translation>
     </message>
     <message>
         <source>Exporting Failed</source>
@@ -174,6 +182,14 @@ Signing is only possible with addresses of the type 'legacy'.</source>
     <message>
         <source>Enter the old passphrase and new passphrase for the wallet.</source>
         <translation type="unfinished">נא לספק את הסיסמה הישנה ולתת סיסמה חדשה לארנק.</translation>
+    </message>
+    <message>
+        <source>Continue</source>
+        <translation type="unfinished">המשך</translation>
+    </message>
+    <message>
+        <source>Back</source>
+        <translation type="unfinished">חזרה</translation>
     </message>
     <message>
         <source>Remember that encrypting your wallet cannot fully protect your bitcoins from being stolen by malware infecting your computer.</source>
@@ -389,6 +405,10 @@ Signing is only possible with addresses of the type 'legacy'.</source>
     <message>
         <source>%1 GB</source>
         <translation type="unfinished">%1 ג״ב</translation>
+    </message>
+    <message>
+        <source>default wallet</source>
+        <translation type="unfinished">ארנק בררת מחדל</translation>
     </message>
 </context>
 <context>
@@ -684,6 +704,14 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <translation type="unfinished">סגירת כל הארנקים</translation>
     </message>
     <message>
+        <source>Migrate Wallet</source>
+        <translation type="unfinished">הסבת ארנק</translation>
+    </message>
+    <message>
+        <source>Migrate a wallet</source>
+        <translation type="unfinished">הסבת ארנק לביטקוין</translation>
+    </message>
+    <message>
         <source>Show the %1 help message to get a list with possible Bitcoin command-line options</source>
         <translation type="unfinished">יש להציג את הודעת העזרה של %1 כדי להציג רשימה עם אפשרויות שורת פקודה לביטקוין</translation>
     </message>
@@ -695,10 +723,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <source>Mask the values in the Overview tab</source>
         <translation type="unfinished">הסווה את הערכים בלשונית התיאור הכללי
 </translation>
-    </message>
-    <message>
-        <source>default wallet</source>
-        <translation type="unfinished">ארנק בררת מחדל</translation>
     </message>
     <message>
         <source>No wallets available</source>
@@ -783,6 +807,10 @@ Signing is only possible with addresses of the type 'legacy'.</source>
     <message>
         <source>Error: %1</source>
         <translation type="unfinished">שגיאה: %1</translation>
+    </message>
+    <message>
+        <source>Warning: %1</source>
+        <translation type="unfinished">אזהרה: %1</translation>
     </message>
     <message>
         <source>Date: %1
@@ -1000,6 +1028,13 @@ Signing is only possible with addresses of the type 'legacy'.</source>
     </message>
     </context>
 <context>
+    <name>MigrateWalletActivity</name>
+    <message>
+        <source>Migrate Wallet</source>
+        <translation type="unfinished">הסבת ארנק</translation>
+    </message>
+    </context>
+<context>
     <name>OpenWalletActivity</name>
     <message>
         <source>Open wallet failed</source>
@@ -1008,10 +1043,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
     <message>
         <source>Open wallet warning</source>
         <translation type="unfinished">אזהרת פתיחת ארנק</translation>
-    </message>
-    <message>
-        <source>default wallet</source>
-        <translation type="unfinished">ארנק בררת מחדל</translation>
     </message>
     <message>
         <source>Open Wallet</source>
@@ -1589,6 +1620,10 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <translation type="unfinished">בקובץ ההגדרות ניתן לציין אפשרויות מתקדמות אשר יקבלו עדיפות על ההגדרות בממשק הגרפי. כמו כן, אפשרויות בשורת הפקודה יקבלו עדיפות על קובץ ההגדרות.</translation>
     </message>
     <message>
+        <source>Continue</source>
+        <translation type="unfinished">המשך</translation>
+    </message>
+    <message>
         <source>Cancel</source>
         <translation type="unfinished">ביטול</translation>
     </message>
@@ -1755,8 +1790,8 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <translation type="unfinished">PSBT נשמרה לדיסק.</translation>
     </message>
     <message>
-        <source> * Sends %1 to %2</source>
-        <translation type="unfinished"> * שליחת %1 אל %2</translation>
+        <source>own address</source>
+        <translation type="unfinished">כתובת עצמית</translation>
     </message>
     <message>
         <source>own address</source>
@@ -2154,6 +2189,10 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <translation type="unfinished">פעילות הרשת נוטרלה</translation>
     </message>
     <message>
+        <source>None</source>
+        <translation type="unfinished">ללא</translation>
+    </message>
+    <message>
         <source>Executing command without any wallet</source>
         <translation type="unfinished">מבצע פקודה ללא כל ארנק</translation>
     </message>
@@ -2522,10 +2561,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <translation type="unfinished">יוצר עסקת ביטקוין חתומה חלקית (PSBT) לשימוש עם ארנק %1 לא מחובר למשל, או עם PSBT ארנק חומרה תואם.</translation>
     </message>
     <message>
-        <source> from wallet '%1'</source>
-        <translation type="unfinished">מתוך ארנק "%1"</translation>
-    </message>
-    <message>
         <source>%1 to '%2'</source>
         <translation type="unfinished">%1 אל "%2"</translation>
     </message>
@@ -2721,10 +2756,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <translation type="unfinished">חתימה על הו&amp;דעה</translation>
     </message>
     <message>
-        <source>You can sign messages/agreements with your addresses to prove you can receive bitcoins sent to them. Be careful not to sign anything vague or random, as phishing attacks may try to trick you into signing your identity over to them. Only sign fully-detailed statements you agree to.</source>
-        <translation type="unfinished">אפשר לחתום על הודעות/הסכמים באמצעות הכתובות שלך, כדי להוכיח שבאפשרותך לקבל את הביטקוינים הנשלחים אליהן. יש להיזהר ולא לחתום על תוכן עמום או אקראי, מכיוון שתקיפות דיוג עשויות לנסות לגנוב את זהותך. יש לחתום רק על הצהרות מפורטות שהנך מסכים/ה להן.</translation>
-    </message>
-    <message>
         <source>The Bitcoin address to sign the message with</source>
         <translation type="unfinished">כתובת הביטקוין איתה לחתום את ההודעה</translation>
     </message>
@@ -2807,10 +2838,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
     <message>
         <source>Please check the address and try again.</source>
         <translation type="unfinished">נא לבדוק את הכתובת ולנסות שוב.</translation>
-    </message>
-    <message>
-        <source>The entered address does not refer to a key.</source>
-        <translation type="unfinished">הכתובת שסיפקת לא מתייחסת למפתח.</translation>
     </message>
     <message>
         <source>Wallet unlock was cancelled.</source>
@@ -2973,10 +3000,6 @@ Signing is only possible with addresses of the type 'legacy'.</source>
     <message>
         <source>Output index</source>
         <translation type="unfinished">מפתח פלט</translation>
-    </message>
-    <message>
-        <source> (Certificate was not verified)</source>
-        <translation type="unfinished">(האישור לא אומת)</translation>
     </message>
     <message>
         <source>Merchant</source>
@@ -3331,11 +3354,7 @@ Go to File &gt; Open Wallet to load a wallet.
         <source>Could not commit transaction</source>
         <translation type="unfinished">שילוב העסקה נכשל</translation>
     </message>
-    <message>
-        <source>default wallet</source>
-        <translation type="unfinished">ארנק בררת מחדל</translation>
-    </message>
-</context>
+    </context>
 <context>
     <name>WalletView</name>
     <message>
@@ -3387,12 +3406,16 @@ Go to File &gt; Open Wallet to load a wallet.
         <translation type="unfinished">%s משובש. נסו להשתמש בכלי הארנק bitcoin-wallet כדי להציל או לשחזר מגיבוי..</translation>
     </message>
     <message>
+        <source>Cannot obtain a lock on data directory %s. %s is probably already running.</source>
+        <translation type="unfinished">לא ניתן לנעול את תיקיית הנתונים %s‏. %s כנראה כבר רץ.</translation>
+    </message>
+    <message>
         <source>Distributed under the MIT software license, see the accompanying file %s or %s</source>
         <translation type="unfinished">מופץ תחת רשיון התוכנה של MIT, ראה קובץ מלווה  %s או %s</translation>
     </message>
     <message>
-        <source>Please check that your computer's date and time are correct! If your clock is wrong, %s will not work properly.</source>
-        <translation type="unfinished">נא בדקו שהתאריך והשעה במחשב שלכם נכונים! אם השעון שלכם לא מסונכרן, %s לא יעבוד כהלכה.</translation>
+        <source>Please contribute if you find %s useful. Visit %s for further information about the software.</source>
+        <translation type="unfinished">נא לשקול לתרום אם %s שימושי בשבילך. יש לבקר ב־%s למידע נוסף על התוכנה.</translation>
     </message>
     <message>
         <source>Prune configured below the minimum of %d MiB.  Please use a higher number.</source>
@@ -3457,10 +3480,6 @@ Go to File &gt; Open Wallet to load a wallet.
     <message>
         <source>-maxmempool must be at least %d MB</source>
         <translation type="unfinished">‎-maxmempool חייב להיות לפחות %d מ״ב</translation>
-    </message>
-    <message>
-        <source>A fatal internal error occurred, see debug.log for details</source>
-        <translation type="unfinished">שגיאה פטלית פנימית אירעה, לפירוט ראה את לוג הדיבאג.</translation>
     </message>
     <message>
         <source>Cannot resolve -%s address: '%s'</source>
@@ -3677,10 +3696,6 @@ Go to File &gt; Open Wallet to load a wallet.
     <message>
         <source>Transaction amounts must not be negative</source>
         <translation type="unfinished">סכומי ההעברה לא יכולים להיות שליליים</translation>
-    </message>
-    <message>
-        <source>Transaction has too long of a mempool chain</source>
-        <translation type="unfinished">לעסקה יש שרשרת ארוכה מדי של mempool </translation>
     </message>
     <message>
         <source>Transaction must have at least one recipient</source>

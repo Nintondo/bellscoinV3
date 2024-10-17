@@ -34,13 +34,12 @@ from test_framework.util import (
     assert_equal,
     assert_greater_than,
     assert_greater_than_or_equal,
-    assert_raises_rpc_error,
 )
 from test_framework.wallet import MiniWallet
 from test_framework.wallet_util import generate_keypair
 
 DEFAULT_BYTES_PER_SIGOP = 20  # default setting
-
+MAX_PUBKEYS_PER_MULTISIG = 20
 
 class BytesPerSigOpTest(BellscoinTestFramework):
     def set_test_params(self):
@@ -140,7 +139,7 @@ class BytesPerSigOpTest(BellscoinTestFramework):
         self.log.info("Test a overly-large sigops-vbyte hits package limits")
         # Make a 2-transaction package which fails vbyte checks even though
         # separately they would work.
-        self.restart_node(0, extra_args=["-bytespersigop=5000"] + self.extra_args[0])
+        self.restart_node(0, extra_args=["-bytespersigop=5000","-permitbaremultisig=1"] + self.extra_args[0])
 
         def create_bare_multisig_tx(utxo_to_spend=None):
             _, pubkey = generate_keypair()
@@ -160,16 +159,18 @@ class BytesPerSigOpTest(BellscoinTestFramework):
         # Separately, the parent tx is ok
         parent_individual_testres = self.nodes[0].testmempoolaccept([tx_parent.serialize().hex()])[0]
         assert parent_individual_testres["allowed"]
-        # Multisig is counted as MAX_PUBKEYS_PER_MULTISIG = 20 sigops
-        assert_equal(parent_individual_testres["vsize"], 5000 * 20)
+        max_multisig_vsize = MAX_PUBKEYS_PER_MULTISIG * 5000
+        assert_equal(parent_individual_testres["vsize"], max_multisig_vsize)
 
         # But together, it's exceeding limits in the *package* context. If sigops adjusted vsize wasn't being checked
         # here, it would get further in validation and give too-long-mempool-chain error instead.
         packet_test = self.nodes[0].testmempoolaccept([tx_parent.serialize().hex(), tx_child.serialize().hex()])
-        assert_equal([x["package-error"] for x in packet_test], ["package-mempool-limits", "package-mempool-limits"])
+        expected_package_error = f"package-mempool-limits, package size {2*max_multisig_vsize} exceeds ancestor size limit [limit: 101000]"
+        assert_equal([x["package-error"] for x in packet_test], [expected_package_error] * 2)
 
         # When we actually try to submit, the parent makes it into the mempool, but the child would exceed ancestor vsize limits
-        assert_raises_rpc_error(-26, "too-long-mempool-chain", self.nodes[0].submitpackage, [tx_parent.serialize().hex(), tx_child.serialize().hex()])
+        res = self.nodes[0].submitpackage([tx_parent.serialize().hex(), tx_child.serialize().hex()])
+        assert "too-long-mempool-chain" in res["tx-results"][tx_child.getwtxid()]["error"]
         assert tx_parent.rehash() in self.nodes[0].getrawmempool()
 
         # Transactions are tiny in weight
@@ -195,4 +196,4 @@ class BytesPerSigOpTest(BellscoinTestFramework):
 
 
 if __name__ == '__main__':
-    BytesPerSigOpTest().main()
+    BytesPerSigOpTest(__file__).main()

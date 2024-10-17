@@ -7,7 +7,7 @@
     </message>
     <message>
         <source>Create a new address</source>
-        <translation type="unfinished">Mynda nýggja adressu</translation>
+        <translation type="unfinished">Stovna adressu</translation>
     </message>
     <message>
         <source>Delete the currently selected address from the list</source>
@@ -28,6 +28,11 @@
     <message>
         <source>&amp;Edit</source>
         <translation type="unfinished">&amp;Broyt</translation>
+    </message>
+    <message>
+        <source>There was an error trying to save the address list to %1. Please try again.</source>
+        <extracomment>An error message. %1 is a stand-in argument for the name of the file we attempted to save to.</extracomment>
+        <translation type="unfinished">Villa við goyming av adressuskrá til %1. Vinaliga royn aftur.</translation>
     </message>
     </context>
 <context>
@@ -61,7 +66,7 @@
     <message>
         <source>Do you want to reset settings to default values, or to abort without making changes?</source>
         <extracomment>Explanatory text shown on startup when the settings file cannot be read. Prompts user to make a choice between resetting or aborting.</extracomment>
-        <translation type="unfinished">Ynskir tú at endurstilla stillingar til sjálvsettar, ella at avbróta uttan at hava broytt stillingar?</translation>
+        <translation type="unfinished">Ynskir tú at endurstilla stillingar til upprunaligar stillingar, ella at avlýsa broytingar?</translation>
     </message>
     <message>
         <source>Error: %1</source>
@@ -168,7 +173,7 @@
     </message>
     <message>
         <source>Modify configuration options for %1</source>
-        <translation type="unfinished">Broyt uppsetan fyri %1</translation>
+        <translation type="unfinished">Broyt uppsetanarstillingar fyri %1</translation>
     </message>
     <message>
         <source>Network activity disabled.</source>
@@ -176,16 +181,20 @@
         <translation type="unfinished">Net-virksemi óvirkijað.</translation>
     </message>
     <message>
+        <source>&amp;Receive</source>
+        <translation type="unfinished">&amp;Móttak</translation>
+    </message>
+    <message>
         <source>Sign &amp;message…</source>
-        <translation type="unfinished">&amp;Undirskriva  boðini</translation>
+        <translation type="unfinished">&amp;Undirrita  boð</translation>
     </message>
     <message>
         <source>Sign messages with your Bitcoin addresses to prove you own them</source>
-        <translation type="unfinished">Undirskriva boðini við tíni Bitcoin-adressu til tess at prógva at tey eru tíni</translation>
+        <translation type="unfinished">Undirrita boðini við tíni Bitcoin-adressu fyri at prógva at tey eru tíni</translation>
     </message>
     <message>
         <source>&amp;File</source>
-        <translation type="unfinished">&amp;Fíl</translation>
+        <translation type="unfinished">&amp;Fíla</translation>
     </message>
     <message>
         <source>&amp;Settings</source>
@@ -277,7 +286,7 @@
     </message>
     <message>
         <source>Bytes:</source>
-        <translation type="unfinished">Byte:</translation>
+        <translation type="unfinished">Být:</translation>
     </message>
     <message>
         <source>Amount:</source>
@@ -378,15 +387,15 @@
     <message numerus="yes">
         <source>%n GB of space available</source>
         <translation type="unfinished">
-            <numerusform />
-            <numerusform />
+            <numerusform>%n GB av goymsluplássi tøkt</numerusform>
+            <numerusform>%n GB av goymsluplássi tøkt</numerusform>
         </translation>
     </message>
     <message numerus="yes">
         <source>(of %n GB needed)</source>
         <translation type="unfinished">
-            <numerusform />
-            <numerusform />
+            <numerusform>(av %n GB ið tørvur er á)</numerusform>
+            <numerusform>(av %n GB ið tørvur er á)</numerusform>
         </translation>
     </message>
     <message numerus="yes">
@@ -395,6 +404,10 @@
             <numerusform />
             <numerusform />
         </translation>
+    </message>
+    <message>
+        <source>Approximately %1 GB of data will be stored in this directory.</source>
+        <translation type="unfinished">Á leið %1 GB av dátum verða goymd í hesi fíluskránni.</translation>
     </message>
     <message numerus="yes">
         <source>(sufficient to restore backups %n day(s) old)</source>
@@ -565,10 +578,6 @@
     <message>
         <source>Save…</source>
         <translation type="unfinished">Goym...</translation>
-    </message>
-    <message>
-        <source> * Sends %1 to %2</source>
-        <translation type="unfinished">* Sendir %1 til %2</translation>
     </message>
     <message>
         <source>own address</source>
@@ -855,7 +864,7 @@
     </message>
     <message>
         <source>Bytes:</source>
-        <translation type="unfinished">Byte:</translation>
+        <translation type="unfinished">Být:</translation>
     </message>
     <message>
         <source>Amount:</source>
@@ -872,6 +881,10 @@
     <message>
         <source>Custom change address</source>
         <translation type="unfinished">Adressa til vekslipening</translation>
+    </message>
+    <message>
+        <source>per kilobyte</source>
+        <translation type="unfinished">per kilobýt</translation>
     </message>
     <message>
         <source>Hide</source>
@@ -994,10 +1007,6 @@
     <message>
         <source>&amp;Sign Message</source>
         <translation type="unfinished">&amp;Undirrita Boð</translation>
-    </message>
-    <message>
-        <source>You can sign messages/agreements with your addresses to prove you can receive bitcoins sent to them. Be careful not to sign anything vague or random, as phishing attacks may try to trick you into signing your identity over to them. Only sign fully-detailed statements you agree to.</source>
-        <translation type="unfinished">Tú kann skriva undir boð/sáttmálar við tínum adressum, fyri at prógva at tú kanst móttaka bitcoin sendar til tær. Ver ansin so tú ikki skrivar undir nakað ógreitt ella tilvildarligt, tí fysking-álop kunnu royna at snýta teg til at latað tín samleika til tey. Undirrita einans nágreiniligar útsagnir ið tú tekur undir við.</translation>
     </message>
     <message>
         <source>The Bitcoin address to sign the message with</source>
@@ -1260,10 +1269,6 @@
         <translation type="unfinished">%s umbøn at lurta á portur %u. Hetta portrið er tulkað "óhóskandi" og tí er ósannlíkt at nakar viðskiftari sambindur í tað. Sí lista yvir "óhóskandi" portur og nágreiniligari upplýsingar í doc/p2p-bad-ports.md.</translation>
     </message>
     <message>
-        <source>Please check that your computer's date and time are correct! If your clock is wrong, %s will not work properly.</source>
-        <translation type="unfinished">Vinaliga tryggja at dagfesting og tíð, í teldu tíni, eru røtt! Er klokkan skeiv virkar %s ikki sum ætlað.</translation>
-    </message>
-    <message>
         <source>%s is set very high!</source>
         <translation type="unfinished">Ásetingin %s er sera høgt!</translation>
     </message>
@@ -1280,12 +1285,52 @@
         <translation type="unfinished">Útgangandi sambond avmarkaði til i2p (-onlynet=i2p) men -i2psam er ikki ásett.</translation>
     </message>
     <message>
+        <source>Error loading %s</source>
+        <translation type="unfinished">Villa við innlesan %s</translation>
+    </message>
+    <message>
         <source>Error reading configuration file: %s</source>
         <translation type="unfinished">Villa við innlesing av uppsetanarfílu: %s</translation>
     </message>
     <message>
+        <source>Error reading from database, shutting down.</source>
+        <translation type="unfinished">Villa við innlesan av dátugrunni. Letur aftur.</translation>
+    </message>
+    <message>
+        <source>Error: Disk space is low for %s</source>
+        <translation type="unfinished">Villa: Tøkt disk goymslupláss og lítið til %s</translation>
+    </message>
+    <message>
+        <source>Error: Got key that was not hex: %s</source>
+        <translation type="unfinished">Villa: Fekk lykil ið ikki er sekstandatal: %s</translation>
+    </message>
+    <message>
+        <source>Error: Got value that was not hex: %s</source>
+        <translation type="unfinished">Villa: Fekk virði ið ikki er sekstandatal: %s</translation>
+    </message>
+    <message>
+        <source>Error: No %s addresses available.</source>
+        <translation type="unfinished">Villa: Ongar %s adressur tøkar.</translation>
+    </message>
+    <message>
+        <source>Error: Unable to begin reading all records in the database</source>
+        <translation type="unfinished">Villa: Bar ikki til at byrja at innlesa skrásetingar í dátugrunninum</translation>
+    </message>
+    <message>
+        <source>Error: Unable to parse version %u as a uint32_t</source>
+        <translation type="unfinished">Villa: Bar ikki til at tulkað útgávu %u sum uint32_t</translation>
+    </message>
+    <message>
+        <source>Error: Unable to read all records in the database</source>
+        <translation type="unfinished">Villa: Bar ikki til at innlesa allar skrásetingar í dátugrunninum</translation>
+    </message>
+    <message>
         <source>Failed to listen on any port. Use -listen=0 if you want this.</source>
-        <translation type="unfinished">Miseydnaðist at lurta á portri. Brúka -listen=0 um tú ynskir hetta.</translation>
+        <translation type="unfinished">Miseydnaðist at lurta á nøkrum portri. Brúka -listen=0 um tú ikki ynskir at lurta á nøkrum portri.</translation>
+    </message>
+    <message>
+        <source>Listening for incoming connections failed (listen returned error %s)</source>
+        <translation type="unfinished">Lurtingin eftir inngangandi sambondum miseydnaðist (lurtingin gav villuna %s)</translation>
     </message>
     <message>
         <source>No addresses available</source>
@@ -1305,7 +1350,7 @@
     </message>
     <message>
         <source>Settings file could not be read</source>
-        <translation type="unfinished">Lesing av uppsetanarfílu miseydnaðist.</translation>
+        <translation type="unfinished">Lesing av uppsetanarfílu miseydnaðist</translation>
     </message>
     <message>
         <source>Settings file could not be written</source>

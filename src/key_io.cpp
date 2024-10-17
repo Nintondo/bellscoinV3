@@ -181,6 +181,10 @@ CTxDestination DecodeDestination(const std::string& str, const CChainParams& par
                 return tap;
             }
 
+            if (CScript::IsPayToAnchor(version, data)) {
+                return PayToAnchor();
+            }
+
             if (version > 16) {
                 error_str = "Invalid Bech32 address witness version";
                 return CNoDestination();
@@ -228,7 +232,7 @@ std::string EncodeSecret(const CKey& key)
 {
     assert(key.IsValid());
     std::vector<unsigned char> data = GlobParams().Base58Prefix(CChainParams::SECRET_KEY);
-    data.insert(data.end(), key.begin(), key.end());
+    data.insert(data.end(), UCharCast(key.begin()), UCharCast(key.end()));
     if (key.IsCompressed()) {
         data.push_back(1);
     }

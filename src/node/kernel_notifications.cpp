@@ -4,31 +4,31 @@
 
 #include <node/kernel_notifications.h>
 
-#if defined(HAVE_CONFIG_H)
-#include <config/bitcoin-config.h>
-#endif
+#include <config/bitcoin-config.h> // IWYU pragma: keep
 
 #include <chain.h>
 #include <common/args.h>
 #include <common/system.h>
 #include <kernel/context.h>
+#include <kernel/warning.h>
 #include <logging.h>
 #include <node/abort.h>
 #include <node/interface_ui.h>
-#include <shutdown.h>
+#include <node/warnings.h>
 #include <util/check.h>
+#include <util/signalinterrupt.h>
 #include <util/strencodings.h>
 #include <util/string.h>
 #include <util/translation.h>
-#include <warnings.h>
 
 #include <cstdint>
 #include <string>
 #include <thread>
 
+using util::ReplaceAll;
+
 static void AlertNotify(const std::string& strMessage)
 {
-    uiInterface.NotifyAlertChanged();
 #if HAVE_SYSTEM
     std::string strCmd = gArgs.GetArg("-alertnotify", "");
     if (strCmd.empty()) return;
@@ -46,23 +46,15 @@ static void AlertNotify(const std::string& strMessage)
 #endif
 }
 
-static void DoWarning(const bilingual_str& warning)
-{
-    static bool fWarned = false;
-    SetMiscWarning(warning);
-    if (!fWarned) {
-        AlertNotify(warning.original);
-        fWarned = true;
-    }
-}
-
 namespace node {
 
 kernel::InterruptResult KernelNotifications::blockTip(SynchronizationState state, CBlockIndex& index)
 {
     uiInterface.NotifyBlockTip(state, &index);
     if (m_stop_at_height && index.nHeight >= m_stop_at_height) {
-        StartShutdown();
+        if (!m_shutdown()) {
+            LogError("Failed to send shutdown signal after reaching stop height\n");
+        }
         return kernel::Interrupted{};
     }
     return {};
@@ -78,19 +70,27 @@ void KernelNotifications::progress(const bilingual_str& title, int progress_perc
     uiInterface.ShowProgress(title.translated, progress_percent, resume_possible);
 }
 
-void KernelNotifications::warning(const bilingual_str& warning)
+void KernelNotifications::warningSet(kernel::Warning id, const bilingual_str& message)
 {
-    DoWarning(warning);
+    if (m_warnings.Set(id, message)) {
+        AlertNotify(message.original);
+    }
 }
 
-void KernelNotifications::flushError(const std::string& debug_message)
+void KernelNotifications::warningUnset(kernel::Warning id)
 {
-    AbortNode(m_exit_status, debug_message);
+    m_warnings.Unset(id);
 }
 
-void KernelNotifications::fatalError(const std::string& debug_message, const bilingual_str& user_message)
+void KernelNotifications::flushError(const bilingual_str& message)
 {
-    node::AbortNode(m_exit_status, debug_message, user_message, m_shutdown_on_fatal_error);
+    AbortNode(&m_shutdown, m_exit_status, message, &m_warnings);
+}
+
+void KernelNotifications::fatalError(const bilingual_str& message)
+{
+    node::AbortNode(m_shutdown_on_fatal_error ? &m_shutdown : nullptr,
+                    m_exit_status, message, &m_warnings);
 }
 
 void ReadNotificationArgs(const ArgsManager& args, KernelNotifications& notifications)

@@ -5,6 +5,8 @@
 #ifndef BITCOIN_RPC_RAWTRANSACTION_UTIL_H
 #define BITCOIN_RPC_RAWTRANSACTION_UTIL_H
 
+#include <addresstype.h>
+#include <consensus/amount.h>
 #include <map>
 #include <string>
 #include <optional>
@@ -12,7 +14,7 @@
 #include <core_io.h>
 
 struct bilingual_str;
-class FillableSigningProvider;
+struct FlatSigningProvider;
 class UniValue;
 class uint256;
 struct CMutableTransaction;
@@ -42,13 +44,18 @@ void SignTransactionResultToJSON(CMutableTransaction& mtx, bool complete, const 
   * @param  keystore      A pointer to the temporary keystore if there is one
   * @param  coins         Map of unspent outputs - coins in mempool and current chain UTXO set, may be extended by previous txns outputs after call
   */
-void ParsePrevouts(const UniValue& prevTxsUnival, FillableSigningProvider* keystore, std::map<COutPoint, Coin>& coins);
-
+void ParsePrevouts(const UniValue& prevTxsUnival, FlatSigningProvider* keystore, std::map<COutPoint, Coin>& coins);
 
 /** Normalize univalue-represented inputs and add them to the transaction */
 void AddInputs(CMutableTransaction& rawTx, const UniValue& inputs_in, bool rbf);
 
-/** Normalize univalue-represented outputs and add them to the transaction */
+/** Normalize univalue-represented outputs */
+UniValue NormalizeOutputs(const UniValue& outputs_in);
+
+/** Parse normalized outputs into destination, amount tuples */
+std::vector<std::pair<CTxDestination, CAmount>> ParseOutputs(const UniValue& outputs);
+
+/** Normalize, parse, and add outputs to the transaction */
 void AddOutputs(CMutableTransaction& rawTx, const UniValue& outputs_in);
 
 /** Create a transaction from univalue parameters */

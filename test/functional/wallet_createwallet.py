@@ -190,4 +190,4 @@ class CreateWalletTest(BellscoinTestFramework):
 
 
 if __name__ == '__main__':
-    CreateWalletTest().main()
+    CreateWalletTest(__file__).main()

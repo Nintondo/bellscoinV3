@@ -104,4 +104,4 @@ class MerkleBlockTest(BellscoinTestFramework):
         # verify that the proofs are invalid
 
 if __name__ == '__main__':
-    MerkleBlockTest().main()
+    MerkleBlockTest(__file__).main()

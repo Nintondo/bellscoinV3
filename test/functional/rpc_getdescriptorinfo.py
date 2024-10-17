@@ -63,4 +63,4 @@ class DescriptorTest(BellscoinTestFramework):
 
 
 if __name__ == '__main__':
-    DescriptorTest().main()
+    DescriptorTest(__file__).main()

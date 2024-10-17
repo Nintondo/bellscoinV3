@@ -30,7 +30,8 @@ static void DeserializeBlockTest(benchmark::Bench& bench)
     });
 }
 
-static void DeserializeAndCheckBlockTest(benchmark::Bench& bench)
+// SYSCOIN TODO block413567 for bellscoin
+/*static void DeserializeAndCheckBlockTest(benchmark::State& state)
 {
     CDataStream stream(benchmark::data::block413567, SER_NETWORK, PROTOCOL_VERSION);
     std::byte a{0};
@@ -48,8 +49,8 @@ static void DeserializeAndCheckBlockTest(benchmark::Bench& bench)
         BlockValidationState validationState;
         bool checked = CheckBlock(block, validationState, chainParams->GetConsensus());
         assert(checked);
-    });
-}
+    }
+}*/
 
 BENCHMARK(DeserializeBlockTest, benchmark::PriorityLevel::HIGH);
-BENCHMARK(DeserializeAndCheckBlockTest, benchmark::PriorityLevel::HIGH);
+// BENCHMARK(DeserializeAndCheckBlockTest, benchmark::PriorityLevel::HIGH);

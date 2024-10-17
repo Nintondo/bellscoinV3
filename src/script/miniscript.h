@@ -18,10 +18,10 @@
 
 #include <policy/policy.h>
 #include <primitives/transaction.h>
+#include <script/parsing.h>
 #include <script/script.h>
 #include <span.h>
 #include <util/check.h>
-#include <util/spanparsing.h>
 #include <util/strencodings.h>
 #include <util/string.h>
 #include <util/vector.h>
@@ -123,12 +123,12 @@ class Type {
     //! Internal bitmap of properties (see ""_mst operator for details).
     uint32_t m_flags;
 
-    //! Internal constructor used by the ""_mst operator.
-    explicit constexpr Type(uint32_t flags) : m_flags(flags) {}
+    //! Internal constructor.
+    explicit constexpr Type(uint32_t flags) noexcept : m_flags(flags) {}
 
 public:
-    //! The only way to publicly construct a Type is using this literal operator.
-    friend constexpr Type operator"" _mst(const char* c, size_t l);
+    //! Construction function used by the ""_mst operator.
+    static consteval Type Make(uint32_t flags) noexcept { return Type(flags); }
 
     //! Compute the type with the union of properties.
     constexpr Type operator|(Type x) const { return Type(m_flags | x.m_flags); }
@@ -150,11 +150,11 @@ public:
 };
 
 //! Literal operator to construct Type objects.
-inline constexpr Type operator"" _mst(const char* c, size_t l) {
-    Type typ{0};
+inline consteval Type operator"" _mst(const char* c, size_t l) {
+    Type typ{Type::Make(0)};
 
     for (const char *p = c; p < c + l; p++) {
-        typ = typ | Type(
+        typ = typ | Type::Make(
             *p == 'B' ? 1 << 0 : // Base type
             *p == 'V' ? 1 << 1 : // Verify type
             *p == 'K' ? 1 << 2 : // Key type
@@ -251,7 +251,7 @@ namespace internal {
 //! The maximum size of a witness item for a Miniscript under Tapscript context. (A BIP340 signature with a sighash type byte.)
 static constexpr uint32_t MAX_TAPMINISCRIPT_STACK_ELEM_SIZE{65};
 
-//! nVersion + nLockTime
+//! version + nLockTime
 constexpr uint32_t TX_OVERHEAD{4 + 4};
 //! prevout + nSequence + scriptSig
 constexpr uint32_t TXIN_BYTES_NO_WITNESS{36 + 4 + 1};
@@ -305,7 +305,7 @@ struct InputStack {
     //! Data elements.
     std::vector<std::vector<unsigned char>> stack;
     //! Construct an empty stack (valid).
-    InputStack() {}
+    InputStack() = default;
     //! Construct a valid single-element stack (with an element up to 75 bytes).
     InputStack(std::vector<unsigned char> in) : size(in.size() + 1), stack(Vector(std::move(in))) {}
     //! Change availability
@@ -548,7 +548,8 @@ private:
         for (const auto& sub : subs) {
             subsize += sub->ScriptSize();
         }
-        Type sub0type = subs.size() > 0 ? subs[0]->GetType() : ""_mst;
+        static constexpr auto NONE_MST{""_mst};
+        Type sub0type = subs.size() > 0 ? subs[0]->GetType() : NONE_MST;
         return internal::ComputeScriptLen(fragment, sub0type, subsize, k, subs.size(), keys.size(), m_script_ctx);
     }
 
@@ -712,9 +713,10 @@ private:
             for (const auto& sub : subs) sub_types.push_back(sub->GetType());
         }
         // All other nodes than THRESH can be computed just from the types of the 0-3 subexpressions.
-        Type x = subs.size() > 0 ? subs[0]->GetType() : ""_mst;
-        Type y = subs.size() > 1 ? subs[1]->GetType() : ""_mst;
-        Type z = subs.size() > 2 ? subs[2]->GetType() : ""_mst;
+        static constexpr auto NONE_MST{""_mst};
+        Type x = subs.size() > 0 ? subs[0]->GetType() : NONE_MST;
+        Type y = subs.size() > 1 ? subs[1]->GetType() : NONE_MST;
+        Type z = subs.size() > 2 ? subs[2]->GetType() : NONE_MST;
 
         return SanitizeType(ComputeType(fragment, x, y, z, sub_types, k, data.size(), subs.size(), keys.size(), m_script_ctx));
     }
@@ -861,8 +863,8 @@ public:
                     if (!key_str) return {};
                     return std::move(ret) + "pk_h(" + std::move(*key_str) + ")";
                 }
-                case Fragment::AFTER: return std::move(ret) + "after(" + ::ToString(node.k) + ")";
-                case Fragment::OLDER: return std::move(ret) + "older(" + ::ToString(node.k) + ")";
+                case Fragment::AFTER: return std::move(ret) + "after(" + util::ToString(node.k) + ")";
+                case Fragment::OLDER: return std::move(ret) + "older(" + util::ToString(node.k) + ")";
                 case Fragment::HASH256: return std::move(ret) + "hash256(" + HexStr(node.data) + ")";
                 case Fragment::HASH160: return std::move(ret) + "hash160(" + HexStr(node.data) + ")";
                 case Fragment::SHA256: return std::move(ret) + "sha256(" + HexStr(node.data) + ")";
@@ -881,7 +883,7 @@ public:
                     return std::move(ret) + "andor(" + std::move(subs[0]) + "," + std::move(subs[1]) + "," + std::move(subs[2]) + ")";
                 case Fragment::MULTI: {
                     CHECK_NONFATAL(!is_tapscript);
-                    auto str = std::move(ret) + "multi(" + ::ToString(node.k);
+                    auto str = std::move(ret) + "multi(" + util::ToString(node.k);
                     for (const auto& key : node.keys) {
                         auto key_str = ctx.ToString(key);
                         if (!key_str) return {};
@@ -891,7 +893,7 @@ public:
                 }
                 case Fragment::MULTI_A: {
                     CHECK_NONFATAL(is_tapscript);
-                    auto str = std::move(ret) + "multi_a(" + ::ToString(node.k);
+                    auto str = std::move(ret) + "multi_a(" + util::ToString(node.k);
                     for (const auto& key : node.keys) {
                         auto key_str = ctx.ToString(key);
                         if (!key_str) return {};
@@ -900,7 +902,7 @@ public:
                     return std::move(str) + ")";
                 }
                 case Fragment::THRESH: {
-                    auto str = std::move(ret) + "thresh(" + ::ToString(node.k);
+                    auto str = std::move(ret) + "thresh(" + util::ToString(node.k);
                     for (auto& sub : subs) {
                         str += "," + std::move(sub);
                     }
@@ -1617,7 +1619,7 @@ public:
     //! Produce a witness for this script, if possible and given the information available in the context.
     //! The non-malleable satisfaction is guaranteed to be valid if it exists, and ValidSatisfaction()
     //! is true. If IsSane() holds, this satisfaction is guaranteed to succeed in case the node's
-    //! conditions are satisfied (private keys and hash preimages available, locktimes satsified).
+    //! conditions are satisfied (private keys and hash preimages available, locktimes satisfied).
     template<typename Ctx>
     Availability Satisfy(const Ctx& ctx, std::vector<std::vector<unsigned char>>& stack, bool nonmalleable = true) const {
         auto ret = ProduceInput(ctx);
@@ -1762,7 +1764,7 @@ void BuildBack(const MiniscriptContext script_ctx, Fragment nt, std::vector<Node
 template<typename Key, typename Ctx>
 inline NodeRef<Key> Parse(Span<const char> in, const Ctx& ctx)
 {
-    using namespace spanparsing;
+    using namespace script;
 
     // Account for the minimum script size for all parsed fragments so far. It "borrows" 1
     // script byte from all leaf nodes, counting it instead whenever a space for a recursive
@@ -1791,8 +1793,9 @@ inline NodeRef<Key> Parse(Span<const char> in, const Ctx& ctx)
         // Get threshold
         int next_comma = FindNextChar(in, ',');
         if (next_comma < 1) return false;
-        int64_t k;
-        if (!ParseInt64(std::string(in.begin(), in.begin() + next_comma), &k)) return false;
+        const auto k_to_integral{ToIntegral<int64_t>(std::string_view(in.begin(), next_comma))};
+        if (!k_to_integral.has_value()) return false;
+        const int64_t k{k_to_integral.value()};
         in = in.subspan(next_comma + 1);
         // Get keys. It is compatible for both compressed and x-only keys.
         std::vector<Key> keys;
@@ -1946,21 +1949,19 @@ inline NodeRef<Key> Parse(Span<const char> in, const Ctx& ctx)
             } else if (Const("after(", in)) {
                 int arg_size = FindNextChar(in, ')');
                 if (arg_size < 1) return {};
-                int64_t num;
-                if (!ParseInt64(std::string(in.begin(), in.begin() + arg_size), &num)) return {};
-                if (num < 1 || num >= 0x80000000L) return {};
-                constructed.push_back(MakeNodeRef<Key>(internal::NoDupCheck{}, ctx.MsContext(), Fragment::AFTER, num));
+                const auto num{ToIntegral<int64_t>(std::string_view(in.begin(), arg_size))};
+                if (!num.has_value() || *num < 1 || *num >= 0x80000000L) return {};
+                constructed.push_back(MakeNodeRef<Key>(internal::NoDupCheck{}, ctx.MsContext(), Fragment::AFTER, *num));
                 in = in.subspan(arg_size + 1);
-                script_size += 1 + (num > 16) + (num > 0x7f) + (num > 0x7fff) + (num > 0x7fffff);
+                script_size += 1 + (*num > 16) + (*num > 0x7f) + (*num > 0x7fff) + (*num > 0x7fffff);
             } else if (Const("older(", in)) {
                 int arg_size = FindNextChar(in, ')');
                 if (arg_size < 1) return {};
-                int64_t num;
-                if (!ParseInt64(std::string(in.begin(), in.begin() + arg_size), &num)) return {};
-                if (num < 1 || num >= 0x80000000L) return {};
-                constructed.push_back(MakeNodeRef<Key>(internal::NoDupCheck{}, ctx.MsContext(), Fragment::OLDER, num));
+                const auto num{ToIntegral<int64_t>(std::string_view(in.begin(), arg_size))};
+                if (!num.has_value() || *num < 1 || *num >= 0x80000000L) return {};
+                constructed.push_back(MakeNodeRef<Key>(internal::NoDupCheck{}, ctx.MsContext(), Fragment::OLDER, *num));
                 in = in.subspan(arg_size + 1);
-                script_size += 1 + (num > 16) + (num > 0x7f) + (num > 0x7fff) + (num > 0x7fffff);
+                script_size += 1 + (*num > 16) + (*num > 0x7f) + (*num > 0x7fff) + (*num > 0x7fffff);
             } else if (Const("multi(", in)) {
                 if (!parse_multi_exp(in, /* is_multi_a = */false)) return {};
             } else if (Const("multi_a(", in)) {
@@ -1968,13 +1969,13 @@ inline NodeRef<Key> Parse(Span<const char> in, const Ctx& ctx)
             } else if (Const("thresh(", in)) {
                 int next_comma = FindNextChar(in, ',');
                 if (next_comma < 1) return {};
-                if (!ParseInt64(std::string(in.begin(), in.begin() + next_comma), &k)) return {};
-                if (k < 1) return {};
+                const auto k{ToIntegral<int64_t>(std::string_view(in.begin(), next_comma))};
+                if (!k.has_value() || *k < 1) return {};
                 in = in.subspan(next_comma + 1);
                 // n = 1 here because we read the first WRAPPED_EXPR before reaching THRESH
-                to_parse.emplace_back(ParseContext::THRESH, 1, k);
+                to_parse.emplace_back(ParseContext::THRESH, 1, *k);
                 to_parse.emplace_back(ParseContext::WRAPPED_EXPR, -1, -1);
-                script_size += 2 + (k > 16) + (k > 0x7f) + (k > 0x7fff) + (k > 0x7fffff);
+                script_size += 2 + (*k > 16) + (*k > 0x7f) + (*k > 0x7fff) + (*k > 0x7fffff);
             } else if (Const("andor(", in)) {
                 to_parse.emplace_back(ParseContext::ANDOR, -1, -1);
                 to_parse.emplace_back(ParseContext::CLOSE_BRACKET, -1, -1);
