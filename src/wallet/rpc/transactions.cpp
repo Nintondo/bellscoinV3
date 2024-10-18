@@ -791,7 +791,7 @@ RPCHelpMan gettransaction()
     ListTransactions(*pwallet, wtx, 0, false, details, filter, /*filter_label=*/std::nullopt);
     entry.pushKV("details", std::move(details));
 
-    entry.pushKV("hex", EncodeHexTx(*wtx.tx));
+    entry.pushKV("hex", EncodeHexTx(*wtx.tx, pwallet->chain().rpcSerializationFlags()));
 
     if (verbose) {
         UniValue decoded(UniValue::VOBJ);

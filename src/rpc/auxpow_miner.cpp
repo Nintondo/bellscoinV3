@@ -124,7 +124,7 @@ AuxpowMiner::lookupSavedBlock (const std::string& hashHex) const
   AssertLockHeld(cs);
 
   uint256 hash;
-  hash.SetHex (hashHex);
+  hash.SetHexDeprecated (hashHex);
 
   const auto iter = blocks.find (hash);
   if (iter == blocks.end ())

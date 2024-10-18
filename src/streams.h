@@ -83,6 +83,7 @@ public:
         stream->read(dst);
     }
 
+    int GetVersion() const { return nVersion; }
     size_t size() const { return stream->size(); }
     void ignore(size_t size) { return stream->ignore(size); }
     // BELLSCOIN
@@ -105,7 +106,11 @@ public:
  * @param[in]  nPosIn Starting position. Vector index where writes should start. The vector will initially
  *                    grow as necessary to max(nPosIn, vec.size()). So to append, use vec.size().
 */
-
+    CVectorWriter(int nVersionIn, std::vector<unsigned char>& vchDataIn, size_t nPosIn) : nVersion{nVersionIn}, vchData{vchDataIn}, nPos{nPosIn}
+    {
+        if(nPos > vchData.size())
+            vchData.resize(nPos);
+    }
     // BELLSCOIN
     CVectorWriter(int nTypeIn, int nVersionIn, std::vector<unsigned char>& vchDataIn, size_t nPosIn) : nType(nTypeIn), nVersion(nVersionIn), vchData(vchDataIn), nPos(nPosIn)
     {
@@ -116,7 +121,12 @@ public:
  * (other params same as above)
  * @param[in]  args  A list of items to serialize starting at nPosIn.
 */
-
+    template <typename... Args>
+    CVectorWriter(int nVersionIn, std::vector<unsigned char>& vchDataIn, size_t nPosIn, Args&&... args) : CVectorWriter{nVersionIn, vchDataIn, nPosIn}
+    {
+        ::SerializeMany(*this, std::forward<Args>(args)...);
+    }
+    
     // BELLSCOIN
     template <typename... Args>
     CVectorWriter(int nTypeIn, int nVersionIn, std::vector<unsigned char>& vchDataIn, size_t nPosIn, Args&&... args) : CVectorWriter{nTypeIn, nVersionIn, vchDataIn, nPosIn}

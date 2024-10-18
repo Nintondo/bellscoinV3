@@ -80,49 +80,49 @@ BOOST_AUTO_TEST_CASE(streams_vector_writer)
     // point should yield the same results, even if the first test grew the
     // vector.
 
-    VectorWriter{vch, 0, a, b};
+    CVectorWriter{INIT_PROTO_VERSION, vch, 0, a, b};
     BOOST_CHECK((vch == std::vector<unsigned char>{{1, 2}}));
-    VectorWriter{vch, 0, a, b};
+    CVectorWriter{INIT_PROTO_VERSION, vch, 0, a, b};
     BOOST_CHECK((vch == std::vector<unsigned char>{{1, 2}}));
     vch.clear();
 
-    VectorWriter{vch, 2, a, b};
+    CVectorWriter{INIT_PROTO_VERSION, vch, 2, a, b};
     BOOST_CHECK((vch == std::vector<unsigned char>{{0, 0, 1, 2}}));
-    VectorWriter{vch, 2, a, b};
+    CVectorWriter{INIT_PROTO_VERSION, vch, 2, a, b};
     BOOST_CHECK((vch == std::vector<unsigned char>{{0, 0, 1, 2}}));
     vch.clear();
 
     vch.resize(5, 0);
-    VectorWriter{vch, 2, a, b};
+    CVectorWriter{INIT_PROTO_VERSION, vch, 2, a, b};
     BOOST_CHECK((vch == std::vector<unsigned char>{{0, 0, 1, 2, 0}}));
-    VectorWriter{vch, 2, a, b};
+    CVectorWriter{INIT_PROTO_VERSION, vch, 2, a, b};
     BOOST_CHECK((vch == std::vector<unsigned char>{{0, 0, 1, 2, 0}}));
     vch.clear();
 
     vch.resize(4, 0);
-    VectorWriter{vch, 3, a, b};
+    CVectorWriter{INIT_PROTO_VERSION, vch, 3, a, b};
     BOOST_CHECK((vch == std::vector<unsigned char>{{0, 0, 0, 1, 2}}));
-    VectorWriter{vch, 3, a, b};
+    CVectorWriter{INIT_PROTO_VERSION, vch, 3, a, b};
     BOOST_CHECK((vch == std::vector<unsigned char>{{0, 0, 0, 1, 2}}));
     vch.clear();
 
     vch.resize(4, 0);
-    VectorWriter{vch, 4, a, b};
+    CVectorWriter{INIT_PROTO_VERSION, vch, 4, a, b};
     BOOST_CHECK((vch == std::vector<unsigned char>{{0, 0, 0, 0, 1, 2}}));
-    VectorWriter{vch, 4, a, b};
+    CVectorWriter{INIT_PROTO_VERSION, vch, 4, a, b};
     BOOST_CHECK((vch == std::vector<unsigned char>{{0, 0, 0, 0, 1, 2}}));
     vch.clear();
 
-    VectorWriter{vch, 0, bytes};
+    CVectorWriter{INIT_PROTO_VERSION, vch, 0, bytes};
     BOOST_CHECK((vch == std::vector<unsigned char>{{3, 4, 5, 6}}));
-    VectorWriter{vch, 0, bytes};
+    CVectorWriter{INIT_PROTO_VERSION, vch, 0, bytes};
     BOOST_CHECK((vch == std::vector<unsigned char>{{3, 4, 5, 6}}));
     vch.clear();
 
     vch.resize(4, 8);
-    VectorWriter{vch, 2, a, bytes, b};
+    CVectorWriter{INIT_PROTO_VERSION, vch, 2, a, bytes, b};
     BOOST_CHECK((vch == std::vector<unsigned char>{{8, 8, 1, 3, 4, 5, 6, 2}}));
-    VectorWriter{vch, 2, a, bytes, b};
+    CVectorWriter{INIT_PROTO_VERSION, vch, 2, a, bytes, b};
     BOOST_CHECK((vch == std::vector<unsigned char>{{8, 8, 1, 3, 4, 5, 6, 2}}));
     vch.clear();
 }

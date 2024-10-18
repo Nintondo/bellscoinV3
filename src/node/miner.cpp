@@ -93,6 +93,16 @@ void ApplyArgsManOptions(const ArgsManager& args, BlockAssembler::Options& optio
     options.print_modified_fee = args.GetBoolArg("-printpriority", options.print_modified_fee);
 }
 
+static BlockAssembler::Options ConfiguredOptions()
+{
+    BlockAssembler::Options options;
+    ApplyArgsManOptions(gArgs, options);
+    return options;
+}
+
+BlockAssembler::BlockAssembler(Chainstate& chainstate, const CTxMemPool* mempool)
+    : BlockAssembler(chainstate, mempool, ConfiguredOptions()) {}
+
 void BlockAssembler::resetBlock()
 {
     inBlock.clear();

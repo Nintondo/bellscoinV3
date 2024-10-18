@@ -68,13 +68,13 @@ static uint256 ComputeModifiedMerkleRoot(const CMutableTransaction& cb, const CB
 std::optional<SignetTxs> SignetTxs::Create(const CBlock& block, const CScript& challenge)
 {
     CMutableTransaction tx_to_spend;
-    tx_to_spend.version = 0;
+    tx_to_spend.nVersion = 0;
     tx_to_spend.nLockTime = 0;
     tx_to_spend.vin.emplace_back(COutPoint(), CScript(OP_0), 0);
     tx_to_spend.vout.emplace_back(0, challenge);
 
     CMutableTransaction tx_spending;
-    tx_spending.version = 0;
+    tx_spending.nVersion = 0;
     tx_spending.nLockTime = 0;
     tx_spending.vin.emplace_back(COutPoint(), CScript(), 0);
     tx_spending.vout.emplace_back(0, CScript(OP_RETURN));
@@ -98,7 +98,7 @@ std::optional<SignetTxs> SignetTxs::Create(const CBlock& block, const CScript& c
         // no signet solution -- allow this to support OP_TRUE as trivial block challenge
     } else {
         try {
-            SpanReader v{signet_solution};
+            SpanReader v{INIT_PROTO_VERSION, signet_solution};
             v >> tx_spending.vin[0].scriptSig;
             v >> tx_spending.vin[0].scriptWitness.stack;
             if (!v.empty()) return std::nullopt; // extraneous data encountered
@@ -109,7 +109,7 @@ std::optional<SignetTxs> SignetTxs::Create(const CBlock& block, const CScript& c
     uint256 signet_merkle = ComputeModifiedMerkleRoot(modified_cb, block);
 
     std::vector<uint8_t> block_data;
-    VectorWriter writer{block_data, 0};
+    CVectorWriter writer{INIT_PROTO_VERSION, block_data, 0};
     writer << block.nVersion;
     writer << block.hashPrevBlock;
     writer << signet_merkle;

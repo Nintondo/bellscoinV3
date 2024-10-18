@@ -29,7 +29,7 @@ void TestDepGraphSerialization(const Cluster<SetType>& cluster, const std::strin
     // There may be multiple serializations of the same graph, but DepGraphFormatter's serializer
     // only produces one of those. Verify that hexenc matches that canonical serialization.
     std::vector<unsigned char> encoding;
-    VectorWriter writer(encoding, 0);
+    cVectorWriter writer(INIT_PROTO_VERSION, encoding, 0);
     writer << Using<DepGraphFormatter>(depgraph);
     BOOST_CHECK_EQUAL(HexStr(encoding), hexenc);
 

@@ -276,7 +276,7 @@ void SanityCheck(const DepGraph<SetType>& depgraph)
     // If DepGraph is acyclic, serialize + deserialize must roundtrip.
     if (IsAcyclic(depgraph)) {
         std::vector<unsigned char> ser;
-        VectorWriter writer(ser, 0);
+        CVectorWriter writer{INIT_PROTO_VERSION, ser, 0};
         writer << Using<DepGraphFormatter>(depgraph);
         SpanReader reader(ser);
         DepGraph<TestBitSet> decoded_depgraph;

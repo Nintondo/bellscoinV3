@@ -38,6 +38,7 @@ namespace Consensus {
 struct Params;
 }
 
+extern int RPCSerializationFlags();
 static std::multimap<std::string, CZMQAbstractPublishNotifier*> mapPublishNotifiers;
 
 static const char *MSG_HASHBLOCK = "hashblock";
@@ -243,13 +244,16 @@ bool CZMQPublishRawBlockNotifier::NotifyBlock(const CBlockIndex *pindex)
 {
     LogPrint(BCLog::ZMQ, "Publish rawblock %s to %s\n", pindex->GetBlockHash().GetHex(), this->address);
 
-    std::vector<uint8_t> block{};
+    CDataStream ss(SER_NETWORK, PROTOCOL_VERSION | RPCSerializationFlags());
+    CBlock block;
     if (!m_get_block_by_index(block, *pindex)) {
         zmqError("Can't read block from disk");
         return false;
     }
 
-    return SendZmqMessage(MSG_RAWBLOCK, block.data(), block.size());
+    ss << block;
+
+    return SendZmqMessage(MSG_RAWBLOCK, &(*ss.begin()), block.size());
 }
 
 bool CZMQPublishRawTransactionNotifier::NotifyTransaction(const CTransaction &transaction)
