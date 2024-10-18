@@ -619,7 +619,7 @@ static RPCHelpMan getblockheader()
     };
 }
 
-static CBlock GetBlockChecked(BlockManager& blockman, const CBlockIndex& blockindex)
+static CBlock GetBlockChecked(BlockManager& blockman, const CBlockIndex* blockindex)
 {
     CBlock block;
     {
@@ -629,7 +629,7 @@ static CBlock GetBlockChecked(BlockManager& blockman, const CBlockIndex& blockin
         }
     }
 
-    if (!blockman.ReadBlockFromDisk(block, blockindex)) {
+    if (!blockman.ReadBlockFromDisk(block, *blockindex)) {
         // Block not found on disk. This could be because we have the block
         // header in our index but not yet have the block or did not accept the
         // block. Or if the block was pruned right after we released the lock above.
@@ -639,7 +639,7 @@ static CBlock GetBlockChecked(BlockManager& blockman, const CBlockIndex& blockin
     return block;
 }
 
-static std::vector<uint8_t> GetRawBlockChecked(BlockManager& blockman, const CBlockIndex& blockindex)
+static std::vector<uint8_t> GetRawBlockChecked(BlockManager& blockman, const CBlockIndex* blockindex)
 {
     std::vector<uint8_t> data{};
     FlatFilePos pos{};
@@ -648,7 +648,7 @@ static std::vector<uint8_t> GetRawBlockChecked(BlockManager& blockman, const CBl
         if (blockman.IsBlockPruned(blockindex)) {
             throw JSONRPCError(RPC_MISC_ERROR, "Block not available (pruned data)");
         }
-        pos = blockindex.GetBlockPos();
+        pos = blockindex->GetBlockPos();
     }
 
     if (!blockman.ReadRawBlockFromDisk(data, pos)) {
@@ -661,12 +661,12 @@ static std::vector<uint8_t> GetRawBlockChecked(BlockManager& blockman, const CBl
     return data;
 }
 
-static CBlockUndo GetUndoChecked(BlockManager& blockman, const CBlockIndex& blockindex)
+static CBlockUndo GetUndoChecked(BlockManager& blockman, const CBlockIndex* blockindex)
 {
     CBlockUndo blockUndo;
 
     // The Genesis block does not have undo data
-    if (blockindex.nHeight == 0) return blockUndo;
+    if (blockindex->nHeight == 0) return blockUndo;
 
     {
         LOCK(cs_main);
@@ -675,7 +675,7 @@ static CBlockUndo GetUndoChecked(BlockManager& blockman, const CBlockIndex& bloc
         }
     }
 
-    if (!blockman.UndoReadFromDisk(blockUndo, blockindex)) {
+    if (!blockman.UndoReadFromDisk(blockUndo, *blockindex)) {
         throw JSONRPCError(RPC_MISC_ERROR, "Can't read undo data from disk");
     }
 
@@ -815,18 +815,16 @@ static RPCHelpMan getblock()
         }
     }
 
-    const std::vector<uint8_t> block_data{GetRawBlockChecked(chainman.m_blockman, *pblockindex)};
+    const CBlock block{GetBlockChecked(chainman.m_blockman, pblockindex)};
 
-    if (verbosity <= 0) {
-        return HexStr(block_data);
+    if (verbosity <= 0)
+    {
+        // SYSCOIN
+        CDataStream ssBlock(SER_DISK, PROTOCOL_VERSION | RPCSerializationFlags());
+        ssBlock << block;
+        std::string strHex = HexStr(ssBlock);
+        return strHex;
     }
-
-    const CBlock block{GetBlockChecked(chainman.m_blockman, *pblockindex)};
-    // SYSCOIN
-    CDataStream ssBlock(SER_DISK, PROTOCOL_VERSION | RPCSerializationFlags());
-    ssBlock << block;
-    std::string strHex = HexStr(ssBlock);
-    return strHex;
 
     TxVerbosity tx_verbosity;
     if (verbosity == 1) {
@@ -837,7 +835,7 @@ static RPCHelpMan getblock()
         tx_verbosity = TxVerbosity::SHOW_DETAILS_AND_PREVOUT;
     }
 
-    return blockToJSON(chainman.m_blockman, block, *tip, *pblockindex, tx_verbosity, &chainman.ActiveChainstate());
+    return blockToJSON(chainman.m_blockman, block, tip, pblockindex, tx_verbosity, &chainman.ActiveChainstate());
 },
     };
 }
@@ -1941,8 +1939,8 @@ static RPCHelpMan getblockstats()
         }
     }
 
-    const CBlock& block = GetBlockChecked(chainman.m_blockman, pindex);
-    const CBlockUndo& blockUndo = GetUndoChecked(chainman.m_blockman, pindex);
+    const CBlock& block = GetBlockChecked(chainman.m_blockman, &pindex);
+    const CBlockUndo& blockUndo = GetUndoChecked(chainman.m_blockman, &pindex);
 
     const bool do_all = stats.size() == 0; // Calculate everything if nothing selected (default)
     const bool do_mediantxsize = do_all || stats.count("mediantxsize") != 0;
@@ -2407,8 +2405,8 @@ public:
 
 static bool CheckBlockFilterMatches(BlockManager& blockman, const CBlockIndex& blockindex, const GCSFilter::ElementSet& needles)
 {
-    const CBlock block{GetBlockChecked(blockman, blockindex)};
-    const CBlockUndo block_undo{GetUndoChecked(blockman, blockindex)};
+    const CBlock block{GetBlockChecked(blockman, &blockindex)};
+    const CBlockUndo block_undo{GetUndoChecked(blockman, &blockindex)};
 
     // Check if any of the outputs match the scriptPubKey
     for (const auto& tx : block.vtx) {

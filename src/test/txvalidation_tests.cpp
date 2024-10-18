@@ -27,7 +27,7 @@ BOOST_FIXTURE_TEST_CASE(tx_mempool_reject_coinbase, TestChain100Setup)
     CScript scriptPubKey = CScript() << ToByteVector(coinbaseKey.GetPubKey()) << OP_CHECKSIG;
     CMutableTransaction coinbaseTx;
 
-    coinbasetx.nVersion = 1;
+    coinbaseTx.nVersion = 1;
     coinbaseTx.vin.resize(1);
     coinbaseTx.vout.resize(1);
     coinbaseTx.vin[0].scriptSig = CScript() << OP_11 << OP_EQUAL;
@@ -286,7 +286,7 @@ BOOST_FIXTURE_TEST_CASE(version3_tests, RegTestingSetup)
     script_multisig << OP_2 << OP_CHECKMULTISIG;
     {
         CMutableTransaction mtx_many_sigops = CMutableTransaction{};
-        mtx_many_sigops.version = TRUC_VERSION;
+        mtx_many_sigops.nVersion = TRUC_VERSION;
         for (const auto& outpoint : multisig_outpoints) {
             mtx_many_sigops.vin.emplace_back(outpoint);
             mtx_many_sigops.vin.back().scriptWitness.stack.emplace_back(script_multisig.begin(), script_multisig.end());

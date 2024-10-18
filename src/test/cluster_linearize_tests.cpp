@@ -29,13 +29,13 @@ void TestDepGraphSerialization(const Cluster<SetType>& cluster, const std::strin
     // There may be multiple serializations of the same graph, but DepGraphFormatter's serializer
     // only produces one of those. Verify that hexenc matches that canonical serialization.
     std::vector<unsigned char> encoding;
-    cVectorWriter writer(INIT_PROTO_VERSION, encoding, 0);
+    CVectorWriter writer(INIT_PROTO_VERSION, encoding, 0);
     writer << Using<DepGraphFormatter>(depgraph);
     BOOST_CHECK_EQUAL(HexStr(encoding), hexenc);
 
     // Test that deserializing that encoding yields depgraph. This is effectively already implied
     // by the round-trip test above (if depgraph is acyclic), but verify it explicitly again here.
-    SpanReader reader(encoding);
+    SpanReader reader{INIT_PROTO_VERSION, encoding};
     DepGraph<SetType> depgraph_read;
     reader >> Using<DepGraphFormatter>(depgraph_read);
     BOOST_CHECK(depgraph == depgraph_read);

@@ -131,7 +131,7 @@ BOOST_AUTO_TEST_CASE(streams_vector_reader)
 {
     std::vector<unsigned char> vch = {1, 255, 3, 4, 5, 6};
 
-    SpanReader reader{vch};
+    SpanReader reader{INIT_PROTO_VERSION, vch};
     BOOST_CHECK_EQUAL(reader.size(), 6U);
     BOOST_CHECK(!reader.empty());
 
@@ -161,7 +161,7 @@ BOOST_AUTO_TEST_CASE(streams_vector_reader)
     BOOST_CHECK_THROW(reader >> d, std::ios_base::failure);
 
     // Read a 4 bytes as a signed int from the beginning of the buffer.
-    SpanReader new_reader{vch};
+    SpanReader new_reader{INIT_PROTO_VERSION, vch};
     new_reader >> d;
     BOOST_CHECK_EQUAL(d, 67370753); // 1,255,3,4 in little-endian base-256
     BOOST_CHECK_EQUAL(new_reader.size(), 2U);
@@ -175,7 +175,7 @@ BOOST_AUTO_TEST_CASE(streams_vector_reader)
 BOOST_AUTO_TEST_CASE(streams_vector_reader_rvalue)
 {
     std::vector<uint8_t> data{0x82, 0xa7, 0x31};
-    SpanReader reader{data};
+    SpanReader reader{INIT_PROTO_VERSION, data};
     uint32_t varint = 0;
     // Deserialize into r-value
     reader >> VARINT(varint);
@@ -255,7 +255,7 @@ BOOST_AUTO_TEST_CASE(streams_serializedata_xor)
 BOOST_AUTO_TEST_CASE(streams_buffered_file)
 {
     fs::path streams_test_filename = m_args.GetDataDirBase() / "streams_test_tmp";
-    AutoFile file{fsbridge::fopen(streams_test_filename, "w+b")};
+    CAutoFile file{fsbridge::fopen(streams_test_filename, "w+b"), 333};
 
     // The value at each offset is the offset.
     for (uint8_t j = 0; j < 40; ++j) {
@@ -386,7 +386,7 @@ BOOST_AUTO_TEST_CASE(streams_buffered_file)
 BOOST_AUTO_TEST_CASE(streams_buffered_file_skip)
 {
     fs::path streams_test_filename = m_args.GetDataDirBase() / "streams_test_tmp";
-    AutoFile file{fsbridge::fopen(streams_test_filename, "w+b")};
+    CAutoFile file{fsbridge::fopen(streams_test_filename, "w+b"), 333};
     // The value at each offset is the byte offset (e.g. byte 1 in the file has the value 0x01).
     for (uint8_t j = 0; j < 40; ++j) {
         file << j;
@@ -439,7 +439,7 @@ BOOST_AUTO_TEST_CASE(streams_buffered_file_rand)
 
     fs::path streams_test_filename = m_args.GetDataDirBase() / "streams_test_tmp";
     for (int rep = 0; rep < 50; ++rep) {
-        AutoFile file{fsbridge::fopen(streams_test_filename, "w+b")};
+        CAutoFile file{fsbridge::fopen(streams_test_filename, "w+b"), 333};
         size_t fileSize = InsecureRandRange(256);
         for (uint8_t i = 0; i < fileSize; ++i) {
             file << i;

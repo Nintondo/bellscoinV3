@@ -455,7 +455,7 @@ BOOST_AUTO_TEST_CASE(test_Get)
 static void CreateCreditAndSpend(const FillableSigningProvider& keystore, const CScript& outscript, CTransactionRef& output, CMutableTransaction& input, bool success = true)
 {
     CMutableTransaction outputm;
-    outputm.version = 1;
+    outputm.nVersion = 1;
     outputm.vin.resize(1);
     outputm.vin[0].prevout.SetNull();
     outputm.vin[0].scriptSig = CScript();
@@ -471,7 +471,7 @@ static void CreateCreditAndSpend(const FillableSigningProvider& keystore, const 
     assert(output->vout[0] == outputm.vout[0]);
 
     CMutableTransaction inputm;
-    inputm.version = 1;
+    inputm.nVersion = 1;
     inputm.vin.resize(1);
     inputm.vin[0].prevout.hash = output->GetHash();
     inputm.vin[0].prevout.n = 0;
@@ -825,20 +825,20 @@ BOOST_AUTO_TEST_CASE(test_IsStandard)
     CheckIsStandard(t);
 
     // Disallowed version
-    t.version = std::numeric_limits<uint32_t>::max();
+    t.nVersion = std::numeric_limits<uint32_t>::max();
     CheckIsNotStandard(t, "version");
 
-    t.version = 0;
+    t.nVersion = 0;
     CheckIsNotStandard(t, "version");
 
-    t.version = TX_MAX_STANDARD_VERSION + 1;
+    t.nVersion = TX_MAX_STANDARD_VERSION + 1;
     CheckIsNotStandard(t, "version");
 
     // Allowed version
-    t.version = 1;
+    t.nVersion = 1;
     CheckIsStandard(t);
 
-    t.version = 2;
+    t.nVersion = 2;
     CheckIsStandard(t);
 
     // Check dust with odd relay fee to verify rounding:

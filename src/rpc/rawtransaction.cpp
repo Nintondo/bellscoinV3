@@ -1496,7 +1496,7 @@ static RPCHelpMan combinepsbt()
         throw JSONRPCError(RPC_INVALID_PARAMETER, "PSBTs not compatible (different transactions)");
     }
 
-    DataStream ssTx{};
+    CDataStream ssTx(SER_NETWORK, PROTOCOL_VERSION);
     ssTx << merged_psbt;
     return EncodeBase64(ssTx);
 },

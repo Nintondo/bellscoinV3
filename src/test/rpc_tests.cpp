@@ -588,7 +588,7 @@ static void CheckRpc(const std::vector<RPCArg>& params, const UniValue& args, RP
 {
     auto null_result{RPCResult{RPCResult::Type::NONE, "", "None"}};
     const RPCHelpMan rpc{"dummy", "dummy description", params, null_result, RPCExamples{""}, test_impl};
-    JSONRPCRequest req;
+    node::JSONRPCRequest req;
     req.params = args;
 
     rpc.HandleRequest(req);

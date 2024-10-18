@@ -1954,14 +1954,18 @@ bool CheckProofOfWork(const CBlockHeader& block, const Consensus::Params& params
     if (!block.IsLegacy() && params.fStrictChainId) {
         if(nChainID > 0) {
             if(nChainID != params.nAuxpowChainId)
-                return error("%s : block does not have our chain ID"
-                        " (got %d, expected %d, full nVersion %d)",
-                        __func__, nChainID,
-                        params.nAuxpowChainId, block.nVersion);
+            {
+                LogPrintf("%s : block does not have our chain ID"
+                    " (got %d, expected %d, full nVersion %d)",
+                    __func__, nChainID,
+                    params.nAuxpowChainId, block.nVersion);
+                return false;
+            }
         } else if(block.auxpow) {
-                return error("%s : block does not have our old chain ID"
-                        " (got full nVersion %d)",
-                        __func__, block.nVersion);
+            LogPrintf("%s : block does not have our old chain ID"
+                " (got full nVersion %d)",
+                __func__, block.nVersion);
+            return false;
         }
     }
 
@@ -1969,12 +1973,16 @@ bool CheckProofOfWork(const CBlockHeader& block, const Consensus::Params& params
     if (!block.auxpow)
     {
         if (block.IsAuxpow())
-            return error("%s : no auxpow on block with auxpow version",
-                         __func__);
+        {
+            LogPrintf("%s : no auxpow on block with auxpow version",
+                __func__);
+            return false;
+        }
 
         if (!CheckProofOfWork(block.GetPoWHash(), block.nBits, params))
         {
-            return error("%s : non-AUX proof of work failed", __func__);
+            LogPrintf("%s : non-AUX proof of work failed", __func__);
+            return false;
         }
 
         return true;
@@ -1982,12 +1990,21 @@ bool CheckProofOfWork(const CBlockHeader& block, const Consensus::Params& params
 
     /* We have auxpow.  Check it.  */
     if (!block.IsAuxpow())
-        return error("%s : auxpow on block with non-auxpow version", __func__);
+    {
+        LogPrintf("%s : auxpow on block with non-auxpow version", __func__);
+        return false;
+    }
 
     if (!block.auxpow->check(block.GetHash(), block.GetChainId(), params))
-        return error("%s : AUX POW is not valid", __func__);
+    {
+        LogPrintf("%s : AUX POW is not valid", __func__);
+        return false;
+    }
     if (!CheckProofOfWork(block.auxpow->getParentBlockHash(), block.nBits, params))
-        return error("%s : AUX proof of work failed", __func__);
+    {
+        LogPrintf("%s : AUX proof of work failed", __func__);
+        return false;
+    }
 
 
     return true;
@@ -2003,14 +2020,18 @@ bool CheckProofOfWorkTests(const CBlockHeader& block, const Consensus::Params& p
     if (!block.IsLegacy() && params.fStrictChainId) {
         if(nChainID > 0) {
             if(nChainID != params.nAuxpowChainId)
-                return error("%s : block does not have our chain ID"
-                        " (got %d, expected %d, full nVersion %d)",
-                        __func__, nChainID,
-                        params.nAuxpowChainId, block.nVersion);
+            {
+                LogPrintf("%s : block does not have our chain ID"
+                    " (got %d, expected %d, full nVersion %d)",
+                    __func__, nChainID,
+                    params.nAuxpowChainId, block.nVersion);
+                return false;
+            }
         } else if(block.auxpow) {
-                return error("%s : block does not have our old chain ID"
-                        " (got full nVersion %d)",
-                        __func__, block.nVersion);
+            LogPrintf("%s : block does not have our old chain ID"
+                " (got full nVersion %d)",
+                __func__, block.nVersion);
+            return false;
         }
     }
 
@@ -2018,12 +2039,16 @@ bool CheckProofOfWorkTests(const CBlockHeader& block, const Consensus::Params& p
     if (!block.auxpow)
     {
         if (block.IsAuxpow())
-            return error("%s : no auxpow on block with auxpow version",
-                         __func__);
-
-        if (!CheckProofOfWorkTests(block.GetPoWHash(), block.nBits, params))
         {
-            return error("%s : non-AUX proof of work failed", __func__);
+            LogPrintf("%s : no auxpow on block with auxpow version",
+                __func__);
+            return false;
+        }
+
+        if (!CheckProofOfWork(block.GetPoWHash(), block.nBits, params))
+        {
+            LogPrintf("%s : non-AUX proof of work failed", __func__);
+            return false;
         }
 
         return true;
@@ -2031,12 +2056,21 @@ bool CheckProofOfWorkTests(const CBlockHeader& block, const Consensus::Params& p
 
     /* We have auxpow.  Check it.  */
     if (!block.IsAuxpow())
-        return error("%s : auxpow on block with non-auxpow version", __func__);
+    {
+        LogPrintf("%s : auxpow on block with non-auxpow version", __func__);
+        return false;
+    }
 
     if (!block.auxpow->check(block.GetHash(), block.GetChainId(), params))
-        return error("%s : AUX POW is not valid", __func__);
+    {
+        LogPrintf("%s : AUX POW is not valid", __func__);
+        return false;
+    }
     if (!CheckProofOfWork(block.auxpow->getParentBlockHash(), block.nBits, params))
-        return error("%s : AUX proof of work failed", __func__);
+    {
+        LogPrintf("%s : AUX proof of work failed", __func__);
+        return false;
+    }
 
 
     return true;

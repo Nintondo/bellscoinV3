@@ -278,7 +278,7 @@ void SanityCheck(const DepGraph<SetType>& depgraph)
         std::vector<unsigned char> ser;
         CVectorWriter writer{INIT_PROTO_VERSION, ser, 0};
         writer << Using<DepGraphFormatter>(depgraph);
-        SpanReader reader(ser);
+        SpanReader reader{INIT_PROTO_VERSION, ser};
         DepGraph<TestBitSet> decoded_depgraph;
         reader >> Using<DepGraphFormatter>(decoded_depgraph);
         assert(depgraph == decoded_depgraph);
@@ -287,11 +287,11 @@ void SanityCheck(const DepGraph<SetType>& depgraph)
         // will upon EOF still return what it read so far).
         assert(ser.size() >= 1 && ser.back() == 0);
         ser.pop_back();
-        reader = SpanReader{ser};
+        SpanReader reader2{INIT_PROTO_VERSION, ser};
         decoded_depgraph = {};
-        reader >> Using<DepGraphFormatter>(decoded_depgraph);
+        reader2 >> Using<DepGraphFormatter>(decoded_depgraph);
         assert(depgraph == decoded_depgraph);
-        assert(reader.empty());
+        assert(reader2.empty());
     }
 }
 

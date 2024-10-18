@@ -236,7 +236,7 @@ BOOST_FIXTURE_TEST_CASE(importmulti_rescan, TestChain100Setup)
         key.pushKV("timestamp", newTip->GetBlockTimeMax() + TIMESTAMP_WINDOW + 1);
         key.pushKV("internal", UniValue(true));
         keys.push_back(std::move(key));
-        JSONRPCRequest request;
+        node::JSONRPCRequest request;
         request.context = &context;
         request.params.setArray();
         request.params.push_back(std::move(keys));
@@ -787,14 +787,14 @@ bool malformed_descriptor(std::ios_base::failure e)
 BOOST_FIXTURE_TEST_CASE(wallet_descriptor_test, BasicTestingSetup)
 {
     std::vector<unsigned char> malformed_record;
-    VectorWriter vw{malformed_record, 0};
+    CVectorWriter vw{0, malformed_record, 0};
     vw << std::string("notadescriptor");
     vw << uint64_t{0};
     vw << int32_t{0};
     vw << int32_t{0};
     vw << int32_t{1};
 
-    SpanReader vr{malformed_record};
+    SpanReader vr{0, malformed_record};
     WalletDescriptor w_desc;
     BOOST_CHECK_EXCEPTION(vr >> w_desc, std::ios_base::failure, malformed_descriptor);
 }

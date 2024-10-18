@@ -48,7 +48,7 @@ BOOST_FIXTURE_TEST_CASE(tx_mempool_block_doublespend, Dersig100Setup)
     spends.resize(2);
     for (int i = 0; i < 2; i++)
     {
-        spends[i].version = 1;
+        spends[i].nVersion = 1;
         spends[i].vin.resize(1);
         spends[i].vin[0].prevout.hash = m_coinbase_txns[0]->GetHash();
         spends[i].vin[0].prevout.n = 0;

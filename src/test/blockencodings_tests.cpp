@@ -77,7 +77,7 @@ BOOST_AUTO_TEST_CASE(SimpleRoundTripTest)
     {
         CBlockHeaderAndShortTxIDs shortIDs{block, rand_ctx.rand64()};
 
-        DataStream stream{};
+        CDataStream stream(SER_NETWORK, PROTOCOL_VERSION);
         stream << shortIDs;
 
         CBlockHeaderAndShortTxIDs shortIDs2;
@@ -128,7 +128,7 @@ public:
     std::vector<PrefilledTransaction> prefilledtxn;
 
     explicit TestHeaderAndShortIDs(const CBlockHeaderAndShortTxIDs& orig) {
-        DataStream stream{};
+        CDataStream stream(SER_NETWORK, PROTOCOL_VERSION);
         stream << orig;
         stream >> *this;
     }
@@ -136,7 +136,7 @@ public:
         TestHeaderAndShortIDs(CBlockHeaderAndShortTxIDs{block, ctx.rand64()}) {}
 
     uint64_t GetShortID(const Wtxid& txhash) const {
-        DataStream stream{};
+        CDataStream stream(SER_NETWORK, PROTOCOL_VERSION);
         stream << *this;
         CBlockHeaderAndShortTxIDs base;
         stream >> base;
@@ -168,7 +168,7 @@ BOOST_AUTO_TEST_CASE(NonCoinbasePreforwardRTTest)
         shortIDs.shorttxids[0] = shortIDs.GetShortID(block.vtx[0]->GetWitnessHash());
         shortIDs.shorttxids[1] = shortIDs.GetShortID(block.vtx[2]->GetWitnessHash());
 
-        DataStream stream{};
+        CDataStream stream(SER_NETWORK, PROTOCOL_VERSION);
         stream << shortIDs;
 
         CBlockHeaderAndShortTxIDs shortIDs2;
@@ -239,7 +239,7 @@ BOOST_AUTO_TEST_CASE(SufficientPreforwardRTTest)
         shortIDs.shorttxids.resize(1);
         shortIDs.shorttxids[0] = shortIDs.GetShortID(block.vtx[1]->GetWitnessHash());
 
-        DataStream stream{};
+        CDataStream stream(SER_NETWORK, PROTOCOL_VERSION);
         stream << shortIDs;
 
         CBlockHeaderAndShortTxIDs shortIDs2;
@@ -291,7 +291,7 @@ BOOST_AUTO_TEST_CASE(EmptyBlockRoundTripTest)
     {
         CBlockHeaderAndShortTxIDs shortIDs{block, rand_ctx.rand64()};
 
-        DataStream stream{};
+        CDataStream stream(SER_NETWORK, PROTOCOL_VERSION);
         stream << shortIDs;
 
         CBlockHeaderAndShortTxIDs shortIDs2;

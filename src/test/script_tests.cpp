@@ -1521,7 +1521,7 @@ static std::vector<CTxOut> TxOutsFromJSON(const UniValue& univalue)
     std::vector<CTxOut> prevouts;
     for (size_t i = 0; i < univalue.size(); ++i) {
         CTxOut txout;
-        SpanReader{ParseHex(univalue[i].get_str())} >> txout;
+        SpanReader{PROTOCOL_VERSION, ParseHex(univalue[i].get_str())} >> txout;
         prevouts.push_back(std::move(txout));
     }
     return prevouts;

@@ -252,7 +252,7 @@ BOOST_AUTO_TEST_CASE(class_methods)
     CSerializeMethodsTestMany methodtest2(intval, boolval, stringval, charstrval, tx_ref);
     CSerializeMethodsTestSingle methodtest3;
     CSerializeMethodsTestMany methodtest4;
-    DataStream ss;
+    CDataStream ss(SER_DISK, PROTOCOL_VERSION);
     BOOST_CHECK(methodtest1 == methodtest2);
     ss << methodtest1;
     ss >> methodtest4;

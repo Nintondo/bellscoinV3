@@ -49,7 +49,7 @@ void TestDifficultyAveragingImpl(const Consensus::Params& params)
     BOOST_CHECK_EQUAL(bnRes.GetCompact(), GetNextWorkRequired(&blocks[lastBlk], nullptr, params));
 
     // Randomise the final block time (plus 1 to ensure it is always different)
-    blocks[lastBlk].nTime += GetRand(params.PoWTargetSpacing().count()/2) + 1;
+    blocks[lastBlk].nTime += FastRandomContext(params.PoWTargetSpacing().count()/2).rand64() + 1;
 
     // Result should be the same as if last difficulty was used
     bnAvg.SetCompact(blocks[lastBlk].nBits);

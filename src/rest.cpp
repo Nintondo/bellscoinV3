@@ -313,7 +313,7 @@ static bool rest_block(const std::any& context,
         if (!pblockindex) {
             return RESTERR(req, HTTP_NOT_FOUND, hashStr + " not found");
         }
-        if (chainman.m_blockman.IsBlockPruned(*pblockindex)) {
+        if (chainman.m_blockman.IsBlockPruned(pblockindex)) {
             return RESTERR(req, HTTP_NOT_FOUND, hashStr + " not available (pruned data)");
         }
         pos = pblockindex->GetBlockPos();
