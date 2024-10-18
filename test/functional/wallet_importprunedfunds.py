@@ -120,7 +120,7 @@ class ImportPrunedFundsTest(BellscoinTestFramework):
         assert_equal(address_info['ismine'], True)
 
         # Remove transactions
-        assert_raises_rpc_error(-8, "Transaction does not exist in wallet.", w1.removeprunedfunds, txnid1)
+        assert_raises_rpc_error(-4, f'Transaction {txnid1} does not belong to this wallet', w1.removeprunedfunds, txnid1)
         assert not [tx for tx in w1.listtransactions(include_watchonly=True) if tx['txid'] == txnid1]
 
         wwatch.removeprunedfunds(txnid2)
@@ -143,4 +143,4 @@ class ImportPrunedFundsTest(BellscoinTestFramework):
 
 
 if __name__ == '__main__':
-    ImportPrunedFundsTest().main()
+    ImportPrunedFundsTest(__file__).main()

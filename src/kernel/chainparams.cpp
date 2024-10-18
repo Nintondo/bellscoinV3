@@ -27,11 +27,20 @@
 #include <type_traits>
 
 #include <arith_uint256.h>
+// Workaround MSVC bug triggering C7595 when calling consteval constructors in
+// initializer lists.
+// A fix may be on the way:
+// https://developercommunity.visualstudio.com/t/consteval-conversion-function-fails/1579014
+#if defined(_MSC_VER)
+auto consteval_ctor(auto&& input) { return input; }
+#else
+#define consteval_ctor(input) (input)
+#endif
 
 static CBlock CreateGenesisBlock(const char* pszTimestamp, const CScript& genesisOutputScript, uint32_t nTime, uint32_t nNonce, uint32_t nBits, int32_t nVersion, const CAmount& genesisReward)
 {
     CMutableTransaction txNew;
-    txNew.nVersion = 1;
+    txNew.version = 1;
     txNew.vin.resize(1);
     txNew.vout.resize(1);
     txNew.vin[0].scriptSig = CScript() << 486604799 << CScriptNum(4) << std::vector<unsigned char>((const unsigned char*)pszTimestamp, (const unsigned char*)pszTimestamp + strlen(pszTimestamp));
@@ -124,6 +133,7 @@ public:
         consensus.nPowTargetTimespan = 4 * 60 * 60; // 4 hours
         consensus.nPowTargetSpacing = 60; // 1 min
         consensus.fPowAllowMinDifficultyBlocks = false;
+        consensus.enforce_BIP94 = false;
         consensus.fPowNoRetargeting = false;
         consensus.fStrictChainId = true;
         consensus.nAuxpowChainId = 16;
@@ -186,7 +196,6 @@ public:
         //vSeeds.emplace_back("seeder.belscan.io.");
         vSeeds.emplace_back("bdnsseeder.quark.blue.");
 
-
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,25);
         base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,30);
         base58Prefixes[SECRET_KEY] =     std::vector<unsigned char>(1,153);
@@ -214,7 +223,12 @@ public:
         };
 
         m_assumeutxo_data = {
-            // TODO to be specified in a future patch.
+            {
+                .height = 840'000,
+                .hash_serialized = AssumeutxoHash{uint256{"a2a5521b1b5ab65f67818e5e8eccabb7171a517f9e2382208f77687310768f96"}},
+                .m_chain_tx_count = 991032194,
+                .blockhash = consteval_ctor(uint256{"0000000000000000000320283a032748cef8227873ff4872689bf23f1cda83a5"}),
+            }
         };
 
         chainTxData = ChainTxData{
@@ -352,20 +366,21 @@ public:
         if (!options.challenge) {
             bin = ParseHex("512103ad5e0edad18cb1f0fc0d28a3d4f1f3e445640337489abb10404f2d1e086be430210359ef5021964fe22d6f8e05b2463c9540ce96883fe3b278760f048f5189f2e6c452ae");
             vSeeds.emplace_back("seed.signet.bitcoin.sprovoost.nl.");
+            vSeeds.emplace_back("seed.signet.achownodes.xyz."); // Ava Chow, only supports x1, x5, x9, x49, x809, x849, xd, x400, x404, x408, x448, xc08, xc48, x40c
 
             // Hardcoded nodes can be removed once there are more DNS seeds
             vSeeds.emplace_back("178.128.221.177");
             vSeeds.emplace_back("v7ajjeirttkbnt32wpy3c6w3emwnfr3fkla7hpxcfokr3ysd3kqtzmqd.onion:38333");
 
-            consensus.nMinimumChainWork = uint256S("0x000000000000000000000000000000000000000000000000000001ad46be4862");
-            consensus.defaultAssumeValid = uint256S("0x0000013d778ba3f914530f11f6b69869c9fab54acff85acd7b8201d111f19b7f"); // 150000
-            m_assumed_blockchain_size = 1;
+            consensus.nMinimumChainWork = uint256{"0000000000000000000000000000000000000000000000000000025dbd66e58f"};
+            consensus.defaultAssumeValid = uint256{"0000014aad1d58dddcb964dd749b073374c6306e716b22f573a2efe68d414539"}; // 208800
+            m_assumed_blockchain_size = 2;
             m_assumed_chain_state_size = 0;
             chainTxData = ChainTxData{
-                // Data from RPC: getchaintxstats 4096 0000013d778ba3f914530f11f6b69869c9fab54acff85acd7b8201d111f19b7f
-                .nTime    = 1688366339,
-                .nTxCount = 2262750,
-                .dTxRate  = 0.003414084572046456,
+                // Data from RPC: getchaintxstats 4096 0000014aad1d58dddcb964dd749b073374c6306e716b22f573a2efe68d414539
+                .nTime    = 1723655233,
+                .tx_count = 5507045,
+                .dTxRate  = 0.06271073277261494,
             };
         } else {
             bin = *options.challenge;
@@ -399,6 +414,7 @@ public:
         consensus.nPowTargetTimespan = 14 * 24 * 60 * 60; // two weeks
         consensus.nPowTargetSpacing = 10 * 60;
         consensus.fPowAllowMinDifficultyBlocks = false;
+        consensus.enforce_BIP94 = false;
         consensus.fPowNoRetargeting = false;
         consensus.nRuleChangeActivationThreshold = 1815; // 90% of 2016
         consensus.nMinerConfirmationWindow = 2016; // nPowTargetTimespan / nPowTargetSpacing
@@ -448,9 +464,9 @@ public:
         m_assumeutxo_data = {
             {
                 .height = 160'000,
-                .hash_serialized = AssumeutxoHash{uint256S("0xfe0a44309b74d6b5883d246cb419c6221bcccf0b308c9b59b7d70783dbdf928a")},
-                .nChainTx = 2289496,
-                .blockhash = uint256S("0x0000003ca3c99aff040f2563c2ad8f8ec88bd0fd6b8f0895cfaf1ef90353a62c")
+                .hash_serialized = AssumeutxoHash{uint256{"fe0a44309b74d6b5883d246cb419c6221bcccf0b308c9b59b7d70783dbdf928a"}},
+                .m_chain_tx_count = 2289496,
+                .blockhash = consteval_ctor(uint256{"0000003ca3c99aff040f2563c2ad8f8ec88bd0fd6b8f0895cfaf1ef90353a62c"}),
             }
         };
 
@@ -501,6 +517,7 @@ public:
         consensus.nPowTargetTimespan = 4 * 60 * 60;
         consensus.nPowTargetSpacing = 60; // 1 minute
         consensus.fPowAllowMinDifficultyBlocks = true;
+        consensus.enforce_BIP94 = true;
         consensus.fPowNoRetargeting = true;
         consensus.fStrictChainId = true;
         consensus.nRuleChangeActivationThreshold = 108; // 75% for testchains
@@ -566,6 +583,26 @@ public:
         };
 
         m_assumeutxo_data = {
+            {   // For use by unit tests
+                .height = 110,
+                .hash_serialized = AssumeutxoHash{uint256{"6657b736d4fe4db0cbc796789e812d5dba7f5c143764b1b6905612f1830609d1"}},
+                .m_chain_tx_count = 111,
+                .blockhash = consteval_ctor(uint256{"696e92821f65549c7ee134edceeeeaaa4105647a3c4fd9f298c0aec0ab50425c"}),
+            },
+            {
+                // For use by fuzz target src/test/fuzz/utxo_snapshot.cpp
+                .height = 200,
+                .hash_serialized = AssumeutxoHash{uint256{"4f34d431c3e482f6b0d67b64609ece3964dc8d7976d02ac68dd7c9c1421738f2"}},
+                .m_chain_tx_count = 201,
+                .blockhash = consteval_ctor(uint256{"5e93653318f294fb5aa339d00bbf8cf1c3515488ad99412c37608b139ea63b27"}),
+            },
+            {
+                // For use by test/functional/feature_assumeutxo.py
+                .height = 299,
+                .hash_serialized = AssumeutxoHash{uint256{"a4bf3407ccb2cc0145c49ebba8fa91199f8a3903daf0883875941497d2493c27"}},
+                .m_chain_tx_count = 334,
+                .blockhash = consteval_ctor(uint256{"3bb7ce5eba0be48939b7a521ac1ba9316afee2c7bada3a0cca24188e6d7d96c0"}),
+            },
         };
 
         chainTxData = ChainTxData{
@@ -602,4 +639,42 @@ std::unique_ptr<const CChainParams> CChainParams::Main()
 std::unique_ptr<const CChainParams> CChainParams::TestNet()
 {
     return std::make_unique<const CTestNetParams>();
+}
+
+std::unique_ptr<const CChainParams> CChainParams::TestNet4()
+{
+    return std::make_unique<const CTestNet4Params>();
+}
+
+std::vector<int> CChainParams::GetAvailableSnapshotHeights() const
+{
+    std::vector<int> heights;
+    heights.reserve(m_assumeutxo_data.size());
+
+    for (const auto& data : m_assumeutxo_data) {
+        heights.emplace_back(data.height);
+    }
+    return heights;
+}
+
+std::optional<ChainType> GetNetworkForMagic(const MessageStartChars& message)
+{
+    const auto mainnet_msg = CChainParams::Main()->MessageStart();
+    const auto testnet_msg = CChainParams::TestNet()->MessageStart();
+    const auto testnet4_msg = CChainParams::TestNet4()->MessageStart();
+    const auto regtest_msg = CChainParams::RegTest({})->MessageStart();
+    const auto signet_msg = CChainParams::SigNet({})->MessageStart();
+
+    if (std::equal(message.begin(), message.end(), mainnet_msg.data())) {
+        return ChainType::MAIN;
+    } else if (std::equal(message.begin(), message.end(), testnet_msg.data())) {
+        return ChainType::TESTNET;
+    } else if (std::equal(message.begin(), message.end(), testnet4_msg.data())) {
+        return ChainType::TESTNET4;
+    } else if (std::equal(message.begin(), message.end(), regtest_msg.data())) {
+        return ChainType::REGTEST;
+    } else if (std::equal(message.begin(), message.end(), signet_msg.data())) {
+        return ChainType::SIGNET;
+    }
+    return std::nullopt;
 }

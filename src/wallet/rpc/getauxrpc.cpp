@@ -7,7 +7,6 @@
 #include <wallet/rpc/util.h>
 #include <wallet/rpc/wallet.h>
 #include <wallet/scriptpubkeyman.h>
-#include <util/fees.h>
 #include <consensus/validation.h>
 #include <validation.h>
 #include <rpc/auxpow_miner.h>

@@ -33,13 +33,14 @@
 #include <util/overflow.h>
 #include <util/strencodings.h>
 #include <util/string.h>
-#include <version.h>
 
 #include <cassert>
 #include <chrono>
 #include <limits>
 #include <set>
 #include <vector>
+
+using util::ToString;
 
 void initialize_integer()
 {
@@ -77,11 +78,10 @@ FUZZ_TARGET(integer, .init = initialize_integer)
     } else {
         (void)CompressAmount(u64);
     }
-    static const uint256 u256_min(uint256S("0000000000000000000000000000000000000000000000000000000000000000"));
-    static const uint256 u256_max(uint256S("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"));
+    constexpr uint256 u256_min{"0000000000000000000000000000000000000000000000000000000000000000"};
+    constexpr uint256 u256_max{"ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"};
     const std::vector<uint256> v256{u256, u256_min, u256_max};
     (void)ComputeMerkleRoot(v256);
-    (void)CountBits(u64);
     (void)DecompressAmount(u64);
     {
         if (std::optional<CAmount> parsed = ParseMoney(FormatMoney(i64))) {
@@ -214,7 +214,6 @@ FUZZ_TARGET(integer, .init = initialize_integer)
 
     {
         const ServiceFlags service_flags = (ServiceFlags)u64;
-        (void)HasAllDesirableServiceFlags(service_flags);
         (void)MayHaveUsefulAddressDB(service_flags);
     }
 

@@ -24,7 +24,15 @@
 #include <optional>
 #include <string>
 
-CNetAddr ConsumeNetAddr(FuzzedDataProvider& fuzzed_data_provider) noexcept;
+/**
+ * Create a CNetAddr. It may have `addr.IsValid() == false`.
+ * @param[in,out] fuzzed_data_provider Take data for the address from this, if `rand` is `nullptr`.
+ * @param[in,out] rand If not nullptr, take data from it instead of from `fuzzed_data_provider`.
+ * Prefer generating addresses using `fuzzed_data_provider` because it is not uniform. Only use
+ * `rand` if `fuzzed_data_provider` is exhausted or its data is needed for other things.
+ * @return a "random" network address.
+ */
+CNetAddr ConsumeNetAddr(FuzzedDataProvider& fuzzed_data_provider, FastRandomContext* rand = nullptr) noexcept;
 
 class FuzzedSock : public Sock
 {
@@ -35,7 +43,7 @@ class FuzzedSock : public Sock
      * If `MSG_PEEK` is used, then our `Recv()` returns some random data as usual, but on the next
      * `Recv()` call we must return the same data, thus we remember it here.
      */
-    mutable std::optional<uint8_t> m_peek_data;
+    mutable std::vector<uint8_t> m_peek_data;
 
     /**
      * Whether to pretend that the socket is select(2)-able. This is randomly set in the

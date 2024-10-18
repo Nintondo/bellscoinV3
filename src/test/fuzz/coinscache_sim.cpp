@@ -43,7 +43,9 @@ struct PrecomputedData
         for (uint32_t i = 0; i < NUM_OUTPOINTS; ++i) {
             uint32_t idx = (i * 1200U) >> 12; /* Map 3 or 4 entries to same txid. */
             const uint8_t ser[4] = {uint8_t(idx), uint8_t(idx >> 8), uint8_t(idx >> 16), uint8_t(idx >> 24)};
-            CSHA256().Write(PREFIX_O, 1).Write(ser, sizeof(ser)).Finalize(outpoints[i].hash.begin());
+            uint256 txid;
+            CSHA256().Write(PREFIX_O, 1).Write(ser, sizeof(ser)).Finalize(txid.begin());
+            outpoints[i].hash = Txid::FromUint256(txid);
             outpoints[i].n = i;
         }
 
@@ -170,13 +172,13 @@ public:
     std::unique_ptr<CCoinsViewCursor> Cursor() const final { return {}; }
     size_t EstimateSize() const final { return m_data.size(); }
 
-    bool BatchWrite(CCoinsMap& data, const uint256&, bool erase) final
+    bool BatchWrite(CoinsViewCacheCursor& cursor, const uint256&) final
     {
-        for (auto it = data.begin(); it != data.end(); it = erase ? data.erase(it) : std::next(it)) {
-            if (it->second.flags & CCoinsCacheEntry::DIRTY) {
+        for (auto it{cursor.Begin()}; it != cursor.End(); it = cursor.NextAndMaybeErase(*it)) {
+            if (it->second.IsDirty()) {
                 if (it->second.coin.IsSpent() && (it->first.n % 5) != 4) {
                     m_data.erase(it->first);
-                } else if (erase) {
+                } else if (cursor.WillErase(*it)) {
                     m_data[it->first] = std::move(it->second.coin);
                 } else {
                     m_data[it->first] = it->second.coin;

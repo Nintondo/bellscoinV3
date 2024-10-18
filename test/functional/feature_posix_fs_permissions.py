@@ -40,4 +40,4 @@ class PosixFsPermissionsTest(BellscoinTestFramework):
 
 
 if __name__ == '__main__':
-    PosixFsPermissionsTest().main()
+    PosixFsPermissionsTest(__file__).main()

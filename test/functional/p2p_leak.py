@@ -178,4 +178,4 @@ class P2PLeakTest(BellscoinTestFramework):
 
 
 if __name__ == '__main__':
-    P2PLeakTest().main()
+    P2PLeakTest(__file__).main()

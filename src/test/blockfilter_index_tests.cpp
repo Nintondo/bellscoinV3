@@ -67,7 +67,8 @@ CBlock BuildChainTestingSetup::CreateBlock(const CBlockIndex* prev,
     const std::vector<CMutableTransaction>& txns,
     const CScript& scriptPubKey)
 {
-    std::unique_ptr<CBlockTemplate> pblocktemplate = BlockAssembler{m_node.chainman->ActiveChainstate(), m_node.mempool.get()}.CreateNewBlock(scriptPubKey);
+     BlockAssembler::Options options;
+    std::unique_ptr<CBlockTemplate> pblocktemplate = BlockAssembler{m_node.chainman->ActiveChainstate(), m_node.mempool.get(), options}.CreateNewBlock(scriptPubKey);
     CBlock& block = pblocktemplate->block;
     block.hashPrevBlock = prev->GetBlockHash();
     block.nTime = prev->nTime + 1;
@@ -143,7 +144,7 @@ BOOST_FIXTURE_TEST_CASE(blockfilter_index_initial_sync, BuildChainTestingSetup)
     BOOST_REQUIRE(filter_index.StartBackgroundSync());
 
     // Allow filter index to catch up with the block index.
-    IndexWaitSynced(filter_index);
+    IndexWaitSynced(filter_index, *Assert(m_node.shutdown));
 
     // Check that filter index has all blocks that were in the chain before it started.
     {
@@ -162,9 +163,8 @@ BOOST_FIXTURE_TEST_CASE(blockfilter_index_initial_sync, BuildChainTestingSetup)
         LOCK(cs_main);
         tip = m_node.chainman->ActiveChain().Tip();
     }
-    CKey coinbase_key_A, coinbase_key_B;
-    coinbase_key_A.MakeNewKey(true);
-    coinbase_key_B.MakeNewKey(true);
+    CKey coinbase_key_A = GenerateRandomKey();
+    CKey coinbase_key_B = GenerateRandomKey();
     CScript coinbase_script_pub_key_A = GetScriptForDestination(PKHash(coinbase_key_A.GetPubKey()));
     CScript coinbase_script_pub_key_B = GetScriptForDestination(PKHash(coinbase_key_B.GetPubKey()));
     std::vector<std::shared_ptr<CBlock>> chainA, chainB;

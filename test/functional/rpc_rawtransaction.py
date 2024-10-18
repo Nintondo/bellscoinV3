@@ -32,6 +32,7 @@ from test_framework.script import (
 from test_framework.test_framework import BellscoinTestFramework
 from test_framework.util import (
     assert_equal,
+    assert_greater_than,
     assert_raises_rpc_error,
 )
 from test_framework.wallet import (
@@ -70,11 +71,10 @@ class RawTransactionsTest(BellscoinTestFramework):
         self.extra_args = [
             ["-txindex"],
             ["-txindex"],
-            [],
+            ["-fastprune", "-prune=1"],
         ]
-        # whitelist all peers to speed up tx relay / mempool sync
-        for args in self.extra_args:
-            args.append("-whitelist=noban@127.0.0.1")
+        # whitelist peers to speed up tx relay / mempool sync
+        self.noban_tx_relay = True
         self.supports_cli = False
 
     def setup_network(self):
@@ -85,7 +85,6 @@ class RawTransactionsTest(BellscoinTestFramework):
         self.wallet = MiniWallet(self.nodes[0])
 
         self.getrawtransaction_tests()
-        self.getrawtransaction_verbosity_tests()
         self.createrawtransaction_tests()
         self.sendrawtransaction_tests()
         self.sendrawtransaction_testmempoolaccept_tests()
@@ -94,6 +93,8 @@ class RawTransactionsTest(BellscoinTestFramework):
         if self.is_specified_wallet_compiled() and not self.options.descriptors:
             self.import_deterministic_coinbase_privkeys()
             self.raw_multisig_transaction_legacy_tests()
+        self.getrawtransaction_verbosity_tests()
+
 
     def getrawtransaction_tests(self):
         tx = self.wallet.send_self_transfer(from_node=self.nodes[0])
@@ -242,6 +243,13 @@ class RawTransactionsTest(BellscoinTestFramework):
         # check that coinbase has no fee or does not throw any errors for verbosity 2
         coin_base = self.nodes[1].getblock(block1)['tx'][0]
         gottx = self.nodes[1].getrawtransaction(txid=coin_base, verbosity=2, blockhash=block1)
+        assert 'fee' not in gottx
+        # check that verbosity 2 for a mempool tx will fallback to verbosity 1
+        # Do this with a pruned chain, as a regression test for https://github.com/bitcoin/bitcoin/pull/29003
+        self.generate(self.nodes[2], 400)
+        assert_greater_than(self.nodes[2].pruneblockchain(250), 0)
+        mempool_tx = self.wallet.send_self_transfer(from_node=self.nodes[2])['txid']
+        gottx = self.nodes[2].getrawtransaction(txid=mempool_tx, verbosity=2)
         assert 'fee' not in gottx
 
     def createrawtransaction_tests(self):
@@ -422,13 +430,13 @@ class RawTransactionsTest(BellscoinTestFramework):
         assert_equal(testres['allowed'], True)
         self.nodes[2].sendrawtransaction(hexstring=tx['hex'], maxfeerate='0.20000000')
 
-        self.log.info("Test sendrawtransaction/testmempoolaccept with tx already in the chain")
+        self.log.info("Test sendrawtransaction/testmempoolaccept with tx outputs already in the utxo set")
         self.generate(self.nodes[2], 1)
         for node in self.nodes:
             testres = node.testmempoolaccept([tx['hex']])[0]
             assert_equal(testres['allowed'], False)
             assert_equal(testres['reject-reason'], 'txn-already-known')
-            assert_raises_rpc_error(-27, 'Transaction already in block chain', node.sendrawtransaction, tx['hex'])
+            assert_raises_rpc_error(-27, 'Transaction outputs already in utxo set', node.sendrawtransaction, tx['hex'])
 
     def decoderawtransaction_tests(self):
         self.log.info("Test decoderawtransaction")
@@ -455,9 +463,9 @@ class RawTransactionsTest(BellscoinTestFramework):
         self.log.info("Test transaction version numbers")
 
         # Test the minimum transaction version number that fits in a signed 32-bit integer.
-        # As transaction version is unsigned, this should convert to its unsigned equivalent.
+        # As transaction version is serialized unsigned, this should convert to its unsigned equivalent.
         tx = CTransaction()
-        tx.nVersion = -0x80000000
+        tx.nVersion = 0x80000000
         rawtx = tx.serialize().hex()
         decrawtx = self.nodes[0].decoderawtransaction(rawtx)
         assert_equal(decrawtx['version'], 0x80000000)
@@ -468,6 +476,20 @@ class RawTransactionsTest(BellscoinTestFramework):
         rawtx = tx.serialize().hex()
         decrawtx = self.nodes[0].decoderawtransaction(rawtx)
         assert_equal(decrawtx['version'], 0x7fffffff)
+
+        # Test the minimum transaction version number that fits in an unsigned 32-bit integer.
+        tx = CTransaction()
+        tx.nVersion = 0
+        rawtx = tx.serialize().hex()
+        decrawtx = self.nodes[0].decoderawtransaction(rawtx)
+        assert_equal(decrawtx['version'], 0)
+
+        # Test the maximum transaction version number that fits in an unsigned 32-bit integer.
+        tx = CTransaction()
+        tx.nVersion = 0xffffffff
+        rawtx = tx.serialize().hex()
+        decrawtx = self.nodes[0].decoderawtransaction(rawtx)
+        assert_equal(decrawtx['version'], 0xffffffff)
 
     def raw_multisig_transaction_legacy_tests(self):
         self.log.info("Test raw multisig transactions (legacy)")
@@ -482,11 +504,11 @@ class RawTransactionsTest(BellscoinTestFramework):
         addr2Obj = self.nodes[2].getaddressinfo(addr2)
 
         # Tests for createmultisig and addmultisigaddress
-        assert_raises_rpc_error(-5, "Invalid public key", self.nodes[0].createmultisig, 1, ["01020304"])
+        assert_raises_rpc_error(-5, 'Pubkey "01020304" must have a length of either 33 or 65 bytes', self.nodes[0].createmultisig, 1, ["01020304"])
         # createmultisig can only take public keys
         self.nodes[0].createmultisig(2, [addr1Obj['pubkey'], addr2Obj['pubkey']])
         # addmultisigaddress can take both pubkeys and addresses so long as they are in the wallet, which is tested here
-        assert_raises_rpc_error(-5, "Invalid public key", self.nodes[0].createmultisig, 2, [addr1Obj['pubkey'], addr1])
+        assert_raises_rpc_error(-5, f'Pubkey "{addr1}" must be a hex string', self.nodes[0].createmultisig, 2, [addr1Obj['pubkey'], addr1])
 
         mSigObj = self.nodes[2].addmultisigaddress(2, [addr1Obj['pubkey'], addr1])['address']
 
@@ -577,6 +599,8 @@ class RawTransactionsTest(BellscoinTestFramework):
         rawTxPartialSigned2 = self.nodes[2].signrawtransactionwithwallet(rawTx2, inputs)
         self.log.debug(rawTxPartialSigned2)
         assert_equal(rawTxPartialSigned2['complete'], False)  # node2 only has one key, can't comp. sign the tx
+        assert_raises_rpc_error(-22, "TX decode failed", self.nodes[0].combinerawtransaction, [rawTxPartialSigned1['hex'], rawTxPartialSigned2['hex'] + "00"])
+        assert_raises_rpc_error(-22, "Missing transactions", self.nodes[0].combinerawtransaction, [])
         rawTxComb = self.nodes[2].combinerawtransaction([rawTxPartialSigned1['hex'], rawTxPartialSigned2['hex']])
         self.log.debug(rawTxComb)
         self.nodes[2].sendrawtransaction(rawTxComb)
@@ -584,7 +608,8 @@ class RawTransactionsTest(BellscoinTestFramework):
         self.sync_all()
         self.generate(self.nodes[0], 1)
         assert_equal(self.nodes[0].getbalance(), bal + Decimal('50.00000000') + Decimal('2.19000000'))  # block reward + tx
+        assert_raises_rpc_error(-25, "Input not found or already spent", self.nodes[0].combinerawtransaction, [rawTxPartialSigned1['hex'], rawTxPartialSigned2['hex']])
 
 
 if __name__ == '__main__':
-    RawTransactionsTest().main()
+    RawTransactionsTest(__file__).main()

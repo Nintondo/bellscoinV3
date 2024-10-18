@@ -19,7 +19,6 @@
 #include <streams.h>
 #include <sync.h>
 #include <uint256.h>
-#include <version.h>
 #include <zmq/zmqutil.h>
 
 #include <zmq.h>
@@ -39,6 +38,7 @@ namespace Consensus {
 struct Params;
 }
 
+extern int RPCSerializationFlags();
 static std::multimap<std::string, CZMQAbstractPublishNotifier*> mapPublishNotifiers;
 
 static const char *MSG_HASHBLOCK = "hashblock";
@@ -253,7 +253,7 @@ bool CZMQPublishRawBlockNotifier::NotifyBlock(const CBlockIndex *pindex)
 
     ss << block;
 
-    return SendZmqMessage(MSG_RAWBLOCK, &(*ss.begin()), ss.size());
+    return SendZmqMessage(MSG_RAWBLOCK, &(*ss.begin()), block.size());
 }
 
 bool CZMQPublishRawTransactionNotifier::NotifyTransaction(const CTransaction &transaction)

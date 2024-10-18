@@ -124,4 +124,4 @@ class P2PEvict(BellscoinTestFramework):
 
 
 if __name__ == '__main__':
-    P2PEvict().main()
+    P2PEvict(__file__).main()

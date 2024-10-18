@@ -2,13 +2,13 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include <random.h>
 #include <span.h>
 #include <support/allocators/pool.h>
 #include <test/fuzz/FuzzedDataProvider.h>
 #include <test/fuzz/fuzz.h>
 #include <test/fuzz/util.h>
 #include <test/util/poolresourcetester.h>
-#include <test/util/xoroshiro128plusplus.h>
 
 #include <cstdint>
 #include <tuple>
@@ -63,49 +63,22 @@ public:
     {
         if (m_total_allocated > 0x1000000) return;
         size_t alignment_bits = m_provider.ConsumeIntegralInRange<size_t>(0, 7);
-        size_t alignment = 1 << alignment_bits;
+        size_t alignment = size_t{1} << alignment_bits;
         size_t size_bits = m_provider.ConsumeIntegralInRange<size_t>(0, 16 - alignment_bits);
-        size_t size = m_provider.ConsumeIntegralInRange<size_t>(1U << size_bits, (1U << (size_bits + 1)) - 1U) << alignment_bits;
+        size_t size = m_provider.ConsumeIntegralInRange<size_t>(size_t{1} << size_bits, (size_t{1} << (size_bits + 1)) - 1U) << alignment_bits;
         Allocate(size, alignment);
     }
 
     void RandomContentFill(Entry& entry)
     {
-        XoRoShiRo128PlusPlus rng(entry.seed);
-        auto ptr = entry.span.data();
-        auto size = entry.span.size();
-
-        while (size >= 8) {
-            auto r = rng();
-            std::memcpy(ptr, &r, 8);
-            size -= 8;
-            ptr += 8;
-        }
-        if (size > 0) {
-            auto r = rng();
-            std::memcpy(ptr, &r, size);
-        }
+        InsecureRandomContext(entry.seed).fillrand(entry.span);
     }
 
     void RandomContentCheck(const Entry& entry)
     {
-        XoRoShiRo128PlusPlus rng(entry.seed);
-        auto ptr = entry.span.data();
-        auto size = entry.span.size();
-
-        std::byte buf[8];
-        while (size >= 8) {
-            auto r = rng();
-            std::memcpy(buf, &r, 8);
-            assert(std::memcmp(buf, ptr, 8) == 0);
-            size -= 8;
-            ptr += 8;
-        }
-        if (size > 0) {
-            auto r = rng();
-            std::memcpy(buf, &r, size);
-            assert(std::memcmp(buf, ptr, size) == 0);
-        }
+        std::vector<std::byte> expect(entry.span.size());
+        InsecureRandomContext(entry.seed).fillrand(expect);
+        assert(entry.span == expect);
     }
 
     void Deallocate(const Entry& entry)
