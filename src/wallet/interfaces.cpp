@@ -30,6 +30,9 @@
 #include <wallet/spend.h>
 #include <wallet/wallet.h>
 
+#include <node/context.h>
+#include <util/any.h>
+
 #include <memory>
 #include <string>
 #include <utility>

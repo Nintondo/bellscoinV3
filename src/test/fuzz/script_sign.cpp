@@ -36,13 +36,14 @@ FUZZ_TARGET(script_sign, .init = initialize_script_sign)
     const std::vector<uint8_t> key = ConsumeRandomLengthByteVector(fuzzed_data_provider, 128);
 
     {
-        DataStream random_data_stream{ConsumeDataStream(fuzzed_data_provider)};
+        DataStream stream{ConsumeDataStream(fuzzed_data_provider)};
+        CDataStream random_data_stream{stream, SER_NETWORK, INIT_PROTO_VERSION}; // temporary copy, to be removed along with the version flag SERIALIZE_TRANSACTION_NO_WITNESS
         std::map<CPubKey, KeyOriginInfo> hd_keypaths;
         try {
             DeserializeHDKeypaths(random_data_stream, key, hd_keypaths);
         } catch (const std::ios_base::failure&) {
         }
-        DataStream serialized{};
+        CDataStream serialized{SER_NETWORK, PROTOCOL_VERSION};
         SerializeHDKeypaths(serialized, hd_keypaths, CompactSizeWriter(fuzzed_data_provider.ConsumeIntegral<uint8_t>()));
     }
 
@@ -59,7 +60,7 @@ FUZZ_TARGET(script_sign, .init = initialize_script_sign)
             }
             hd_keypaths[*pub_key] = *key_origin_info;
         }
-        DataStream serialized{};
+        CDataStream serialized{SER_NETWORK, PROTOCOL_VERSION};
         try {
             SerializeHDKeypaths(serialized, hd_keypaths, CompactSizeWriter(fuzzed_data_provider.ConsumeIntegral<uint8_t>()));
         } catch (const std::ios_base::failure&) {

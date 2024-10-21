@@ -115,7 +115,6 @@ static std::string DummyAddress(const CChainParams &params)
         break;
     case ChainType::SIGNET:
     case ChainType::TESTNET:
-    case ChainType::TESTNET4:
         addr = "tb1p35yvjel7srp783ztf8v6jdra7dhfzk5jaun8xz2qp6ws7z80n4tqa6qnlg";
         break;
     case ChainType::REGTEST:
@@ -519,7 +518,7 @@ fs::path static StartupShortcutPath()
     ChainType chain = gArgs.GetChainType();
     if (chain == ChainType::MAIN)
         return GetSpecialFolderPath(CSIDL_STARTUP) / "Bells.lnk";
-    if (chain == ChainType::TESTNET) // Remove this special case when testnet CBaseChainParams::DataDir() is incremented to "testnet4"
+    if (chain == ChainType::TESTNET)
         return GetSpecialFolderPath(CSIDL_STARTUP) / "Bells (testnet).lnk";
     return GetSpecialFolderPath(CSIDL_STARTUP) / fs::u8path(strprintf("Bells (%s).lnk", ChainTypeToString(chain)));
 }

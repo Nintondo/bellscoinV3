@@ -845,7 +845,7 @@ RPCHelpMan gethdkeys()
             HelpExampleCli("gethdkeys", "") + HelpExampleRpc("gethdkeys", "")
             + HelpExampleCliNamed("gethdkeys", {{"active_only", "true"}, {"private", "true"}}) + HelpExampleRpcNamed("gethdkeys", {{"active_only", "true"}, {"private", "true"}})
         },
-        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+        [&](const RPCHelpMan& self, const node::JSONRPCRequest& request) -> UniValue
         {
             const std::shared_ptr<const CWallet> wallet = GetWalletForJSONRPCRequest(request);
             if (!wallet) return UniValue::VNULL;
@@ -947,7 +947,7 @@ static RPCHelpMan createwalletdescriptor()
             HelpExampleCli("createwalletdescriptor", "bech32m")
             + HelpExampleRpc("createwalletdescriptor", "bech32m")
         },
-        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+        [&](const RPCHelpMan& self, const node::JSONRPCRequest& request) -> UniValue
         {
             std::shared_ptr<CWallet> const pwallet = GetWalletForJSONRPCRequest(request);
             if (!pwallet) return UniValue::VNULL;

@@ -385,7 +385,7 @@ struct PSBTInput
             }
 
             // Type is compact size uint at beginning of key
-            SpanReader skey{INIT_PROTO_VERSION, key};
+            SpanReader skey{s.GetVersion(), key};
             uint64_t type = ReadCompactSize(skey);
 
             // Do stuff based on type
@@ -594,7 +594,7 @@ struct PSBTInput
                     } else if (key.size() != 65) {
                         throw std::ios_base::failure("Input Taproot script signature key is not 65 bytes");
                     }
-                    SpanReader s_key{INIT_PROTO_VERSION, Span{key}.subspan(1)};
+                    SpanReader s_key{s.GetVersion(), Span{key}.subspan(1)};
                     XOnlyPubKey xonly;
                     uint256 hash;
                     s_key >> xonly;
@@ -636,7 +636,7 @@ struct PSBTInput
                     } else if (key.size() != 33) {
                         throw std::ios_base::failure("Input Taproot BIP32 keypath key is not at 33 bytes");
                     }
-                    SpanReader s_key{INIT_PROTO_VERSION, Span{key}.subspan(1)};
+                    SpanReader s_key{s.GetVersion(), Span{key}.subspan(1)};
                     XOnlyPubKey xonly;
                     s_key >> xonly;
                     std::set<uint256> leaf_hashes;
@@ -811,7 +811,7 @@ struct PSBTOutput
             }
 
             // Type is compact size uint at beginning of key
-            SpanReader skey{INIT_PROTO_VERSION, key};
+            SpanReader skey{s.GetVersion(), key};
             uint64_t type = ReadCompactSize(skey);
 
             // Do stuff based on type
@@ -1065,7 +1065,7 @@ struct PartiallySignedTransaction
             }
 
             // Type is compact size uint at beginning of key
-            SpanReader skey{INIT_PROTO_VERSION, key};
+            SpanReader skey{s.GetVersion(), key};
             uint64_t type = ReadCompactSize(skey);
 
             // Do stuff based on type

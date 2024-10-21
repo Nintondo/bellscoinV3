@@ -25,11 +25,6 @@ class WalletCrossChain(BellscoinTestFramework):
         self.nodes[1].extra_args = ['-maxconnections=0', '-prune=550'] # disable testnet sync
         self.nodes[1].replace_in_config([('regtest=', 'testnet='), ('[regtest]', '[test]')])
 
-        # Switch node 2 to testnet4 before starting it.
-        self.nodes[2].chain = 'testnet4'
-        self.nodes[2].extra_args = ['-maxconnections=0', '-prune=550'] # disable testnet4 sync
-        self.nodes[2].replace_in_config([('regtest=', 'testnet4='), ('[regtest]', '[testnet4]')])
-
         self.start_nodes()
 
     def run_test(self):

@@ -405,7 +405,7 @@ static RPCHelpMan getrawtransaction()
     CBlockUndo blockUndo;
     CBlock block;
 
-    if (tx->IsCoinBase() || !blockindex || WITH_LOCK(::cs_main, return chainman.m_blockman.IsBlockPruned(*blockindex)) ||
+    if (tx->IsCoinBase() || !blockindex || WITH_LOCK(::cs_main, return chainman.m_blockman.IsBlockPruned(blockindex)) ||
         !(chainman.m_blockman.UndoReadFromDisk(blockUndo, *blockindex) && chainman.m_blockman.ReadBlockFromDisk(block, *blockindex))) {
         TxToJSON(*tx, hash_block, result, chainman.ActiveChainstate());
         return result;
@@ -1592,7 +1592,7 @@ static RPCHelpMan createpsbt()
     }
 
     // Serialize the PSBT
-    DataStream ssTx{};
+    CDataStream ssTx(SER_NETWORK, PROTOCOL_VERSION);
     ssTx << psbtx;
 
     return EncodeBase64(ssTx);
@@ -1659,7 +1659,7 @@ static RPCHelpMan converttopsbt()
     }
 
     // Serialize the PSBT
-    DataStream ssTx{};
+    CDataStream ssTx(SER_NETWORK, PROTOCOL_VERSION);
     ssTx << psbtx;
 
     return EncodeBase64(ssTx);
@@ -1706,7 +1706,7 @@ static RPCHelpMan utxoupdatepsbt()
         /*sighash_type=*/SIGHASH_ALL,
         /*finalize=*/false);
 
-    DataStream ssTx{};
+    CDataStream ssTx(SER_NETWORK, PROTOCOL_VERSION);
     ssTx << psbtx;
     return EncodeBase64(ssTx);
 },
@@ -1807,7 +1807,7 @@ static RPCHelpMan joinpsbts()
     }
     shuffled_psbt.unknown.insert(merged_psbt.unknown.begin(), merged_psbt.unknown.end());
 
-    DataStream ssTx{};
+    CDataStream ssTx(SER_NETWORK, PROTOCOL_VERSION);
     ssTx << shuffled_psbt;
     return EncodeBase64(ssTx);
 },

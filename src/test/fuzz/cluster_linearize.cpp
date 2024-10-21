@@ -283,7 +283,7 @@ FUZZ_TARGET(clusterlin_depgraph_serialization)
     // Verify that any deserialized depgraph is acyclic and roundtrips to an identical depgraph.
 
     // Construct a graph by deserializing.
-    SpanReader reader(buffer);
+    SpanReader reader(INIT_PROTO_VERSION, buffer);
     DepGraph<TestBitSet> depgraph;
     try {
         reader >> Using<DepGraphFormatter>(depgraph);
@@ -299,7 +299,7 @@ FUZZ_TARGET(clusterlin_components)
     // Verify the behavior of DepGraphs's FindConnectedComponent and IsConnected functions.
 
     // Construct a depgraph.
-    SpanReader reader(buffer);
+    SpanReader reader(INIT_PROTO_VERSION, buffer);
     DepGraph<TestBitSet> depgraph;
     try {
         reader >> Using<DepGraphFormatter>(depgraph);
@@ -374,7 +374,7 @@ FUZZ_TARGET(clusterlin_chunking)
     // Verify the correctness of the ChunkLinearization function.
 
     // Construct a graph by deserializing.
-    SpanReader reader(buffer);
+    SpanReader reader(INIT_PROTO_VERSION, buffer);
     DepGraph<TestBitSet> depgraph;
     try {
         reader >> Using<DepGraphFormatter>(depgraph);
@@ -416,7 +416,7 @@ FUZZ_TARGET(clusterlin_ancestor_finder)
     // Verify that AncestorCandidateFinder works as expected.
 
     // Retrieve a depgraph from the fuzz input.
-    SpanReader reader(buffer);
+    SpanReader reader(INIT_PROTO_VERSION, buffer);
     DepGraph<TestBitSet> depgraph;
     try {
         reader >> Using<DepGraphFormatter>(depgraph);
@@ -469,7 +469,7 @@ FUZZ_TARGET(clusterlin_search_finder)
     // AncestorCandidateFinder.
 
     // Retrieve an RNG seed and a depgraph from the fuzz input.
-    SpanReader reader(buffer);
+    SpanReader reader(INIT_PROTO_VERSION, buffer);
     DepGraph<TestBitSet> depgraph;
     uint64_t rng_seed{0};
     try {
@@ -569,7 +569,7 @@ FUZZ_TARGET(clusterlin_linearization_chunking)
     // Verify the behavior of LinearizationChunking.
 
     // Retrieve a depgraph from the fuzz input.
-    SpanReader reader(buffer);
+    SpanReader reader(INIT_PROTO_VERSION, buffer);
     DepGraph<TestBitSet> depgraph;
     try {
         reader >> Using<DepGraphFormatter>(depgraph);
@@ -686,7 +686,7 @@ FUZZ_TARGET(clusterlin_linearize)
     // Verify the behavior of Linearize().
 
     // Retrieve an RNG seed, an iteration count, and a depgraph from the fuzz input.
-    SpanReader reader(buffer);
+    SpanReader reader(INIT_PROTO_VERSION, buffer);
     DepGraph<TestBitSet> depgraph;
     uint64_t rng_seed{0};
     uint64_t iter_count{0};
@@ -772,7 +772,7 @@ FUZZ_TARGET(clusterlin_postlinearize)
     // Verify expected properties of PostLinearize() on arbitrary linearizations.
 
     // Retrieve a depgraph from the fuzz input.
-    SpanReader reader(buffer);
+    SpanReader reader(INIT_PROTO_VERSION, buffer);
     DepGraph<TestBitSet> depgraph;
     try {
         reader >> Using<DepGraphFormatter>(depgraph);
@@ -816,7 +816,7 @@ FUZZ_TARGET(clusterlin_postlinearize_tree)
     // an upright or reverse tree structure.
 
     // Construct a direction, RNG seed, and an arbitrary graph from the fuzz input.
-    SpanReader reader(buffer);
+    SpanReader reader(INIT_PROTO_VERSION, buffer);
     uint64_t rng_seed{0};
     DepGraph<TestBitSet> depgraph_gen;
     uint8_t direction{0};
@@ -896,7 +896,7 @@ FUZZ_TARGET(clusterlin_postlinearize_moved_leaf)
     // process will never worsen linearization quality.
 
     // Construct an arbitrary graph and a fee from the fuzz input.
-    SpanReader reader(buffer);
+    SpanReader reader(INIT_PROTO_VERSION, buffer);
     DepGraph<TestBitSet> depgraph;
     int32_t fee_inc{0};
     try {
@@ -933,7 +933,7 @@ FUZZ_TARGET(clusterlin_postlinearize_moved_leaf)
 FUZZ_TARGET(clusterlin_merge)
 {
     // Construct an arbitrary graph from the fuzz input.
-    SpanReader reader(buffer);
+    SpanReader reader(INIT_PROTO_VERSION, buffer);
     DepGraph<TestBitSet> depgraph;
     try {
         reader >> Using<DepGraphFormatter>(depgraph);

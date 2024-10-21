@@ -526,7 +526,7 @@ public:
         m_best_block_time = time;
     };
     void UnitTestMisbehaving(NodeId peer_id) override EXCLUSIVE_LOCKS_REQUIRED(!m_peer_mutex) { Misbehaving(*Assert(GetPeerRef(peer_id)), ""); };
-    void ProcessMessage(CNode& pfrom, const std::string& msg_type, DataStream& vRecv,
+    void ProcessMessage(CNode& pfrom, const std::string& msg_type, CDataStream& vRecv,
                         const std::chrono::microseconds time_received, const std::atomic<bool>& interruptMsgProc) override
         EXCLUSIVE_LOCKS_REQUIRED(!m_peer_mutex, !m_most_recent_block_mutex, !m_headers_presync_mutex, g_msgproc_mutex, !m_tx_download_mutex);
     void UpdateLastBlockAnnounceTime(NodeId node, int64_t time_in_seconds) override;
@@ -1162,7 +1162,7 @@ private:
      * @param[in]   peer            The peer that we received the request from
      * @param[in]   vRecv           The raw message received
      */
-    void ProcessGetCFilters(CNode& node, Peer& peer, DataStream& vRecv);
+    void ProcessGetCFilters(CNode& node, Peer& peer, CDataStream& vRecv);
 
     /**
      * Handle a cfheaders request.
@@ -1173,7 +1173,7 @@ private:
      * @param[in]   peer            The peer that we received the request from
      * @param[in]   vRecv           The raw message received
      */
-    void ProcessGetCFHeaders(CNode& node, Peer& peer, DataStream& vRecv);
+    void ProcessGetCFHeaders(CNode& node, Peer& peer, CDataStream& vRecv);
 
     /**
      * Handle a getcfcheckpt request.
@@ -1184,7 +1184,7 @@ private:
      * @param[in]   peer            The peer that we received the request from
      * @param[in]   vRecv           The raw message received
      */
-    void ProcessGetCFCheckPt(CNode& node, Peer& peer, DataStream& vRecv);
+    void ProcessGetCFCheckPt(CNode& node, Peer& peer, CDataStream& vRecv);
 
     /** Checks if address relay is permitted with peer. If needed, initializes
      * the m_addr_known bloom filter and sets m_addr_relay_enabled to true.
@@ -1447,7 +1447,7 @@ int64_t PeerManagerImpl::ApproximateBestBlockDepth() const
 
 bool PeerManagerImpl::CanDirectFetch()
 {
-    return m_chainman.ActiveChain().Tip()->Time() > GetAdjustedTime() - m_chainparams.GetConsensus().PoWTargetSpacing() * 20;
+    return m_chainman.ActiveChain().Tip()->Time() > NodeClock::now() - m_chainparams.GetConsensus().PoWTargetSpacing() * 20;
 }
 
 static bool PeerHasHeader(CNodeState *state, const CBlockIndex *pindex) EXCLUSIVE_LOCKS_REQUIRED(cs_main)
@@ -2229,7 +2229,7 @@ void PeerManagerImpl::NewPoWValidBlock(const CBlockIndex *pindex, const std::sha
                     hashBlock.ToString(), pnode->GetId());
 
             const CSerializedNetMsg& ser_cmpctblock{lazy_ser.get()};
-            PushMessage(*pnode, ser_cmpctblock.Copy());
+            m_connman.PushMessage(pnode, ser_cmpctblock.Copy());
             state.pindexBestHeaderSent = pindex;
         }
     });
@@ -2493,7 +2493,7 @@ void PeerManagerImpl::ProcessGetBlockData(CNode& pfrom, Peer& peer, const CInv& 
             LogPrint(BCLog::NET, "Ignore block request below NODE_NETWORK_LIMITED threshold, disconnect peer=%d\n", pfrom.GetId());
             //disconnect node and prevent it from stalling (would otherwise wait for the missing block)
             pfrom.fDisconnect = true;
-            return;
+            return; 
         }
         // Pruned nodes may have deleted the block, so check whether
         // it's available before trying to send.
@@ -2512,7 +2512,7 @@ void PeerManagerImpl::ProcessGetBlockData(CNode& pfrom, Peer& peer, const CInv& 
         // as the network format matches the format on disk
         std::vector<uint8_t> block_data;
         if (!m_chainman.m_blockman.ReadRawBlockFromDisk(block_data, block_pos)) {
-            if (WITH_LOCK(m_chainman.GetMutex(), return m_chainman.m_blockman.IsBlockPruned(*pindex))) {
+            if (WITH_LOCK(m_chainman.GetMutex(), return m_chainman.m_blockman.IsBlockPruned(pindex))) {
                 LogPrint(BCLog::NET, "Block was pruned before it could be read, disconnect peer=%s\n", pfrom.GetId());
             } else {
                 LogError("Cannot load block from disk, disconnect peer=%d\n", pfrom.GetId());
@@ -2526,7 +2526,7 @@ void PeerManagerImpl::ProcessGetBlockData(CNode& pfrom, Peer& peer, const CInv& 
         // Send block from disk
         std::shared_ptr<CBlock> pblockRead = std::make_shared<CBlock>();
         if (!m_chainman.m_blockman.ReadBlockFromDisk(*pblockRead, block_pos)) {
-            if (WITH_LOCK(m_chainman.GetMutex(), return m_chainman.m_blockman.IsBlockPruned(*pindex))) {
+            if (WITH_LOCK(m_chainman.GetMutex(), return m_chainman.m_blockman.IsBlockPruned(pindex))) {
                 LogPrint(BCLog::NET, "Block was pruned before it could be read, disconnect peer=%s\n", pfrom.GetId());
             } else {
                 LogError("Cannot load block from disk, disconnect peer=%d\n", pfrom.GetId());
@@ -3499,7 +3499,7 @@ bool PeerManagerImpl::PrepareBlockFilterRequest(CNode& node, Peer& peer,
     return true;
 }
 
-void PeerManagerImpl::ProcessGetCFilters(CNode& node, Peer& peer, DataStream& vRecv)
+void PeerManagerImpl::ProcessGetCFilters(CNode& node, Peer& peer, CDataStream& vRecv)
 {
     uint8_t filter_type_ser;
     uint32_t start_height;
@@ -3530,7 +3530,7 @@ void PeerManagerImpl::ProcessGetCFilters(CNode& node, Peer& peer, DataStream& vR
     }
 }
 
-void PeerManagerImpl::ProcessGetCFHeaders(CNode& node, Peer& peer, DataStream& vRecv)
+void PeerManagerImpl::ProcessGetCFHeaders(CNode& node, Peer& peer, CDataStream& vRecv)
 {
     uint8_t filter_type_ser;
     uint32_t start_height;
@@ -3574,7 +3574,7 @@ void PeerManagerImpl::ProcessGetCFHeaders(CNode& node, Peer& peer, DataStream& v
     m_connman.PushMessage(&node, std::move(msg));
 }
 
-void PeerManagerImpl::ProcessGetCFCheckPt(CNode& node, Peer& peer, DataStream& vRecv)
+void PeerManagerImpl::ProcessGetCFCheckPt(CNode& node, Peer& peer, CDataStream& vRecv)
 {
     uint8_t filter_type_ser;
     uint256 stop_hash;
@@ -3718,7 +3718,7 @@ void PeerManagerImpl::ProcessCompactBlockTxns(CNode& pfrom, Peer& peer, const Bl
     return;
 }
 
-void PeerManagerImpl::ProcessMessage(CNode& pfrom, const std::string& msg_type, DataStream& vRecv,
+void PeerManagerImpl::ProcessMessage(CNode& pfrom, const std::string& msg_type, CDataStream& vRecv,
                                      const std::chrono::microseconds time_received,
                                      const std::atomic<bool>& interruptMsgProc)
 {
@@ -5983,7 +5983,7 @@ bool PeerManagerImpl::SendMessages(CNode* pto)
                          // Convert HEADERS_DOWNLOAD_TIMEOUT_PER_HEADER to microseconds before scaling
                          // to maintain precision
                          std::chrono::microseconds{HEADERS_DOWNLOAD_TIMEOUT_PER_HEADER} *
-                         Ticks<std::chrono::seconds>(GetAdjustedTime() - m_chainman.m_best_header->Time()) / consensusParams.PoWTargetSpacing().count()
+                         Ticks<std::chrono::seconds>(NodeClock::now() - m_chainman.m_best_header->Time()) / consensusParams.PoWTargetSpacing().count()
                         );
                     nSyncStarted++;
                 }

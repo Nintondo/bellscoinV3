@@ -39,7 +39,7 @@ FUZZ_TARGET(transaction, .init = initialize_transaction)
         }
     }();
     bool valid_mutable_tx = true;
-    DataStream ds_mtx{buffer};
+    CDataStream ds_mtx(buffer, SER_NETWORK, INIT_PROTO_VERSION);
     CMutableTransaction mutable_tx;
     try {
         int nVersion;

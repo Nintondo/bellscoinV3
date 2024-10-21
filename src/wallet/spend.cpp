@@ -1015,7 +1015,7 @@ static util::Result<CreatedTransactionResult> CreateTransactionInternal(
     CMutableTransaction txNew; // The resulting transaction that we make
 
     if (coin_control.m_version) {
-        txNew.version = coin_control.m_version.value();
+        txNew.nVersion = coin_control.m_version.value();
     }
 
     CoinSelectionParams coin_selection_params{rng_fast}; // Parameters for coin selection, init with dummy

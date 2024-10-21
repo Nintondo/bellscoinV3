@@ -168,31 +168,31 @@ struct TestChain100Setup : public TestingSetup {
      * @param outputs              Transaction vout.
      * @param submit               Whether or not to submit to mempool
      */
-    CMutableTransaction CreateValidMempoolTransaction(const std::vector<CTransactionRef>& input_transactions,
-                                                      const std::vector<COutPoint>& inputs,
-                                                      int input_height,
-                                                      const std::vector<CKey>& input_signing_keys,
-                                                      const std::vector<CTxOut>& outputs,
-                                                      bool submit = true);
+    // CMutableTransaction CreateValidMempoolTransaction(const std::vector<CTransactionRef>& input_transactions,
+    //                                                   const std::vector<COutPoint>& inputs,
+    //                                                   int input_height,
+    //                                                   const std::vector<CKey>& input_signing_keys,
+    //                                                   const std::vector<CTxOut>& outputs,
+    //                                                   bool submit = true);
 
-    /**
-     * Create a 1-in-1-out transaction and, optionally, submit to the mempool.
-     *
-     * @param input_transaction  The transaction to spend
-     * @param input_vout         The vout to spend from the input_transaction
-     * @param input_height       The height of the block that included the input_transaction
-     * @param input_signing_key  The key to spend the input_transaction
-     * @param output_destination Where to send the output
-     * @param output_amount      How much to send
-     * @param submit             Whether or not to submit to mempool
-     */
-    CMutableTransaction CreateValidMempoolTransaction(CTransactionRef input_transaction,
-                                                      uint32_t input_vout,
-                                                      int input_height,
-                                                      CKey input_signing_key,
-                                                      CScript output_destination,
-                                                      CAmount output_amount = CAmount(1 * COIN),
-                                                      bool submit = true);
+    // /**
+    //  * Create a 1-in-1-out transaction and, optionally, submit to the mempool.
+    //  *
+    //  * @param input_transaction  The transaction to spend
+    //  * @param input_vout         The vout to spend from the input_transaction
+    //  * @param input_height       The height of the block that included the input_transaction
+    //  * @param input_signing_key  The key to spend the input_transaction
+    //  * @param output_destination Where to send the output
+    //  * @param output_amount      How much to send
+    //  * @param submit             Whether or not to submit to mempool
+    //  */
+    // CMutableTransaction CreateValidMempoolTransaction(CTransactionRef input_transaction,
+    //                                                   uint32_t input_vout,
+    //                                                   int input_height,
+    //                                                   CKey input_signing_key,
+    //                                                   CScript output_destination,
+    //                                                   CAmount output_amount = CAmount(1 * COIN),
+    //                                                   bool submit = true);
 
     /** Create transactions spending from m_coinbase_txns. These transactions will only spend coins
      * that exist in the current chain, but may be premature coinbase spends, have missing

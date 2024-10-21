@@ -152,6 +152,10 @@ public:
         ::Serialize(*this, obj);
         return (*this);
     }
+    int GetVersion() const
+    {
+        return nVersion;
+    }
     // BELLSCOIN
     int GetType() const { return nType; }
     const void* GetParams() const { return nullptr; }
@@ -546,6 +550,12 @@ public:
         return 0;
     }
 
+    /** Get wrapped FILE* without transfer of ownership.
+     * @note Ownership of the FILE* will remain with this class. Use this only if the scope of the
+     * AutoFile outlives use of the passed pointer.
+     */
+    std::FILE* Get() const { return m_file; }
+
     /** Get wrapped FILE* with transfer of ownership.
      * @note This will invalidate the AutoFile object, and makes it the responsibility of the caller
      * of this function to clean up the returned FILE*.
@@ -632,6 +642,7 @@ class BufferedFile
 {
 private:
     int nType;
+    int nTxVersion{0};
     CAutoFile& m_src;
     uint64_t nSrcPos{0};  //!< how many bytes have been read from source
     uint64_t m_read_pos{0}; //!< how many bytes have been read from this
@@ -686,8 +697,13 @@ public:
             throw std::ios_base::failure("Rewind limit must be less than buffer size");
     }
 
-    int GetType() const { return nType; }
     int GetVersion() const { return m_src.GetVersion(); }
+    int GetType() const { return nType; }
+    // SYSCOIN
+    const void* GetParams() const { return nullptr; }
+    void SetTxVersion(int nTxVersionIn) { nTxVersion = nTxVersionIn; }
+    int GetTxVersion()           { return nTxVersion; }
+    void seek(size_t _nSize) {return;}
 
     //! check whether we're at the end of the source file
     bool eof() const {

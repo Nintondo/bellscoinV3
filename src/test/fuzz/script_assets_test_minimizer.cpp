@@ -70,7 +70,7 @@ std::vector<CTxOut> TxOutsFromJSON(const UniValue& univalue)
     for (size_t i = 0; i < univalue.size(); ++i) {
         CTxOut txout;
         try {
-            SpanReader{CheckedParseHex(univalue[i].get_str())} >> txout;
+            SpanReader{0, CheckedParseHex(univalue[i].get_str())} >> txout;
         } catch (const std::ios_base::failure&) {
             throw std::runtime_error("Prevout invalid format");
         }

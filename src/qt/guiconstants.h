@@ -50,7 +50,6 @@ static const int TOOLTIP_WRAP_THRESHOLD = 80;
 #define QAPP_ORG_DOMAIN "bellscoin.com"
 #define QAPP_APP_NAME_DEFAULT "Bells-Qt"
 #define QAPP_APP_NAME_TESTNET "Bells-Qt-testnet"
-#define QAPP_APP_NAME_TESTNET4 "Bells-Qt-testnet4"
 #define QAPP_APP_NAME_SIGNET "Bells-Qt-signet"
 #define QAPP_APP_NAME_REGTEST "Bells-Qt-regtest"
 

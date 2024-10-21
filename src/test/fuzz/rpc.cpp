@@ -292,7 +292,7 @@ std::string ConsumeScalarRPCArgument(FuzzedDataProvider& fuzzed_data_provider, b
                 good_data = false;
                 return;
             }
-            DataStream data_stream{};
+            CDataStream data_stream{SER_NETWORK, PROTOCOL_VERSION};
             data_stream << *opt_psbt;
             r = EncodeBase64(data_stream);
         },

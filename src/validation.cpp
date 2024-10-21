@@ -4254,7 +4254,7 @@ bool CheckBlock(const CBlock& block, BlockValidationState& state, const Consensu
     // checks that use witness data may be performed here.
 
     // Size limits
-    if (block.vtx.empty() || block.vtx.size() * WITNESS_SCALE_FACTOR > MAX_BLOCK_WEIGHT || ::GetSerializeSize(block, PROTOCOL_VERSION | SERIALIZE_TRANSACTION_NO_WITNESS) * WITNESS_SCALE_FACTOR > MAX_BLOCK_WEIGHT) {
+    if (block.vtx.empty() || block.vtx.size() * WITNESS_SCALE_FACTOR > MAX_BLOCK_WEIGHT || ::GetSerializeSize(block, PROTOCOL_VERSION | SERIALIZE_TRANSACTION_NO_WITNESS) * WITNESS_SCALE_FACTOR > MAX_BLOCK_WEIGHT) 
         return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-blk-length", "size limits failed");
 
     // First transaction must be coinbase, the rest must not be
@@ -4288,6 +4288,7 @@ bool CheckBlock(const CBlock& block, BlockValidationState& state, const Consensu
         block.fChecked = true;
 
     return true;
+
 }
 
 void ChainstateManager::UpdateUncommittedBlockStructures(CBlock& block, const CBlockIndex* pindexPrev) const
@@ -4418,7 +4419,7 @@ static bool ContextualCheckBlockHeader(const CBlockHeader& block, BlockValidatio
     if (block.GetBlockTime() <= pindexPrev->GetMedianTimePast())
         return state.Invalid(BlockValidationResult::BLOCK_INVALID_HEADER, "time-too-old", "block's timestamp is too early");
 
-    // Testnet4 and regtest only: Check timestamp against prev for difficulty-adjustment
+    // Regtest only: Check timestamp against prev for difficulty-adjustment
     // blocks to prevent timewarp attacks (see https://github.com/bitcoin/bitcoin/pull/15482).
     if (consensusParams.enforce_BIP94) {
         // Check timestamp for the first block of each difficulty adjustment
@@ -4652,7 +4653,7 @@ bool ChainstateManager::ProcessNewBlockHeaders(const std::vector<CBlockHeader>& 
     if (NotifyHeaderTip()) {
         if (IsInitialBlockDownload() && ppindex && *ppindex) {
             const CBlockIndex& last_accepted{**ppindex};
-            int64_t blocks_left{(NodeClock::now() - last_accepted.Time()) / GetConsensus().PowTargetSpacing()};
+            int64_t blocks_left{(NodeClock::now() - last_accepted.Time()) / GetConsensus().PoWTargetSpacing()};
             blocks_left = std::max<int64_t>(0, blocks_left);
             const double progress{100.0 * last_accepted.nHeight / (last_accepted.nHeight + blocks_left)};
             LogInfo("Synchronizing blockheaders, height: %d (~%.2f%%)\n", last_accepted.nHeight, progress);
@@ -4679,7 +4680,7 @@ void ChainstateManager::ReportHeadersPresync(const arith_uint256& work, int64_t 
     bool initial_download = IsInitialBlockDownload();
     GetNotifications().headerTip(GetSynchronizationState(initial_download, m_blockman.m_blockfiles_indexed), height, timestamp, /*presync=*/true);
     if (initial_download) {
-        int64_t blocks_left{(NodeClock::now() - NodeSeconds{std::chrono::seconds{timestamp}}) / GetConsensus().PowTargetSpacing()};
+        int64_t blocks_left{(NodeClock::now() - NodeSeconds{std::chrono::seconds{timestamp}}) / GetConsensus().PoWTargetSpacing()};
         blocks_left = std::max<int64_t>(0, blocks_left);
         const double progress{100.0 * height / (height + blocks_left)};
         LogInfo("Pre-synchronizing blockheaders, height: %d (~%.2f%%)\n", height, progress);
@@ -5270,7 +5271,7 @@ bool Chainstate::LoadGenesisBlock()
 }
 
 void ChainstateManager::LoadExternalBlockFile(
-    AutoFile& file_in,
+    CAutoFile& file_in,
     FlatFilePos* dbp,
     std::multimap<uint256, FlatFilePos>* blocks_with_unknown_parent)
 {

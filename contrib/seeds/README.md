@@ -21,7 +21,5 @@ curl https://testnet.achownodes.xyz/seeds.txt.gz | gzip -dc > seeds_test.txt
 curl https://raw.githubusercontent.com/fjahr/asmap-data/main/latest_asmap.dat > asmap-filled.dat
 python3 makeseeds.py -a asmap-filled.dat -s seeds_main.txt > nodes_main.txt
 python3 makeseeds.py -a asmap-filled.dat -s seeds_test.txt > nodes_test.txt
-# TODO: Uncomment when a seeder publishes seeds.txt.gz for testnet4
-# python3 makeseeds.py -a asmap-filled.dat -s seeds_testnet4.txt -m 30000 > nodes_testnet4.txt
 python3 generate-seeds.py . > ../../src/chainparamsseeds.h
 ```

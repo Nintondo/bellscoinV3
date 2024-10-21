@@ -720,7 +720,7 @@ public:
 
 
     // Bellscoin Apply the effects of a block disconnection on the UTXO set.
-    bool DisconnectTip(BlockValidationState& state, DisconnectedBlockTransactions* disconnectpool, bool bReverify = true) EXCLUSIVE_LOCKS_REQUIRED(cs_main, m_mempool->cs);
+    bool DisconnectTip(BlockValidationState& state, DisconnectedBlockTransactions* disconnectpool) EXCLUSIVE_LOCKS_REQUIRED(cs_main, m_mempool->cs);
 
     // Manual block validity manipulation:
     /** Mark a block as precious and reorganize.
@@ -732,7 +732,7 @@ public:
         LOCKS_EXCLUDED(::cs_main);
 
     /** Mark a block as invalid. */
-    bool InvalidateBlock(BlockValidationState& state, CBlockIndex* pindex, bool bReverify = true)
+    bool InvalidateBlock(BlockValidationState& state, CBlockIndex* pindex)
         EXCLUSIVE_LOCKS_REQUIRED(!m_chainstate_mutex)
         LOCKS_EXCLUDED(::cs_main);
 
@@ -1183,7 +1183,7 @@ public:
      *                                              (only used for reindex)
      * */
     void LoadExternalBlockFile(
-        AutoFile& file_in,
+        CAutoFile& file_in,
         FlatFilePos* dbp = nullptr,
         std::multimap<uint256, FlatFilePos>* blocks_with_unknown_parent = nullptr);
 

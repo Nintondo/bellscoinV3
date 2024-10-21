@@ -79,7 +79,7 @@ static std::vector<std::vector<std::string>> g_rpcauth;
 static std::map<std::string, std::set<std::string>> g_rpc_whitelist;
 static bool g_rpc_whitelist_default = false;
 
-static void JSONErrorReply(HTTPRequest* req, UniValue objError, const JSONRPCRequest& jreq)
+static void JSONErrorReply(HTTPRequest* req, UniValue objError, const node::JSONRPCRequest& jreq)
 {
     // Sending HTTP errors is a legacy JSON-RPC behavior.
     Assume(jreq.m_json_version != JSONRPCVersion::V2);

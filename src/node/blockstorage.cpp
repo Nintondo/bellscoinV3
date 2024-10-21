@@ -1326,7 +1326,7 @@ void ImportBlocks(ChainstateManager& chainman, std::vector<fs::path> vImportFile
 
     // -loadblock=
     for (const fs::path& path : vImportFiles) {
-        AutoFile file{fsbridge::fopen(path, "rb")};
+            CAutoFile file{fsbridge::fopen(path, "rb"), CLIENT_VERSION};
         if (!file.IsNull()) {
             LogPrintf("Importing blocks file %s...\n", fs::PathToString(path));
             chainman.LoadExternalBlockFile(file);
