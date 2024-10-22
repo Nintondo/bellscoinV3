@@ -114,11 +114,6 @@ public:
         // Not used in Bells, but left here for completeness.
         consensus.nSubsidyHalvingInterval = 100000;
 
-        // consensus.script_flag_exceptions.emplace( // BIP16 exception
-        //     uint256S("0x00000000000002dc756eebf4f49723ed8d30cc28a5f108eb94b1ba88ac4f9c22"), SCRIPT_VERIFY_NONE);
-        // consensus.script_flag_exceptions.emplace( // Taproot exception
-        //     uint256S("0x0000000000000000000f14c35b2d841e986ab5441de8c585d5ffe55ea1e395ad"), SCRIPT_VERIFY_P2SH | SCRIPT_VERIFY_WITNESS);
-
         consensus.BIP34Height = 40240;
         consensus.BIP34Hash = uint256S("0xc1490b4fe653745dc8638dfbb594d7a1e6138585fa689943835366d5fd842699");
         consensus.BIP65Height = 40240;
@@ -160,11 +155,6 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].nStartTime = 1718409600; // 2024-06-15 00:00:00
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].nTimeout = 1735084800; // 2024-12-25 18:00:00
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].min_activation_height = 188000;
-
-        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].bit = 16;
-        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nStartTime = 0;
-        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
-        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].min_activation_height = 300000; // No activation delay
 
         consensus.nMinimumChainWork = uint256S("0x0000000000000000000000000000000000000000000000000000000000100010");
         consensus.defaultAssumeValid = uint256S("0x50c259c50c5c2ab235f2ceb45da49f7c046f0411667c00d81cb8165f2b843ea1"); // 40000
@@ -223,12 +213,7 @@ public:
         };
 
         m_assumeutxo_data = {
-            {
-                .height = 840'000,
-                .hash_serialized = AssumeutxoHash{uint256{"a2a5521b1b5ab65f67818e5e8eccabb7171a517f9e2382208f77687310768f96"}},
-                .m_chain_tx_count = 991032194,
-                .blockhash = consteval_ctor(uint256{"0000000000000000000320283a032748cef8227873ff4872689bf23f1cda83a5"}),
-            }
+            // TODO to be specified in a future patch.
         };
 
         chainTxData = ChainTxData{
@@ -583,26 +568,7 @@ public:
         };
 
         m_assumeutxo_data = {
-            {   // For use by unit tests
-                .height = 110,
-                .hash_serialized = AssumeutxoHash{uint256{"6657b736d4fe4db0cbc796789e812d5dba7f5c143764b1b6905612f1830609d1"}},
-                .m_chain_tx_count = 111,
-                .blockhash = consteval_ctor(uint256{"696e92821f65549c7ee134edceeeeaaa4105647a3c4fd9f298c0aec0ab50425c"}),
-            },
-            {
-                // For use by fuzz target src/test/fuzz/utxo_snapshot.cpp
-                .height = 200,
-                .hash_serialized = AssumeutxoHash{uint256{"4f34d431c3e482f6b0d67b64609ece3964dc8d7976d02ac68dd7c9c1421738f2"}},
-                .m_chain_tx_count = 201,
-                .blockhash = consteval_ctor(uint256{"5e93653318f294fb5aa339d00bbf8cf1c3515488ad99412c37608b139ea63b27"}),
-            },
-            {
-                // For use by test/functional/feature_assumeutxo.py
-                .height = 299,
-                .hash_serialized = AssumeutxoHash{uint256{"a4bf3407ccb2cc0145c49ebba8fa91199f8a3903daf0883875941497d2493c27"}},
-                .m_chain_tx_count = 334,
-                .blockhash = consteval_ctor(uint256{"3bb7ce5eba0be48939b7a521ac1ba9316afee2c7bada3a0cca24188e6d7d96c0"}),
-            },
+
         };
 
         chainTxData = ChainTxData{
