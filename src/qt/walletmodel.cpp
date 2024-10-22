@@ -541,7 +541,7 @@ bool WalletModel::bumpFee(uint256 hash, uint256& new_hash)
             return false;
         }
         // Serialize the PSBT
-        DataStream ssTx{};
+        CDataStream ssTx(SER_NETWORK, PROTOCOL_VERSION);
         ssTx << psbtx;
         GUIUtil::setClipboard(EncodeBase64(ssTx.str()).c_str());
         Q_EMIT message(tr("PSBT copied"), tr("Fee-bump PSBT copied to clipboard"), CClientUIInterface::MSG_INFORMATION | CClientUIInterface::MODAL);
