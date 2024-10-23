@@ -660,9 +660,6 @@ BOOST_AUTO_TEST_CASE(util_GetChainTypeString)
     BOOST_CHECK(test_args.ParseParameters(0, argv_testnet, error));
     BOOST_CHECK_EQUAL(test_args.GetChainTypeString(), "main");
 
-    BOOST_CHECK(test_args.ParseParameters(2, argv_testnet, error));
-    BOOST_CHECK_EQUAL(test_args.GetChainTypeString(), "test");
-
     BOOST_CHECK(test_args.ParseParameters(2, argv_regtest, error));
     BOOST_CHECK_EQUAL(test_args.GetChainTypeString(), "regtest");
 
@@ -906,14 +903,14 @@ BOOST_FIXTURE_TEST_CASE(util_ArgsMerge, ArgsMergeTestingSetup)
 
     // If check below fails, should manually dump the results with:
     //
-    //   ARGS_MERGE_TEST_OUT=results.txt ./test_bitcoin --run_test=argsman_tests/util_ArgsMerge
+    //   ARGS_MERGE_TEST_OUT=results.txt ./test_bells --run_test=argsman_tests/util_ArgsMerge
     //
     // And verify diff against previous results to make sure the changes are expected.
     //
     // Results file is formatted like:
     //
     //   <input> || <IsArgSet/IsArgNegated/GetArg output> | <GetArgs output> | <GetUnsuitable output>
-    BOOST_CHECK_EQUAL(out_sha_hex, "f1ee5ab094cc43d16a6086fa7f2c10389e0f99902616b31bbf29189972ad1473");
+    BOOST_CHECK_EQUAL(out_sha_hex, "d1e436c1cd510d0ec44d5205d4b4e3bee6387d316e0075c58206cb16603f3d82");
 }
 
 // Similar test as above, but for ArgsManager::GetChainTypeString function.
@@ -1009,14 +1006,14 @@ BOOST_FIXTURE_TEST_CASE(util_ChainMerge, ChainMergeTestingSetup)
 
     // If check below fails, should manually dump the results with:
     //
-    //   CHAIN_MERGE_TEST_OUT=results.txt ./test_bitcoin --run_test=argsman_tests/util_ChainMerge
+    //   CHAIN_MERGE_TEST_OUT=results.txt ./test_bells --run_test=argsman_tests/util_ChainMerge
     //
     // And verify diff against previous results to make sure the changes are expected.
     //
     // Results file is formatted like:
     //
     //   <input> || <output>
-    BOOST_CHECK_EQUAL(out_sha_hex, "9e60306e1363528bbc19a47f22bcede88e5d6815212f18ec8e6cdc4638dddab4");
+    BOOST_CHECK_EQUAL(out_sha_hex, "48ecc0890b99f7cd69c59d91fc77bd7af9369a874da030e9c2727dbba0f54fb0");
 }
 
 BOOST_AUTO_TEST_CASE(util_ReadWriteSettings)

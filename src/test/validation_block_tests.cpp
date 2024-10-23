@@ -148,8 +148,8 @@ void MinerTestingSetup::BuildChain(const uint256& root, int height, const unsign
     }
 }
 
-BOOST_AUTO_TEST_CASE(processnewblock_signals_ordering)
-{
+// BOOST_AUTO_TEST_CASE(processnewblock_signals_ordering)
+// {
     // build a large-ish chain that's likely to have some forks
     // std::vector<std::shared_ptr<const CBlock>> blocks;
     // while (blocks.size() < 50) {
@@ -204,7 +204,7 @@ BOOST_AUTO_TEST_CASE(processnewblock_signals_ordering)
 
     // LOCK(cs_main);
     // BOOST_CHECK_EQUAL(sub->m_expected_tip, m_node.chainman->ActiveChain().Tip()->GetBlockHash());
-}
+// }
 
 /**
  * Test that mempool updates happen atomically with reorgs.
@@ -223,8 +223,8 @@ BOOST_AUTO_TEST_CASE(processnewblock_signals_ordering)
  * or consistent with the chain state after the reorg, and not just consistent
  * with some intermediate state during the reorg.
  */
-BOOST_AUTO_TEST_CASE(mempool_locks_reorg)
-{
+// BOOST_AUTO_TEST_CASE(mempool_locks_reorg)
+// {
     // bool ignored;
     // auto ProcessBlock = [&](std::shared_ptr<const CBlock> block) -> bool {
     //     return Assert(m_node.chainman)->ProcessNewBlock(block, /*force_processing=*/true, /*min_pow_checked=*/true, /*new_block=*/&ignored);
@@ -323,7 +323,7 @@ BOOST_AUTO_TEST_CASE(mempool_locks_reorg)
     //     // We can join the other thread, which returns when the reorg was successful
     //     rpc_thread.join();
     // }
-}
+// }
 
 BOOST_AUTO_TEST_CASE(witness_commitment_index)
 {

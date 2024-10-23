@@ -35,7 +35,7 @@ static CBlock BuildBlockTestCase(FastRandomContext& ctx) {
     block.vtx[0] = MakeTransactionRef(tx);
     block.nVersion = 42;
     block.hashPrevBlock = ctx.rand256();
-    block.nBits = 0x207fffff;
+    block.nBits = 0x200f0f0f;
 
     tx.vin[0].prevout.hash = Txid::FromUint256(ctx.rand256());
     tx.vin[0].prevout.n = 0;
@@ -280,7 +280,7 @@ BOOST_AUTO_TEST_CASE(EmptyBlockRoundTripTest)
     block.vtx[0] = MakeTransactionRef(std::move(coinbase));
     block.nVersion = 42;
     block.hashPrevBlock = rand_ctx.rand256();
-    block.nBits = 0x207fffff;
+    block.nBits = 0x200f0f0f;
 
     bool mutated;
     block.hashMerkleRoot = BlockMerkleRoot(block, &mutated);

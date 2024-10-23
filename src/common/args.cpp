@@ -573,6 +573,7 @@ void ArgsManager::AddArg(const std::string& name, const std::string& help, unsig
     LOCK(cs_args);
     std::map<std::string, Arg>& arg_map = m_available_args[cat];
     auto ret = arg_map.emplace(arg_name, Arg{name.substr(eq_index, name.size() - eq_index), help, flags});
+    std::cout << "_---------------_>>> " << name << std::endl;
     assert(ret.second); // Make sure an insertion actually happened
 
     if (flags & ArgsManager::NETWORK_ONLY) {
@@ -775,7 +776,7 @@ std::variant<ChainType, std::string> ArgsManager::GetChainArg() const
     const bool fTestNet = get_net("-testnet");
     const auto chain_arg = GetArg("-chain");
 
-    if ((int)chain_arg.has_value() + (int)fRegTest + (int)fSigNet + (int)fTestNet) {
+    if ((int)chain_arg.has_value() + (int)fRegTest + (int)fSigNet + (int)fTestNet > 1) {
         throw std::runtime_error("Invalid combination of -regtest, -signet, -testnet, and -chain. Can use at most one.");
     }
     if (chain_arg) {

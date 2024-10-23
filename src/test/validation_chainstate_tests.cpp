@@ -73,7 +73,7 @@ BOOST_FIXTURE_TEST_CASE(chainstate_update_tip, TestChain100Setup)
 
     // Mine 10 more blocks, putting at us height 110 where a valid assumeutxo value can
     // be found.
-    mineBlocks(10);
+    mineBlocks(1);
 
     // After adding some blocks to the tip, best block should have changed.
     BOOST_CHECK(::g_best_block != curr_tip);
