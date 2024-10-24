@@ -6,9 +6,7 @@
 #ifndef BITCOIN_INIT_H
 #define BITCOIN_INIT_H
 
-#include <any>
-#include <memory>
-#include <string>
+#include <atomic>
 
 //! Default value for -daemon option
 static constexpr bool DEFAULT_DAEMON = false;
@@ -25,6 +23,11 @@ struct Context;
 namespace node {
 struct NodeContext;
 } // namespace node
+
+/** Initialize node context shutdown and args variables. */
+void InitContext(node::NodeContext& node);
+/** Return whether node shutdown was requested. */
+bool ShutdownRequested(node::NodeContext& node);
 
 /** Interrupt threads */
 void Interrupt(node::NodeContext& node);

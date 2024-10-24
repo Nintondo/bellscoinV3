@@ -50,13 +50,14 @@ class WalletBackupTest(BellscoinTestFramework):
     def set_test_params(self):
         self.num_nodes = 4
         self.setup_clean_chain = True
-        # nodes 1, 2,3 are spenders, let's give them a keypool=100
-        # whitelist all peers to speed up tx relay / mempool sync
+        # whitelist peers to speed up tx relay / mempool sync
+        self.noban_tx_relay = True
+        # nodes 1, 2, 3 are spenders, let's give them a keypool=100
         self.extra_args = [
-            ["-whitelist=noban@127.0.0.1", "-keypool=100"],
-            ["-whitelist=noban@127.0.0.1", "-keypool=100"],
-            ["-whitelist=noban@127.0.0.1", "-keypool=100"],
-            ["-whitelist=noban@127.0.0.1"],
+            ["-keypool=100"],
+            ["-keypool=100"],
+            ["-keypool=100"],
+            [],
         ]
         self.rpc_timeout = 120
 
@@ -243,4 +244,4 @@ class WalletBackupTest(BellscoinTestFramework):
 
 
 if __name__ == '__main__':
-    WalletBackupTest().main()
+    WalletBackupTest(__file__).main()

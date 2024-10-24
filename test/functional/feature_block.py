@@ -4,7 +4,6 @@
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test block processing."""
 import copy
-import struct
 import time
 
 from test_framework.blocktools import (
@@ -67,7 +66,7 @@ class CBrokenBlock(CBlock):
     def serialize(self, with_witness=False):
         r = b""
         r += super(CBlock, self).serialize()
-        r += struct.pack("<BQ", 255, len(self.vtx))
+        r += (255).to_bytes(1, "little") + len(self.vtx).to_bytes(8, "little")
         for tx in self.vtx:
             if with_witness:
                 r += tx.serialize_with_witness()
@@ -1263,6 +1262,10 @@ class FullBlockTest(BellscoinTestFramework):
         b89a = self.update_block("89a", [tx])
         self.send_blocks([b89a], success=False, reject_reason='bad-txns-inputs-missingorspent', reconnect=True)
 
+        # Don't use v2transport for the large reorg, which is too slow with the unoptimized python ChaCha20 implementation
+        if self.options.v2transport:
+            self.nodes[0].disconnect_p2ps()
+            self.helper_peer = self.nodes[0].add_p2p_connection(P2PDataStore(), supports_v2_p2p=False)
         self.log.info("Test a re-org of one week's worth of blocks (1088 blocks)")
 
         self.move_tip(88)
@@ -1323,8 +1326,10 @@ class FullBlockTest(BellscoinTestFramework):
         block.vtx.extend(tx_list)
 
     # this is a little handier to use than the version in blocktools.py
-    def create_tx(self, spend_tx, n, value, script=CScript([OP_TRUE, OP_DROP] * 15 + [OP_TRUE])):
-        return create_tx_with_script(spend_tx, n, amount=value, script_pub_key=script)
+    def create_tx(self, spend_tx, n, value, output_script=None):
+        if output_script is None:
+            output_script = CScript([OP_TRUE, OP_DROP] * 15 + [OP_TRUE])
+        return create_tx_with_script(spend_tx, n, amount=value, output_script=output_script)
 
     # sign a transaction, using the key we know about
     # this signs input 0 in tx, which is assumed to be spending output 0 in spend_tx
@@ -1335,13 +1340,17 @@ class FullBlockTest(BellscoinTestFramework):
             return
         sign_input_legacy(tx, 0, spend_tx.vout[0].scriptPubKey, self.coinbase_key)
 
-    def create_and_sign_transaction(self, spend_tx, value, script=CScript([OP_TRUE])):
-        tx = self.create_tx(spend_tx, 0, value, script)
+    def create_and_sign_transaction(self, spend_tx, value, output_script=None):
+        if output_script is None:
+            output_script = CScript([OP_TRUE])
+        tx = self.create_tx(spend_tx, 0, value, output_script=output_script)
         self.sign_tx(tx, spend_tx)
         tx.rehash()
         return tx
 
-    def next_block(self, number, spend=None, additional_coinbase_value=0, script=CScript([OP_TRUE]), *, version=4):
+    def next_block(self, number, spend=None, additional_coinbase_value=0, *, script=None, version=4):
+        if script is None:
+            script = CScript([OP_TRUE])
         if self.tip is None:
             base_block_hash = self.genesis_hash
             block_time = int(time.time()) + 1
@@ -1358,7 +1367,7 @@ class FullBlockTest(BellscoinTestFramework):
         else:
             coinbase.vout[0].nValue += spend.vout[0].nValue - 1  # all but one satoshi to fees
             coinbase.rehash()
-            tx = self.create_tx(spend, 0, 1, script)  # spend 1 satoshi
+            tx = self.create_tx(spend, 0, 1, output_script=script)  # spend 1 satoshi
             self.sign_tx(tx, spend)
             tx.rehash()
             block = create_block(base_block_hash, coinbase, block_time, version=version, txlist=[tx])
@@ -1431,4 +1440,4 @@ class FullBlockTest(BellscoinTestFramework):
 
 
 if __name__ == '__main__':
-    FullBlockTest().main()
+    FullBlockTest(__file__).main()

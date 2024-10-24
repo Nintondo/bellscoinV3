@@ -505,4 +505,4 @@ class UnconfirmedInputTest(BellscoinTestFramework):
         self.test_external_input_unconfirmed_low()
 
 if __name__ == '__main__':
-    UnconfirmedInputTest().main()
+    UnconfirmedInputTest(__file__).main()

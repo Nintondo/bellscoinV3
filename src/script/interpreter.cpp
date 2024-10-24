@@ -1465,7 +1465,7 @@ public:
     /** Serialize txTo */
     template<typename S>
     void Serialize(S &s) const {
-        // Serialize nVersion
+        // Serialize version
         ::Serialize(s, txTo.nVersion);
         // Serialize vin
         unsigned int nInputs = fAnyoneCanPay ? 1 : txTo.vin.size();
@@ -1887,7 +1887,7 @@ bool GenericTransactionSignatureChecker<T>::CheckSequence(const CScriptNum& nSeq
 
     // Fail if the transaction's version number is not set high
     // enough to trigger BIP 68 rules.
-    if (static_cast<uint32_t>(txTo->nVersion) < 2)
+    if (txTo->nVersion < 2)
         return false;
 
     // Sequence numbers with their most significant bit set are not
@@ -1929,9 +1929,11 @@ bool GenericTransactionSignatureChecker<T>::CheckSequence(const CScriptNum& nSeq
 template class GenericTransactionSignatureChecker<CTransaction>;
 template class GenericTransactionSignatureChecker<CMutableTransaction>;
 
-std::optional<bool> CheckTapscriptOpSuccess(const CScript& exec_script, unsigned int flags, ScriptError* serror)
+static bool ExecuteWitnessScript(const Span<const valtype>& stack_span, const CScript& exec_script, unsigned int flags, SigVersion sigversion, const BaseSignatureChecker& checker, ScriptExecutionData& execdata, ScriptError* serror)
 {
-    {
+    std::vector<valtype> stack{stack_span.begin(), stack_span.end()};
+
+    if (sigversion == SigVersion::TAPSCRIPT) {
         // OP_SUCCESSx processing overrides everything, including stack element size limits
         CScript::const_iterator pc = exec_script.begin();
         while (pc < exec_script.end()) {
@@ -1940,7 +1942,7 @@ std::optional<bool> CheckTapscriptOpSuccess(const CScript& exec_script, unsigned
                 // Note how this condition would not be reached if an unknown OP_SUCCESSx was found
                 return set_error(serror, SCRIPT_ERR_BAD_OPCODE);
             }
-
+            // New opcodes will be listed here. May use a different sigversion to modify existing opcodes.
             if (IsOpSuccess(opcode)) {
                 if (opcode == OP_CAT) {
                     if (flags & SCRIPT_VERIFY_DISCOURAGE_OP_CAT) {
@@ -1957,17 +1959,6 @@ std::optional<bool> CheckTapscriptOpSuccess(const CScript& exec_script, unsigned
                 }
             }
         }
-    }
-    return std::nullopt;
-}
-static bool ExecuteWitnessScript(const Span<const valtype>& stack_span, const CScript& exec_script, unsigned int flags, SigVersion sigversion, const BaseSignatureChecker& checker, ScriptExecutionData& execdata, ScriptError* serror)
-{
-    std::vector<valtype> stack{stack_span.begin(), stack_span.end()};
-
-    if (sigversion == SigVersion::TAPSCRIPT) {
-
-        auto r = CheckTapscriptOpSuccess(exec_script, flags, serror);
-        if (r.has_value()) return *r;
 
         // Tapscript enforces initial stack size limits (altstack is empty here)
         if (stack.size() > MAX_STACK_SIZE) return set_error(serror, SCRIPT_ERR_STACK_SIZE);
@@ -2103,7 +2094,7 @@ static bool VerifyWitnessProgram(const CScriptWitness& witness, int witversion, 
             if ((control[0] & TAPROOT_LEAF_MASK) == TAPROOT_LEAF_TAPSCRIPT) {
                 // Tapscript (leaf version 0xc0)
                 exec_script = CScript(script.begin(), script.end());
-                execdata.m_validation_weight_left = ::GetSerializeSize(witness.stack, PROTOCOL_VERSION) + VALIDATION_WEIGHT_OFFSET;
+                execdata.m_validation_weight_left = ::GetSerializeSize(witness.stack) + VALIDATION_WEIGHT_OFFSET;
                 execdata.m_validation_weight_left_init = true;
                 return ExecuteWitnessScript(stack, exec_script, flags, SigVersion::TAPSCRIPT, checker, execdata, serror);
             }
@@ -2112,6 +2103,8 @@ static bool VerifyWitnessProgram(const CScriptWitness& witness, int witversion, 
             }
             return set_success(serror);
         }
+    } else if (!is_p2sh && CScript::IsPayToAnchor(witversion, program)) {
+        return true;
     } else {
         if (flags & SCRIPT_VERIFY_DISCOURAGE_UPGRADABLE_WITNESS_PROGRAM) {
             return set_error(serror, SCRIPT_ERR_DISCOURAGE_UPGRADABLE_WITNESS_PROGRAM);

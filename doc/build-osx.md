@@ -51,6 +51,20 @@ To install, run the following from your terminal:
 brew install automake libtool boost pkg-config libevent
 ```
 
+For macOS 11 (Big Sur) and 12 (Monterey) you need to install a more recent version of llvm.
+
+``` bash
+brew install llvm
+```
+
+And append the following to the configure commands below:
+
+``` bash
+CC=$(brew --prefix llvm)/bin/clang CXX=$(brew --prefix llvm)/bin/clang++
+```
+
+Try `llvm@17` if compilation fails with the default version of llvm.
+
 ### 4. Clone Bitcoin repository
 
 `git` should already be installed by default on your system.
@@ -175,7 +189,6 @@ There are many ways to configure Bitcoin Core, here are a few common examples:
 ##### Wallet (BDB + SQlite) Support, No GUI:
 
 If `berkeley-db@4` is installed, then legacy wallet support will be built.
-If `berkeley-db@4` is not installed, then this will throw an error.
 If `sqlite` is installed, then descriptor wallet support will also be built.
 Additionally, this explicitly disables the GUI.
 

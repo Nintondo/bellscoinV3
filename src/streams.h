@@ -51,7 +51,9 @@ class OverrideStream
     Stream* stream;
 
     const int nVersion;
+    // BELLSCOIN
     int nType{0};
+    int nTxVersion{0};
 
 public:
     OverrideStream(Stream* stream_, int nVersion_) : stream{stream_}, nVersion{nVersion_} {}
@@ -81,10 +83,15 @@ public:
         stream->read(dst);
     }
 
-    int GetType() const { return nType; }
     int GetVersion() const { return nVersion; }
     size_t size() const { return stream->size(); }
     void ignore(size_t size) { return stream->ignore(size); }
+    // BELLSCOIN
+    int GetType() const { return nType; }
+    const void* GetParams() const { return nullptr; }
+    void SetTxVersion(int nTxVersionIn) { nTxVersion = nTxVersionIn; }
+    int GetTxVersion()           { return nTxVersion; }
+    void seek(size_t _nSize) {return;}
 };
 
 /* Minimal stream for overwriting and/or appending to an existing byte vector
@@ -93,10 +100,8 @@ public:
  */
 class CVectorWriter
 {
- public:
-
+public:
 /*
- * @param[in]  nVersionIn Serialization Version (including any flags)
  * @param[in]  vchDataIn  Referenced byte vector to overwrite/append
  * @param[in]  nPosIn Starting position. Vector index where writes should start. The vector will initially
  *                    grow as necessary to max(nPosIn, vec.size()). So to append, use vec.size().
@@ -106,7 +111,6 @@ class CVectorWriter
         if(nPos > vchData.size())
             vchData.resize(nPos);
     }
-
     // BELLSCOIN
     CVectorWriter(int nTypeIn, int nVersionIn, std::vector<unsigned char>& vchDataIn, size_t nPosIn) : nType(nTypeIn), nVersion(nVersionIn), vchData(vchDataIn), nPos(nPosIn)
     {
@@ -122,12 +126,14 @@ class CVectorWriter
     {
         ::SerializeMany(*this, std::forward<Args>(args)...);
     }
+    
     // BELLSCOIN
     template <typename... Args>
     CVectorWriter(int nTypeIn, int nVersionIn, std::vector<unsigned char>& vchDataIn, size_t nPosIn, Args&&... args) : CVectorWriter{nTypeIn, nVersionIn, vchDataIn, nPosIn}
     {
         ::SerializeMany(*this, std::forward<Args>(args)...);
     }
+
     void write(Span<const std::byte> src)
     {
         assert(nPos <= vchData.size());
@@ -140,19 +146,28 @@ class CVectorWriter
         }
         nPos += src.size();
     }
-    template<typename T>
+    template <typename T>
     CVectorWriter& operator<<(const T& obj)
     {
         ::Serialize(*this, obj);
         return (*this);
     }
-    int GetVersion() const { return nVersion;}
+    int GetVersion() const
+    {
+        return nVersion;
+    }
+    // BELLSCOIN
     int GetType() const { return nType; }
+    const void* GetParams() const { return nullptr; }
+    void SetTxVersion(int nTxVersionIn) { nTxVersion = nTxVersionIn; }
+    int GetTxVersion()           { return nTxVersion; }
+    void seek(size_t _nSize) {return;}
 
 private:
+    // BELLSCOIN
     int nType{0};
-
     const int nVersion;
+    int nTxVersion{0};
     std::vector<unsigned char>& vchData;
     size_t nPos;
 };
@@ -164,7 +179,9 @@ class SpanReader
 private:
     const int m_version;
     Span<const unsigned char> m_data;
+    // BELLSCOIN
     const int m_type{0};
+    int nTxVersion{0};
 
 public:
     /**
@@ -184,8 +201,13 @@ public:
         return (*this);
     }
 
-    int GetType() const { return m_type; }
     int GetVersion() const { return m_version; }
+    // BELLSCOIN
+    int GetType() const { return m_type; }
+    const void* GetParams() const { return nullptr; }
+    void SetTxVersion(int nTxVersionIn) { nTxVersion = nTxVersionIn; }
+    int GetTxVersion()           { return nTxVersion; }
+    void seek(size_t _nSize) {return;}
 
     size_t size() const { return m_data.size(); }
     bool empty() const { return m_data.empty(); }
@@ -203,6 +225,11 @@ public:
         memcpy(dst.data(), m_data.data(), dst.size());
         m_data = m_data.subspan(dst.size());
     }
+
+    void ignore(size_t n)
+    {
+        m_data = m_data.subspan(n);
+    }
 };
 
 /** Double ended buffer combining vector and stream-like interfaces.
@@ -216,7 +243,9 @@ protected:
     using vector_type = SerializeData;
     vector_type vch;
     vector_type::size_type m_read_pos{0};
+    // BELLSCOIN
     int nType{0};
+    int nTxVersion{0};
 
 public:
     typedef vector_type::allocator_type   allocator_type;
@@ -229,6 +258,7 @@ public:
     typedef vector_type::const_iterator   const_iterator;
     typedef vector_type::reverse_iterator reverse_iterator;
 
+    // BELLSCOIN
     explicit DataStream(int nTypeIn = 0) {nType = nTypeIn;}
     explicit DataStream(Span<const uint8_t> sp, int nTypeIn = 0) : DataStream{AsBytes(sp), nTypeIn} {}
     explicit DataStream(Span<const value_type> sp, int nTypeIn = 0) : vch(sp.data(), sp.data() + sp.size()), nType(nTypeIn) {}
@@ -346,7 +376,12 @@ public:
         util::Xor(MakeWritableByteSpan(*this), MakeByteSpan(key));
     }
 
-    int GetType() const { return nType; }
+    // BELLSCOIN
+    void SetTxVersion(int nTxVersionIn) { nTxVersion = nTxVersionIn; }
+    int GetTxVersion()           { return nTxVersion; }
+    int GetType() const          { return nType; }
+    void seek(size_t _nSize) {return;}
+    const void* GetParams() const { return nullptr; }
 };
 
 class CDataStream : public DataStream
@@ -363,10 +398,12 @@ public:
     explicit CDataStream(Span<const value_type> sp, int nTypeIn, int nVersionIn)
         : DataStream{sp, nTypeIn},
           nVersion{nVersionIn} {}
-
-    int GetType() const          { return nType; }
+    
+    // BELLSCOIN
+    const void* GetParams() const { return nullptr; }
     void SetVersion(int n)       { nVersion = n; }
     int GetVersion() const       { return nVersion; }
+    void seek(size_t _nSize) {return;}
 
     template <typename T>
     CDataStream& operator<<(const T& obj)
@@ -493,10 +530,11 @@ class AutoFile
 {
 protected:
     std::FILE* m_file;
-    const std::vector<std::byte> m_xor;
+    std::vector<std::byte> m_xor;
+    std::optional<int64_t> m_position;
 
 public:
-    explicit AutoFile(std::FILE* file, std::vector<std::byte> data_xor={}) : m_file{file}, m_xor{std::move(data_xor)} {}
+    explicit AutoFile(std::FILE* file, std::vector<std::byte> data_xor={});
 
     ~AutoFile() { fclose(); }
 
@@ -512,6 +550,12 @@ public:
         return 0;
     }
 
+    /** Get wrapped FILE* without transfer of ownership.
+     * @note Ownership of the FILE* will remain with this class. Use this only if the scope of the
+     * AutoFile outlives use of the passed pointer.
+     */
+    std::FILE* Get() const { return m_file; }
+
     /** Get wrapped FILE* with transfer of ownership.
      * @note This will invalidate the AutoFile object, and makes it the responsibility of the caller
      * of this function to clean up the returned FILE*.
@@ -523,18 +567,18 @@ public:
         return ret;
     }
 
-    /** Get wrapped FILE* without transfer of ownership.
-     * @note Ownership of the FILE* will remain with this class. Use this only if the scope of the
-     * AutoFile outlives use of the passed pointer.
-     */
-    std::FILE* Get() const { return m_file; }
-
     /** Return true if the wrapped FILE* is nullptr, false otherwise.
      */
     bool IsNull() const { return m_file == nullptr; }
 
+    /** Continue with a different XOR key */
+    void SetXor(std::vector<std::byte> data_xor) { m_xor = data_xor; }
+
     /** Implementation detail, only used internally. */
     std::size_t detail_fread(Span<std::byte> dst);
+
+    void seek(int64_t offset, int origin);
+    int64_t tell();
 
     //
     // Stream subset
@@ -556,6 +600,10 @@ public:
         ::Unserialize(*this, obj);
         return *this;
     }
+
+    bool Commit();
+    bool IsError();
+    bool Truncate(unsigned size);
 };
 
 class CAutoFile : public AutoFile
@@ -594,6 +642,7 @@ class BufferedFile
 {
 private:
     int nType;
+    int nTxVersion{0};
     CAutoFile& m_src;
     uint64_t nSrcPos{0};  //!< how many bytes have been read from source
     uint64_t m_read_pos{0}; //!< how many bytes have been read from this
@@ -648,8 +697,13 @@ public:
             throw std::ios_base::failure("Rewind limit must be less than buffer size");
     }
 
-    int GetType() const { return nType; }
     int GetVersion() const { return m_src.GetVersion(); }
+    int GetType() const { return nType; }
+    // SYSCOIN
+    const void* GetParams() const { return nullptr; }
+    void SetTxVersion(int nTxVersionIn) { nTxVersion = nTxVersionIn; }
+    int GetTxVersion()           { return nTxVersion; }
+    void seek(size_t _nSize) {return;}
 
     //! check whether we're at the end of the source file
     bool eof() const {

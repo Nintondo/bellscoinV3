@@ -66,9 +66,10 @@ Discussion about codebase improvements happens in GitHub issues and pull
 requests.
 
 The developer
-[mailing list](https://lists.linuxfoundation.org/mailman/listinfo/bitcoin-dev)
+[mailing list](https://groups.google.com/g/bitcoindev)
 should be used to discuss complicated or controversial consensus or P2P protocol changes before working on
 a patch set.
+Archives can be found on [https://gnusha.org/pi/bitcoindev/](https://gnusha.org/pi/bitcoindev/).
 
 
 Contributor Workflow
@@ -148,7 +149,7 @@ the pull request affects. Valid areas as:
   - `net` or `p2p` for changes to the peer-to-peer network code
   - `refactor` for structural changes that do not change behavior
   - `rpc`, `rest` or `zmq` for changes to the RPC, REST or ZMQ APIs
-  - `script` for changes to the scripts and tools
+  - `contrib` or `cli` for changes to the scripts and tools
   - `test`, `qa` or `ci` for changes to the unit tests, QA tests or CI code
   - `util` or `lib` for changes to the utils or libraries
   - `wallet` for changes to the wallet code
@@ -417,11 +418,8 @@ Backporting
 
 Security and bug fixes can be backported from `master` to release
 branches.
-If the backport is non-trivial, it may be appropriate to open an
-additional PR to backport the change, but only after the original PR
-has been merged.
-Otherwise, backports will be done in batches and
-the maintainers will use the proper `Needs backport (...)` labels
+Maintainers will do backports in batches and
+use the proper `Needs backport (...)` labels
 when needed (the original author does not need to worry about it).
 
 A backport should contain the following metadata in the commit body:

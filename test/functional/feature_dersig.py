@@ -47,9 +47,10 @@ DERSIG_HEIGHT = 102
 class BIP66Test(BellscoinTestFramework):
     def set_test_params(self):
         self.num_nodes = 1
+        # whitelist peers to speed up tx relay / mempool sync
+        self.noban_tx_relay = True
         self.extra_args = [[
             f'-testactivationheight=dersig@{DERSIG_HEIGHT}',
-            '-whitelist=noban@127.0.0.1',
             '-par=1',  # Use only one script thread to get the exact log msg for testing
         ]]
         self.setup_clean_chain = True
@@ -147,4 +148,4 @@ class BIP66Test(BellscoinTestFramework):
 
 
 if __name__ == '__main__':
-    BIP66Test().main()
+    BIP66Test(__file__).main()

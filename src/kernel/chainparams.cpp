@@ -27,6 +27,15 @@
 #include <type_traits>
 
 #include <arith_uint256.h>
+// Workaround MSVC bug triggering C7595 when calling consteval constructors in
+// initializer lists.
+// A fix may be on the way:
+// https://developercommunity.visualstudio.com/t/consteval-conversion-function-fails/1579014
+#if defined(_MSC_VER)
+auto consteval_ctor(auto&& input) { return input; }
+#else
+#define consteval_ctor(input) (input)
+#endif
 
 static CBlock CreateGenesisBlock(const char* pszTimestamp, const CScript& genesisOutputScript, uint32_t nTime, uint32_t nNonce, uint32_t nBits, int32_t nVersion, const CAmount& genesisReward)
 {
@@ -93,6 +102,43 @@ static CBlock CreateGenesisBlock(uint32_t nTime, uint32_t nNonce, uint32_t nBits
 }
 
 const arith_uint256 maxUint = UintToArith256(uint256S("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"));
+
+template<size_t N>
+static void RenounceDeployments(const CChainParams::RenounceParameters& renounce, Consensus::HereticalDeployment (&vDeployments)[N])
+{
+    for (Consensus::BuriedDeployment dep : renounce) {
+        vDeployments[dep].nStartTime = Consensus::HereticalDeployment::NEVER_ACTIVE;
+        vDeployments[dep].nTimeout = Consensus::HereticalDeployment::NO_TIMEOUT;
+    }
+}
+
+namespace {
+struct SetupDeployment
+{
+    uint32_t year = 0, number = 0, revision = 0; // see https://github.com/bitcoin-inquisition/binana
+    int64_t start = 0;
+    int64_t timeout = 0;
+    int32_t activate = -1;
+    int32_t abandon = -1;
+    bool always = false;
+    bool never = false;
+
+    int32_t binana_id() const {
+        return static_cast<int32_t>( ((year % 32) << 22) | ((number % 16384) << 8) | (revision % 256) );
+    }
+
+    operator Consensus::HereticalDeployment () const
+    {
+        return Consensus::HereticalDeployment{
+            .signal_activate = (activate >= 0 ? activate : (VERSIONBITS_TOP_ACTIVE | binana_id())),
+            .signal_abandon = (abandon >= 0 ? abandon : (VERSIONBITS_TOP_ABANDON | binana_id())),
+            .nStartTime = (always ? Consensus::HereticalDeployment::ALWAYS_ACTIVE : never ? Consensus::HereticalDeployment::NEVER_ACTIVE : start),
+            .nTimeout = (always || never ? Consensus::HereticalDeployment::NO_TIMEOUT : timeout),
+        };
+    }
+};
+}
+
 /**
  * Main network on which people trade goods and services.
  */
@@ -104,11 +150,6 @@ public:
         consensus.signet_challenge.clear();
         // Not used in Bells, but left here for completeness.
         consensus.nSubsidyHalvingInterval = 100000;
-
-        // consensus.script_flag_exceptions.emplace( // BIP16 exception
-        //     uint256S("0x00000000000002dc756eebf4f49723ed8d30cc28a5f108eb94b1ba88ac4f9c22"), SCRIPT_VERIFY_NONE);
-        // consensus.script_flag_exceptions.emplace( // Taproot exception
-        //     uint256S("0x0000000000000000000f14c35b2d841e986ab5441de8c585d5ffe55ea1e395ad"), SCRIPT_VERIFY_P2SH | SCRIPT_VERIFY_WITNESS);
 
         consensus.BIP34Height = 40240;
         consensus.BIP34Hash = uint256S("0xc1490b4fe653745dc8638dfbb594d7a1e6138585fa689943835366d5fd842699");
@@ -124,6 +165,7 @@ public:
         consensus.nPowTargetTimespan = 4 * 60 * 60; // 4 hours
         consensus.nPowTargetSpacing = 60; // 1 min
         consensus.fPowAllowMinDifficultyBlocks = false;
+        consensus.enforce_BIP94 = false;
         consensus.fPowNoRetargeting = false;
         consensus.fStrictChainId = true;
         consensus.nAuxpowChainId = 16;
@@ -150,11 +192,7 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].nStartTime = 1718409600; // 2024-06-15 00:00:00
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].nTimeout = 1735084800; // 2024-12-25 18:00:00
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].min_activation_height = 188000;
-
-        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].bit = 16;
-        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nStartTime = 0;
-        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
-        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].min_activation_height = 300000; // No activation delay
+        consensus.vDeployments[Consensus::DEPLOYMENT_OP_CAT] = SetupDeployment{.activate = 0x62000100, .abandon = 0x42000100, .never = true};
 
         consensus.nMinimumChainWork = uint256S("0x0000000000000000000000000000000000000000000000000000000000100010");
         consensus.defaultAssumeValid = uint256S("0x50c259c50c5c2ab235f2ceb45da49f7c046f0411667c00d81cb8165f2b843ea1"); // 40000
@@ -185,7 +223,6 @@ public:
         // release ASAP to avoid it where possible.
         //vSeeds.emplace_back("seeder.belscan.io.");
         vSeeds.emplace_back("bdnsseeder.quark.blue.");
-
 
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,25);
         base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,30);
@@ -352,20 +389,21 @@ public:
         if (!options.challenge) {
             bin = ParseHex("512103ad5e0edad18cb1f0fc0d28a3d4f1f3e445640337489abb10404f2d1e086be430210359ef5021964fe22d6f8e05b2463c9540ce96883fe3b278760f048f5189f2e6c452ae");
             vSeeds.emplace_back("seed.signet.bitcoin.sprovoost.nl.");
+            vSeeds.emplace_back("seed.signet.achownodes.xyz."); // Ava Chow, only supports x1, x5, x9, x49, x809, x849, xd, x400, x404, x408, x448, xc08, xc48, x40c
 
             // Hardcoded nodes can be removed once there are more DNS seeds
             vSeeds.emplace_back("178.128.221.177");
             vSeeds.emplace_back("v7ajjeirttkbnt32wpy3c6w3emwnfr3fkla7hpxcfokr3ysd3kqtzmqd.onion:38333");
 
-            consensus.nMinimumChainWork = uint256S("0x000000000000000000000000000000000000000000000000000001ad46be4862");
-            consensus.defaultAssumeValid = uint256S("0x0000013d778ba3f914530f11f6b69869c9fab54acff85acd7b8201d111f19b7f"); // 150000
-            m_assumed_blockchain_size = 1;
+            consensus.nMinimumChainWork = uint256{"0000000000000000000000000000000000000000000000000000025dbd66e58f"};
+            consensus.defaultAssumeValid = uint256{"0000014aad1d58dddcb964dd749b073374c6306e716b22f573a2efe68d414539"}; // 208800
+            m_assumed_blockchain_size = 2;
             m_assumed_chain_state_size = 0;
             chainTxData = ChainTxData{
-                // Data from RPC: getchaintxstats 4096 0000013d778ba3f914530f11f6b69869c9fab54acff85acd7b8201d111f19b7f
-                .nTime    = 1688366339,
-                .nTxCount = 2262750,
-                .dTxRate  = 0.003414084572046456,
+                // Data from RPC: getchaintxstats 4096 0000014aad1d58dddcb964dd749b073374c6306e716b22f573a2efe68d414539
+                .nTime    = 1723655233,
+                .tx_count = 5507045,
+                .dTxRate  = 0.06271073277261494,
             };
         } else {
             bin = *options.challenge;
@@ -399,6 +437,7 @@ public:
         consensus.nPowTargetTimespan = 14 * 24 * 60 * 60; // two weeks
         consensus.nPowTargetSpacing = 10 * 60;
         consensus.fPowAllowMinDifficultyBlocks = false;
+        consensus.enforce_BIP94 = false;
         consensus.fPowNoRetargeting = false;
         consensus.nRuleChangeActivationThreshold = 1815; // 90% of 2016
         consensus.nMinerConfirmationWindow = 2016; // nPowTargetTimespan / nPowTargetSpacing
@@ -448,9 +487,9 @@ public:
         m_assumeutxo_data = {
             {
                 .height = 160'000,
-                .hash_serialized = AssumeutxoHash{uint256S("0xfe0a44309b74d6b5883d246cb419c6221bcccf0b308c9b59b7d70783dbdf928a")},
-                .nChainTx = 2289496,
-                .blockhash = uint256S("0x0000003ca3c99aff040f2563c2ad8f8ec88bd0fd6b8f0895cfaf1ef90353a62c")
+                .hash_serialized = AssumeutxoHash{uint256{"fe0a44309b74d6b5883d246cb419c6221bcccf0b308c9b59b7d70783dbdf928a"}},
+                .m_chain_tx_count = 2289496,
+                .blockhash = consteval_ctor(uint256{"0000003ca3c99aff040f2563c2ad8f8ec88bd0fd6b8f0895cfaf1ef90353a62c"}),
             }
         };
 
@@ -501,6 +540,7 @@ public:
         consensus.nPowTargetTimespan = 4 * 60 * 60;
         consensus.nPowTargetSpacing = 60; // 1 minute
         consensus.fPowAllowMinDifficultyBlocks = true;
+        consensus.enforce_BIP94 = true;
         consensus.fPowNoRetargeting = true;
         consensus.fStrictChainId = true;
         consensus.nRuleChangeActivationThreshold = 108; // 75% for testchains
@@ -566,6 +606,7 @@ public:
         };
 
         m_assumeutxo_data = {
+
         };
 
         chainTxData = ChainTxData{
@@ -602,4 +643,34 @@ std::unique_ptr<const CChainParams> CChainParams::Main()
 std::unique_ptr<const CChainParams> CChainParams::TestNet()
 {
     return std::make_unique<const CTestNetParams>();
+}
+
+std::vector<int> CChainParams::GetAvailableSnapshotHeights() const
+{
+    std::vector<int> heights;
+    heights.reserve(m_assumeutxo_data.size());
+
+    for (const auto& data : m_assumeutxo_data) {
+        heights.emplace_back(data.height);
+    }
+    return heights;
+}
+
+std::optional<ChainType> GetNetworkForMagic(const MessageStartChars& message)
+{
+    const auto mainnet_msg = CChainParams::Main()->MessageStart();
+    const auto testnet_msg = CChainParams::TestNet()->MessageStart();
+    const auto regtest_msg = CChainParams::RegTest({})->MessageStart();
+    const auto signet_msg = CChainParams::SigNet({})->MessageStart();
+
+    if (std::equal(message.begin(), message.end(), mainnet_msg.data())) {
+        return ChainType::MAIN;
+    } else if (std::equal(message.begin(), message.end(), testnet_msg.data())) {
+        return ChainType::TESTNET;
+    } else if (std::equal(message.begin(), message.end(), regtest_msg.data())) {
+        return ChainType::REGTEST;
+    } else if (std::equal(message.begin(), message.end(), signet_msg.data())) {
+        return ChainType::SIGNET;
+    }
+    return std::nullopt;
 }

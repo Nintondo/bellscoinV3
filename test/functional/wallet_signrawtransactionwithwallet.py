@@ -14,7 +14,6 @@ from test_framework.test_framework import BellscoinTestFramework
 from test_framework.util import (
     assert_equal,
     assert_raises_rpc_error,
-    find_vout_for_address,
 )
 from test_framework.messages import (
     CTxInWitness,
@@ -56,7 +55,7 @@ class SignRawTransactionWithWalletTest(BellscoinTestFramework):
 
     def test_with_invalid_sighashtype(self):
         self.log.info("Test signrawtransactionwithwallet raises if an invalid sighashtype is passed")
-        assert_raises_rpc_error(-8, "all is not a valid sighash parameter.", self.nodes[0].signrawtransactionwithwallet, hexstring=RAW_TX, sighashtype="all")
+        assert_raises_rpc_error(-8, "'all' is not a valid sighash parameter.", self.nodes[0].signrawtransactionwithwallet, hexstring=RAW_TX, sighashtype="all")
 
     def script_verification_error_test(self):
         """Create and sign a raw transaction with valid (vin 0), invalid (vin 1) and one missing (vin 2) input script.
@@ -194,13 +193,12 @@ class SignRawTransactionWithWalletTest(BellscoinTestFramework):
         address = script_to_p2wsh(script)
 
         # Fund that address and make the spend
-        txid = self.nodes[0].sendtoaddress(address, 1)
-        vout = find_vout_for_address(self.nodes[0], txid, address)
+        utxo1 = self.create_outpoints(self.nodes[0], outputs=[{address: 1}])[0]
         self.generate(self.nodes[0], 1)
-        utxo = self.nodes[0].listunspent()[0]
-        amt = Decimal(1) + utxo["amount"] - Decimal(0.00001)
+        utxo2 = self.nodes[0].listunspent()[0]
+        amt = Decimal(1) + utxo2["amount"] - Decimal(0.00001)
         tx = self.nodes[0].createrawtransaction(
-            [{"txid": txid, "vout": vout, "sequence": 1},{"txid": utxo["txid"], "vout": utxo["vout"]}],
+            [{**utxo1, "sequence": 1},{"txid": utxo2["txid"], "vout": utxo2["vout"]}],
             [{self.nodes[0].getnewaddress(): amt}],
             self.nodes[0].getblockcount()
         )
@@ -229,13 +227,12 @@ class SignRawTransactionWithWalletTest(BellscoinTestFramework):
         address = script_to_p2wsh(script)
 
         # Fund that address and make the spend
-        txid = self.nodes[0].sendtoaddress(address, 1)
-        vout = find_vout_for_address(self.nodes[0], txid, address)
+        utxo1 = self.create_outpoints(self.nodes[0], outputs=[{address: 1}])[0]
         self.generate(self.nodes[0], 1)
-        utxo = self.nodes[0].listunspent()[0]
-        amt = Decimal(1) + utxo["amount"] - Decimal(0.00001)
+        utxo2 = self.nodes[0].listunspent()[0]
+        amt = Decimal(1) + utxo2["amount"] - Decimal(0.00001)
         tx = self.nodes[0].createrawtransaction(
-            [{"txid": txid, "vout": vout},{"txid": utxo["txid"], "vout": utxo["vout"]}],
+            [utxo1, {"txid": utxo2["txid"], "vout": utxo2["vout"]}],
             [{self.nodes[0].getnewaddress(): amt}],
             self.nodes[0].getblockcount()
         )
@@ -313,4 +310,4 @@ class SignRawTransactionWithWalletTest(BellscoinTestFramework):
 
 
 if __name__ == '__main__':
-    SignRawTransactionWithWalletTest().main()
+    SignRawTransactionWithWalletTest(__file__).main()

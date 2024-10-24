@@ -8,9 +8,11 @@
 #include <consensus/amount.h>
 #include <interfaces/chain.h>
 #include <interfaces/handler.h>
+#include <node/types.h>
 #include <policy/fees.h>
 #include <primitives/transaction.h>
 #include <rpc/server.h>
+#include <scheduler.h>
 #include <support/allocators/secure.h>
 #include <sync.h>
 #include <uint256.h>
@@ -28,14 +30,15 @@
 #include <wallet/spend.h>
 #include <wallet/wallet.h>
 
+#include <node/context.h>
+#include <util/any.h>
+
 #include <memory>
 #include <string>
 #include <utility>
 #include <vector>
 
-#include <node/context.h>
-#include <util/any.h>
-
+using common::PSBTError;
 using interfaces::Chain;
 using interfaces::FoundBlock;
 using interfaces::Handler;
@@ -94,7 +97,7 @@ WalletTxStatus MakeWalletTxStatus(const CWallet& wallet, const CWalletTx& wtx)
     WalletTxStatus result;
     result.block_height =
         wtx.state<TxStateConfirmed>() ? wtx.state<TxStateConfirmed>()->confirmed_block_height :
-        wtx.state<TxStateConflicted>() ? wtx.state<TxStateConflicted>()->conflicting_block_height :
+        wtx.state<TxStateBlockConflicted>() ? wtx.state<TxStateBlockConflicted>()->conflicting_block_height :
         std::numeric_limits<int>::max();
     result.blocks_to_maturity = wallet.GetTxBlocksToMaturity(wtx);
     result.depth_in_main_chain = wallet.GetTxDepthInMainChain(wtx);
@@ -103,7 +106,7 @@ WalletTxStatus MakeWalletTxStatus(const CWallet& wallet, const CWalletTx& wtx)
     result.is_trusted = CachedTxIsTrusted(wallet, wtx);
     result.is_abandoned = wtx.isAbandoned();
     result.is_coinbase = wtx.IsCoinBase();
-    result.is_in_main_chain = wallet.IsTxInMainChain(wtx);
+    result.is_in_main_chain = wtx.isConfirmed();
     return result;
 }
 
@@ -215,7 +218,7 @@ public:
         }
         return true;
     }
-    std::vector<WalletAddress> getAddresses() const override
+    std::vector<WalletAddress> getAddresses() override
     {
         LOCK(m_wallet->cs_wallet);
         std::vector<WalletAddress> result;
@@ -249,7 +252,7 @@ public:
         return value.empty() ? m_wallet->EraseAddressReceiveRequest(batch, dest, id)
                              : m_wallet->SetAddressReceiveRequest(batch, dest, id, value);
     }
-    bool displayAddress(const CTxDestination& dest) override
+    util::Result<void> displayAddress(const CTxDestination& dest) override
     {
         LOCK(m_wallet->cs_wallet);
         return m_wallet->DisplayAddress(dest);
@@ -283,12 +286,12 @@ public:
         CAmount& fee) override
     {
         LOCK(m_wallet->cs_wallet);
-        auto res = CreateTransaction(*m_wallet, recipients, change_pos,
+        auto res = CreateTransaction(*m_wallet, recipients, change_pos == -1 ? std::nullopt : std::make_optional(change_pos),
                                      coin_control, sign);
         if (!res) return util::Error{util::ErrorString(res)};
         const auto& txr = *res;
         fee = txr.fee;
-        change_pos = txr.change_pos;
+        change_pos = txr.change_pos ? int(*txr.change_pos) : -1;
 
         return txr.tx;
     }
@@ -391,7 +394,7 @@ public:
         }
         return {};
     }
-    TransactionError fillPSBT(int sighash_type,
+    std::optional<PSBTError> fillPSBT(int sighash_type,
         bool sign,
         bool bip32derivs,
         size_t* n_signed,
@@ -601,10 +604,15 @@ public:
     }
     bool verify() override { return VerifyWallets(m_context); }
     bool load() override { return LoadWallets(m_context); }
-    void start(CScheduler& scheduler) override { return StartWallets(m_context, scheduler); }
+    void start(CScheduler& scheduler) override
+    {
+        m_context.scheduler = &scheduler;
+        return StartWallets(m_context);
+    }
     void flush() override { return FlushWallets(m_context); }
     void stop() override { return StopWallets(m_context); }
     void setMockTime(int64_t time) override { return SetMockTime(time); }
+    void schedulerMockForward(std::chrono::seconds delta) override { Assert(m_context.scheduler)->MockForward(delta); }
 
     //! WalletLoader methods
     util::Result<std::unique_ptr<Wallet>> createWallet(const std::string& name, const SecureString& passphrase, uint64_t wallet_creation_flags, std::vector<bilingual_str>& warnings) override
@@ -618,7 +626,7 @@ public:
         bilingual_str error;
         std::unique_ptr<Wallet> wallet{MakeWallet(m_context, CreateWallet(m_context, name, /*load_on_start=*/true, options, status, error, warnings))};
         if (wallet) {
-            return {std::move(wallet)};
+            return wallet;
         } else {
             return util::Error{error};
         }
@@ -632,7 +640,7 @@ public:
         bilingual_str error;
         std::unique_ptr<Wallet> wallet{MakeWallet(m_context, LoadWallet(m_context, name, /*load_on_start=*/true, options, status, error, warnings))};
         if (wallet) {
-            return {std::move(wallet)};
+            return wallet;
         } else {
             return util::Error{error};
         }
@@ -643,7 +651,7 @@ public:
         bilingual_str error;
         std::unique_ptr<Wallet> wallet{MakeWallet(m_context, RestoreWallet(m_context, backup_file, wallet_name, /*load_on_start=*/true, status, error, warnings))};
         if (wallet) {
-            return {std::move(wallet)};
+            return wallet;
         } else {
             return util::Error{error};
         }
@@ -658,17 +666,32 @@ public:
             .solvables_wallet_name = res->solvables_wallet ? std::make_optional(res->solvables_wallet->GetName()) : std::nullopt,
             .backup_path = res->backup_path,
         };
-        return {std::move(out)}; // std::move to work around clang bug
+        return out;
+    }
+    bool isEncrypted(const std::string& wallet_name) override
+    {
+        auto wallets{GetWallets(m_context)};
+        auto it = std::find_if(wallets.begin(), wallets.end(), [&](std::shared_ptr<CWallet> w){ return w->GetName() == wallet_name; });
+        if (it != wallets.end()) return (*it)->IsCrypted();
+
+        // Unloaded wallet, read db
+        DatabaseOptions options;
+        options.require_existing = true;
+        DatabaseStatus status;
+        bilingual_str error;
+        auto db = MakeWalletDatabase(wallet_name, options, status, error);
+        if (!db) return false;
+        return WalletBatch(*db).IsEncrypted();
     }
     std::string getWalletDir() override
     {
         return fs::PathToString(GetWalletDir());
     }
-    std::vector<std::string> listWalletDir() override
+    std::vector<std::pair<std::string, std::string>> listWalletDir() override
     {
-        std::vector<std::string> paths;
-        for (auto& path : ListDatabases(GetWalletDir())) {
-            paths.push_back(fs::PathToString(path));
+        std::vector<std::pair<std::string, std::string>> paths;
+        for (auto& [path, format] : ListDatabases(GetWalletDir())) {
+            paths.emplace_back(fs::PathToString(path), format);
         }
         return paths;
     }

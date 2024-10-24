@@ -26,9 +26,9 @@ class ListTransactionsTest(BellscoinTestFramework):
 
     def set_test_params(self):
         self.num_nodes = 3
-        # This test isn't testing txn relay/timing, so set whitelist on the
-        # peers for instant txn relay. This speeds up the test run time 2-3x.
-        self.extra_args = [["-whitelist=noban@127.0.0.1", "-walletrbf=0"]] * self.num_nodes
+        # whitelist peers to speed up tx relay / mempool sync
+        self.noban_tx_relay = True
+        self.extra_args = [["-walletrbf=0"]] * self.num_nodes
 
     def skip_test_if_missing_module(self):
         self.skip_if_no_wallet()
@@ -111,6 +111,7 @@ class ListTransactionsTest(BellscoinTestFramework):
 
         self.run_rbf_opt_in_test()
         self.run_externally_generated_address_test()
+        self.run_coinjoin_test()
         self.run_invalid_parameters_test()
         self.test_op_return()
 
@@ -281,6 +282,34 @@ class ListTransactionsTest(BellscoinTestFramework):
         assert_equal(['pizza2'], self.nodes[0].getaddressinfo(addr2)['labels'])
         assert_equal(['pizza3'], self.nodes[0].getaddressinfo(addr3)['labels'])
 
+    def run_coinjoin_test(self):
+        self.log.info('Check "coin-join" transaction')
+        input_0 = next(i for i in self.nodes[0].listunspent(query_options={"minimumAmount": 0.2}, include_unsafe=False))
+        input_1 = next(i for i in self.nodes[1].listunspent(query_options={"minimumAmount": 0.2}, include_unsafe=False))
+        raw_hex = self.nodes[0].createrawtransaction(
+            inputs=[
+                {
+                    "txid": input_0["txid"],
+                    "vout": input_0["vout"],
+                },
+                {
+                    "txid": input_1["txid"],
+                    "vout": input_1["vout"],
+                },
+            ],
+            outputs={
+                self.nodes[0].getnewaddress(): 0.123,
+                self.nodes[1].getnewaddress(): 0.123,
+            },
+        )
+        raw_hex = self.nodes[0].signrawtransactionwithwallet(raw_hex)["hex"]
+        raw_hex = self.nodes[1].signrawtransactionwithwallet(raw_hex)["hex"]
+        txid_join = self.nodes[0].sendrawtransaction(hexstring=raw_hex, maxfeerate=0)
+        fee_join = self.nodes[0].getmempoolentry(txid_join)["fees"]["base"]
+        # Fee should be correct: assert_equal(fee_join, self.nodes[0].gettransaction(txid_join)['fee'])
+        # But it is not, see for example https://github.com/bitcoin/bitcoin/issues/14136:
+        assert fee_join != self.nodes[0].gettransaction(txid_join)["fee"]
+
     def run_invalid_parameters_test(self):
         self.log.info("Test listtransactions RPC parameter validity")
         assert_raises_rpc_error(-8, 'Label argument must be a valid label name or "*".', self.nodes[0].listtransactions, label="")
@@ -301,4 +330,4 @@ class ListTransactionsTest(BellscoinTestFramework):
 
 
 if __name__ == '__main__':
-    ListTransactionsTest().main()
+    ListTransactionsTest(__file__).main()

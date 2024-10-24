@@ -20,6 +20,9 @@
 #include <iterator>
 #include <tuple>
 
+using util::ContainsNoNUL;
+using util::HasPrefix;
+
 CNetAddr::BIP155Network CNetAddr::GetBIP155Network() const
 {
     switch (m_net) {
@@ -815,6 +818,19 @@ bool CService::SetSockAddr(const struct sockaddr *paddr)
         return true;
     default:
         return false;
+    }
+}
+
+sa_family_t CService::GetSAFamily() const
+{
+    switch (m_net) {
+    case NET_IPV4:
+        return AF_INET;
+    case NET_IPV6:
+    case NET_CJDNS:
+        return AF_INET6;
+    default:
+        return AF_UNSPEC;
     }
 }
 

@@ -5,19 +5,19 @@
 #include <headerssync.h>
 #include <logging.h>
 #include <pow.h>
-#include <timedata.h>
 #include <util/check.h>
+#include <util/time.h>
 #include <util/vector.h>
 
 // The two constants below are computed using the simulation script in
 // contrib/devtools/headerssync-params.py.
 
 //! Store one header commitment per HEADER_COMMITMENT_PERIOD blocks.
-constexpr size_t HEADER_COMMITMENT_PERIOD{606};
+constexpr size_t HEADER_COMMITMENT_PERIOD{615};
 
 //! Only feed headers to validation once this many headers on top have been
 //! received and validated against commitments.
-constexpr size_t REDOWNLOAD_BUFFER_SIZE{14441}; // 14441/606 = ~23.8 commitments
+constexpr size_t REDOWNLOAD_BUFFER_SIZE{14621}; // 14621/615 = ~23.8 commitments
 
 // Our memory analysis assumes 48 bytes for a CompressedHeader (so we should
 // re-calculate parameters if we compress further)
@@ -25,7 +25,7 @@ constexpr size_t REDOWNLOAD_BUFFER_SIZE{14441}; // 14441/606 = ~23.8 commitments
 
 HeadersSyncState::HeadersSyncState(NodeId id, const Consensus::Params& consensus_params,
         const CBlockIndex* chain_start, const arith_uint256& minimum_required_work) :
-    m_commit_offset(GetRand<unsigned>(HEADER_COMMITMENT_PERIOD)),
+    m_commit_offset(FastRandomContext().randrange<unsigned>(HEADER_COMMITMENT_PERIOD)),
     m_id(id), m_consensus_params(consensus_params),
     m_chain_start(chain_start),
     m_minimum_required_work(minimum_required_work),
@@ -41,7 +41,7 @@ HeadersSyncState::HeadersSyncState(NodeId id, const Consensus::Params& consensus
     // exceeds this bound, because it's not possible for a consensus-valid
     // chain to be longer than this (at the current time -- in the future we
     // could try again, if necessary, to sync a longer chain).
-    m_max_commitments = 6*(Ticks<std::chrono::seconds>(GetAdjustedTime() - NodeSeconds{std::chrono::seconds{chain_start->GetMedianTimePast()}}) + MAX_FUTURE_BLOCK_TIME) / HEADER_COMMITMENT_PERIOD;
+    m_max_commitments = 6*(Ticks<std::chrono::seconds>(NodeClock::now() - NodeSeconds{std::chrono::seconds{chain_start->GetMedianTimePast()}}) + MAX_FUTURE_BLOCK_TIME) / HEADER_COMMITMENT_PERIOD;
 
     LogPrint(BCLog::NET, "Initial headers sync started with peer=%d: height=%i, max_commitments=%i, min_work=%s\n", m_id, m_current_height, m_max_commitments, m_minimum_required_work.ToString());
 }

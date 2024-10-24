@@ -103,11 +103,18 @@ class KeyPoolTest(BellscoinTestFramework):
         nodes[0].getrawchangeaddress()
         nodes[0].getrawchangeaddress()
         nodes[0].getrawchangeaddress()
-        addr = set()
+        # remember keypool sizes
+        wi = nodes[0].getwalletinfo()
+        kp_size_before = [wi['keypoolsize_hd_internal'], wi['keypoolsize']]
         # the next one should fail
         assert_raises_rpc_error(-12, "Keypool ran out", nodes[0].getrawchangeaddress)
+        # check that keypool sizes did not change
+        wi = nodes[0].getwalletinfo()
+        kp_size_after = [wi['keypoolsize_hd_internal'], wi['keypoolsize']]
+        assert_equal(kp_size_before, kp_size_after)
 
         # drain the external keys
+        addr = set()
         addr.add(nodes[0].getnewaddress(address_type="bech32"))
         addr.add(nodes[0].getnewaddress(address_type="bech32"))
         addr.add(nodes[0].getnewaddress(address_type="bech32"))
@@ -115,8 +122,15 @@ class KeyPoolTest(BellscoinTestFramework):
         addr.add(nodes[0].getnewaddress(address_type="bech32"))
         addr.add(nodes[0].getnewaddress(address_type="bech32"))
         assert len(addr) == 6
+        # remember keypool sizes
+        wi = nodes[0].getwalletinfo()
+        kp_size_before = [wi['keypoolsize_hd_internal'], wi['keypoolsize']]
         # the next one should fail
         assert_raises_rpc_error(-12, "Error: Keypool ran out, please call keypoolrefill first", nodes[0].getnewaddress)
+        # check that keypool sizes did not change
+        wi = nodes[0].getwalletinfo()
+        kp_size_after = [wi['keypoolsize_hd_internal'], wi['keypoolsize']]
+        assert_equal(kp_size_before, kp_size_after)
 
         # refill keypool with three new addresses
         nodes[0].walletpassphrase('test', 1)
@@ -209,4 +223,4 @@ class KeyPoolTest(BellscoinTestFramework):
             assert_raises_rpc_error(-4, msg, w2.keypoolrefill, 100)
 
 if __name__ == '__main__':
-    KeyPoolTest().main()
+    KeyPoolTest(__file__).main()

@@ -21,6 +21,8 @@
 
 #include <system_error>
 
+using util::Join;
+
 namespace wallet {
 bool VerifyWallets(WalletContext& context)
 {
@@ -67,7 +69,7 @@ bool VerifyWallets(WalletContext& context)
             // Pass write=false because no need to write file and probably
             // better not to. If unnamed wallet needs to be added next startup
             // and the setting is empty, this code will just run again.
-            chain.updateRwSetting("wallet", wallets, /* write= */ false);
+            chain.overwriteRwSetting("wallet", wallets, /*write=*/false);
         }
     }
 
@@ -141,7 +143,7 @@ bool LoadWallets(WalletContext& context)
     }
 }
 
-void StartWallets(WalletContext& context, CScheduler& scheduler)
+void StartWallets(WalletContext& context)
 {
     for (const std::shared_ptr<CWallet>& pwallet : GetWallets(context)) {
         pwallet->postInitProcess();
@@ -149,9 +151,9 @@ void StartWallets(WalletContext& context, CScheduler& scheduler)
 
     // Schedule periodic wallet flushes and tx rebroadcasts
     if (context.args->GetBoolArg("-flushwallet", DEFAULT_FLUSHWALLET)) {
-        scheduler.scheduleEvery([&context] { MaybeCompactWalletDB(context); }, std::chrono::milliseconds{500});
+        context.scheduler->scheduleEvery([&context] { MaybeCompactWalletDB(context); }, 500ms);
     }
-    scheduler.scheduleEvery([&context] { MaybeResendWalletTxs(context); }, 1min);
+    context.scheduler->scheduleEvery([&context] { MaybeResendWalletTxs(context); }, 1min);
 }
 
 void FlushWallets(WalletContext& context)
@@ -176,7 +178,7 @@ void UnloadWallets(WalletContext& context)
         wallets.pop_back();
         std::vector<bilingual_str> warnings;
         RemoveWallet(context, wallet, /* load_on_start= */ std::nullopt, warnings);
-        UnloadWallet(std::move(wallet));
+        WaitForDeleteWallet(std::move(wallet));
     }
 }
 } // namespace wallet

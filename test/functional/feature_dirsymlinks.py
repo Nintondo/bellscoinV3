@@ -38,4 +38,4 @@ class SymlinkTest(BellscoinTestFramework):
 
 
 if __name__ == "__main__":
-    SymlinkTest().main()
+    SymlinkTest(__file__).main()

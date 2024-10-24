@@ -56,7 +56,7 @@ static std::vector<CTransactionRef> CreateOrderedCoins(FastRandomContext& det_ra
         for (size_t ancestor = 0; ancestor < n_ancestors && !available_coins.empty(); ++ancestor){
             size_t idx = det_rand.randrange(available_coins.size());
             Available coin = available_coins[idx];
-            uint256 hash = coin.ref->GetHash();
+            Txid hash = coin.ref->GetHash();
             // biased towards taking min_ancestors parents, but maybe more
             size_t n_to_take = det_rand.randrange(2) == 0 ?
                                min_ancestors :
@@ -106,7 +106,7 @@ static void ComplexMemPool(benchmark::Bench& bench)
 static void MempoolCheck(benchmark::Bench& bench)
 {
     FastRandomContext det_rand{true};
-    auto testing_setup = MakeNoLogFileContext<TestChain100Setup>(ChainType::REGTEST, {"-checkmempool=1"});
+    auto testing_setup = MakeNoLogFileContext<TestChain100Setup>(ChainType::REGTEST, {.extra_args = {"-checkmempool=1"}});
     CTxMemPool& pool = *testing_setup.get()->m_node.mempool;
     LOCK2(cs_main, pool.cs);
     testing_setup->PopulateMempool(det_rand, 400, true);

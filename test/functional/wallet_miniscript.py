@@ -205,10 +205,10 @@ DESCS_PRIV = [
 class WalletMiniscriptTest(BellscoinTestFramework):
     def add_options(self, parser):
         self.add_wallet_options(parser, legacy=False)
-        self.rpc_timeout = 480
 
     def set_test_params(self):
         self.num_nodes = 1
+        self.rpc_timeout = 180
 
     def skip_test_if_missing_module(self):
         self.skip_if_no_wallet()
@@ -401,4 +401,4 @@ class WalletMiniscriptTest(BellscoinTestFramework):
 
 
 if __name__ == "__main__":
-    WalletMiniscriptTest().main()
+    WalletMiniscriptTest(__file__).main()

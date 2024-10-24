@@ -75,6 +75,7 @@ class AddrReceiver(P2PInterface):
         return self.num_ipv4_received != 0
 
     def on_version(self, message):
+        self.send_version()
         self.send_message(msg_verack())
         if (self.send_getaddr):
             self.send_message(msg_getaddr())
@@ -141,7 +142,8 @@ class AddrTest(BellscoinTestFramework):
 
         msg = self.setup_addr_msg(1010)
         with self.nodes[0].assert_debug_log(['addr message size = 1010']):
-            addr_source.send_and_ping(msg)
+            addr_source.send_message(msg)
+            addr_source.wait_for_disconnect()
 
         self.nodes[0].disconnect_p2ps()
 
@@ -270,15 +272,16 @@ class AddrTest(BellscoinTestFramework):
         full_outbound_peer.sync_with_ping()
         assert full_outbound_peer.getaddr_received()
 
-        self.log.info('Check that we do not send a getaddr message upon connecting to a block-relay-only peer')
+        self.log.info('Check that we do not send a getaddr message to a block-relay-only or inbound peer')
         block_relay_peer = self.nodes[0].add_outbound_p2p_connection(AddrReceiver(), p2p_idx=1, connection_type="block-relay-only")
         block_relay_peer.sync_with_ping()
         assert_equal(block_relay_peer.getaddr_received(), False)
 
-        self.log.info('Check that we answer getaddr messages only from inbound peers')
         inbound_peer = self.nodes[0].add_p2p_connection(AddrReceiver(send_getaddr=False))
         inbound_peer.sync_with_ping()
+        assert_equal(inbound_peer.getaddr_received(), False)
 
+        self.log.info('Check that we answer getaddr messages only from inbound peers')
         # Add some addresses to addrman
         for i in range(1000):
             first_octet = i >> 8
@@ -438,4 +441,4 @@ class AddrTest(BellscoinTestFramework):
 
 
 if __name__ == '__main__':
-    AddrTest().main()
+    AddrTest(__file__).main()

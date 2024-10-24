@@ -130,8 +130,9 @@ class WalletSignerTest(BellscoinTestFramework):
         assert_equal(address_info['hdkeypath'], "m/86h/1h/0h/0/0")
 
         self.log.info('Test walletdisplayaddress')
-        result = hww.walletdisplayaddress(address1)
-        assert_equal(result, {"address": address1})
+        for address in [address1, address2, address3]:
+            result = hww.walletdisplayaddress(address)
+            assert_equal(result, {"address": address})
 
         # Handle error thrown by script
         self.set_mock_result(self.nodes[1], "2")
@@ -139,6 +140,13 @@ class WalletSignerTest(BellscoinTestFramework):
             hww.walletdisplayaddress, address1
         )
         self.clear_mock_result(self.nodes[1])
+
+        # Returned address MUST match:
+        address_fail = hww.getnewaddress(address_type="bech32")
+        assert_equal(address_fail, "bcrt1ql7zg7ukh3dwr25ex2zn9jse926f27xy2jz58tm")
+        assert_raises_rpc_error(-1, 'Signer echoed unexpected address wrong_address',
+            hww.walletdisplayaddress, address_fail
+        )
 
         self.log.info('Prepare mock PSBT')
         self.nodes[0].sendtoaddress(address4, 1)
@@ -255,4 +263,4 @@ class WalletSignerTest(BellscoinTestFramework):
         assert_raises_rpc_error(-1, "GetExternalSigner: More than one external signer found", self.nodes[1].createwallet, wallet_name='multi_hww', disable_private_keys=True, descriptors=True, external_signer=True)
 
 if __name__ == '__main__':
-    WalletSignerTest().main()
+    WalletSignerTest(__file__).main()

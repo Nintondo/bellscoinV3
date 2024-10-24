@@ -20,6 +20,7 @@
 #include <netbase.h>
 #include <netgroup.h>
 #include <node/connection_types.h>
+#include <node/protocol_version.h>
 #include <policy/feerate.h>
 #include <protocol.h>
 #include <random.h>
@@ -52,11 +53,6 @@ class CNode;
 class CScheduler;
 struct bilingual_str;
 
-/** Default for -whitelistrelay. */
-static const bool DEFAULT_WHITELISTRELAY = true;
-/** Default for -whitelistforcerelay. */
-static const bool DEFAULT_WHITELISTFORCERELAY = false;
-
 /** Time after which to disconnect, after waiting for a ping response (or inactivity). */
 static constexpr std::chrono::minutes TIMEOUT_INTERVAL{20};
 /** Run the feeler connection loop once every 2 minutes. **/
@@ -87,6 +83,8 @@ static const bool DEFAULT_BLOCKSONLY = false;
 static const int64_t DEFAULT_PEER_CONNECT_TIMEOUT = 60;
 /** Number of file descriptors required for message capture **/
 static const int NUM_FDS_MESSAGE_CAPTURE = 1;
+/** Interval for ASMap Health Check **/
+static constexpr std::chrono::hours ASMAP_HEALTH_CHECK_INTERVAL{24};
 
 static constexpr bool DEFAULT_FORCEDNSSEED{false};
 static constexpr bool DEFAULT_DNSSEED{true};
@@ -94,7 +92,7 @@ static constexpr bool DEFAULT_FIXEDSEEDS{true};
 static const size_t DEFAULT_MAXRECEIVEBUFFER = 5 * 1000;
 static const size_t DEFAULT_MAXSENDBUFFER    = 1 * 1000;
 
-static constexpr bool DEFAULT_V2_TRANSPORT{false};
+static constexpr bool DEFAULT_V2_TRANSPORT{true};
 
 typedef int64_t NodeId;
 
@@ -139,8 +137,7 @@ struct CSerializedNetMsg {
 /**
  * Look up IP addresses from all interfaces on the machine and add them to the
  * list of local addresses to self-advertise.
- * The loopback interface is skipped and only the first address from each
- * interface is used.
+ * The loopback interface is skipped.
  */
 void Discover();
 
@@ -193,7 +190,6 @@ public:
     std::chrono::seconds m_last_tx_time;
     std::chrono::seconds m_last_block_time;
     std::chrono::seconds m_connected;
-    int64_t nTimeOffset;
     std::string m_addr_name;
     int nVersion;
     std::string cleanSubVer;
@@ -231,7 +227,8 @@ public:
  * Ideally it should only contain receive time, payload,
  * type and size.
  */
-class CNetMessage {
+class CNetMessage
+{
 public:
     CDataStream m_recv;                  //!< received message data
     std::chrono::microseconds m_time{0}; //!< time of message receipt
@@ -239,7 +236,7 @@ public:
     uint32_t m_raw_message_size{0};      //!< used wire size of the message (including header/checksum)
     std::string m_type;
 
-    CNetMessage(CDataStream&& recv_in) : m_recv(std::move(recv_in)) {}
+    explicit CNetMessage(CDataStream&& recv_in) : m_recv(std::move(recv_in)) {}
     // Only one CNetMessage object will exist for the same message on either
     // the receive or processing queue. For performance reasons we therefore
     // delete the copy constructor and assignment operator to avoid the
@@ -248,17 +245,12 @@ public:
     CNetMessage(const CNetMessage&) = delete;
     CNetMessage& operator=(CNetMessage&&) = default;
     CNetMessage& operator=(const CNetMessage&) = delete;
-
-    void SetVersion(int nVersionIn)
-    {
-        m_recv.SetVersion(nVersionIn);
-    }
 };
 
 /** The Transport converts one connection's sent messages to wire bytes, and received bytes back. */
 class Transport {
 public:
-    virtual ~Transport() {}
+    virtual ~Transport() = default;
 
     struct Info
     {
@@ -715,7 +707,6 @@ public:
     std::atomic<std::chrono::seconds> m_last_recv{0s};
     //! Unix epoch time at peer connection
     const std::chrono::seconds m_connected;
-    std::atomic<int64_t> nTimeOffset{0};
     // Address of this peer
     const CAddress addr;
     // Bind address of our side of the connection
@@ -978,7 +969,7 @@ private:
     size_t m_msg_process_queue_size GUARDED_BY(m_msg_process_queue_mutex){0};
 
     // Our address, as reported by the peer
-    CService addrLocal GUARDED_BY(m_addr_local_mutex);
+    CService m_addr_local GUARDED_BY(m_addr_local_mutex);
     mutable Mutex m_addr_local_mutex;
 
     mapMsgTypeSize mapSendBytesPerMsgType GUARDED_BY(cs_vSend);
@@ -1006,11 +997,17 @@ public:
     /** Mutex for anything that is only accessed via the msg processing thread */
     static Mutex g_msgproc_mutex;
 
-    /** Initialize a peer (setup state, queue any initial messages) */
-    virtual void InitializeNode(CNode& node, ServiceFlags our_services) = 0;
+    /** Initialize a peer (setup state) */
+    virtual void InitializeNode(const CNode& node, ServiceFlags our_services) = 0;
 
     /** Handle removal of a peer (clear state) */
     virtual void FinalizeNode(const CNode& node) = 0;
+
+    /**
+     * Callback to determine whether the given set of service flags are sufficient
+     * for a peer to be "relevant".
+     */
+    virtual bool HasAllDesirableServiceFlags(ServiceFlags services) const = 0;
 
     /**
     * Process protocol messages received from a given node
@@ -1045,11 +1042,7 @@ public:
     struct Options
     {
         ServiceFlags nLocalServices = NODE_NONE;
-        int nMaxConnections = 0;
-        int m_max_outbound_full_relay = 0;
-        int m_max_outbound_block_relay = 0;
-        int nMaxAddnode = 0;
-        int nMaxFeeler = 0;
+        int m_max_automatic_connections = 0;
         CClientUIInterface* uiInterface = nullptr;
         NetEventsInterface* m_msgproc = nullptr;
         BanMan* m_banman = nullptr;
@@ -1058,7 +1051,8 @@ public:
         uint64_t nMaxOutboundLimit = 0;
         int64_t m_peer_connect_timeout = DEFAULT_PEER_CONNECT_TIMEOUT;
         std::vector<std::string> vSeedNodes;
-        std::vector<NetWhitelistPermissions> vWhitelistedRange;
+        std::vector<NetWhitelistPermissions> vWhitelistedRangeIncoming;
+        std::vector<NetWhitelistPermissions> vWhitelistedRangeOutgoing;
         std::vector<NetWhitebindPermissions> vWhiteBinds;
         std::vector<CService> vBinds;
         std::vector<CService> onion_binds;
@@ -1069,6 +1063,8 @@ public:
         std::vector<std::string> m_specified_outgoing;
         std::vector<std::string> m_added_nodes;
         bool m_i2p_accept_incoming;
+        bool whitelist_forcerelay = DEFAULT_WHITELISTFORCERELAY;
+        bool whitelist_relay = DEFAULT_WHITELISTRELAY;
     };
 
     void Init(const Options& connOptions) EXCLUSIVE_LOCKS_REQUIRED(!m_added_nodes_mutex, !m_total_bytes_sent_mutex)
@@ -1076,13 +1072,12 @@ public:
         AssertLockNotHeld(m_total_bytes_sent_mutex);
 
         nLocalServices = connOptions.nLocalServices;
-        nMaxConnections = connOptions.nMaxConnections;
-        m_max_outbound_full_relay = std::min(connOptions.m_max_outbound_full_relay, connOptions.nMaxConnections);
-        m_max_outbound_block_relay = connOptions.m_max_outbound_block_relay;
+        m_max_automatic_connections = connOptions.m_max_automatic_connections;
+        m_max_outbound_full_relay = std::min(MAX_OUTBOUND_FULL_RELAY_CONNECTIONS, m_max_automatic_connections);
+        m_max_outbound_block_relay = std::min(MAX_BLOCK_RELAY_ONLY_CONNECTIONS, m_max_automatic_connections - m_max_outbound_full_relay);
+        m_max_automatic_outbound = m_max_outbound_full_relay + m_max_outbound_block_relay + m_max_feeler;
+        m_max_inbound = std::max(0, m_max_automatic_connections - m_max_automatic_outbound);
         m_use_addrman_outgoing = connOptions.m_use_addrman_outgoing;
-        nMaxAddnode = connOptions.nMaxAddnode;
-        nMaxFeeler = connOptions.nMaxFeeler;
-        m_max_outbound = m_max_outbound_full_relay + m_max_outbound_block_relay + nMaxFeeler;
         m_client_interface = connOptions.uiInterface;
         m_banman = connOptions.m_banman;
         m_msgproc = connOptions.m_msgproc;
@@ -1093,16 +1088,20 @@ public:
             LOCK(m_total_bytes_sent_mutex);
             nMaxOutboundLimit = connOptions.nMaxOutboundLimit;
         }
-        vWhitelistedRange = connOptions.vWhitelistedRange;
+        vWhitelistedRangeIncoming = connOptions.vWhitelistedRangeIncoming;
+        vWhitelistedRangeOutgoing = connOptions.vWhitelistedRangeOutgoing;
         {
             LOCK(m_added_nodes_mutex);
-
+            // Attempt v2 connection if we support v2 - we'll reconnect with v1 if our
+            // peer doesn't support it or immediately disconnects us for another reason.
+            const bool use_v2transport(GetLocalServices() & NODE_P2P_V2);
             for (const std::string& added_node : connOptions.m_added_nodes) {
-                // -addnode cli arg does not currently have a way to signal BIP324 support
-                m_added_node_params.push_back({added_node, false});
+                m_added_node_params.push_back({added_node, use_v2transport});
             }
         }
         m_onion_binds = connOptions.onion_binds;
+        whitelist_forcerelay = connOptions.whitelist_forcerelay;
+        whitelist_relay = connOptions.whitelist_relay;
     }
 
     CConnman(uint64_t seed0, uint64_t seed1, AddrMan& addrman, const NetGroupManager& netgroupman,
@@ -1126,6 +1125,7 @@ public:
     void SetNetworkActive(bool active);
     void OpenNetworkConnection(const CAddress& addrConnect, bool fCountFailure, CSemaphoreGrant&& grant_outbound, const char* strDest, ConnectionType conn_type, bool use_v2transport) EXCLUSIVE_LOCKS_REQUIRED(!m_unused_i2p_sessions_mutex);
     bool CheckIncomingNonce(uint64_t nonce);
+    void ASMapHealthCheck();
 
     // alias for thread safety annotations only, not defined
     RecursiveMutex& GetNodesMutex() const LOCK_RETURNED(m_nodes_mutex);
@@ -1160,8 +1160,9 @@ public:
      * @param[in] max_addresses  Maximum number of addresses to return (0 = all).
      * @param[in] max_pct        Maximum percentage of addresses to return (0 = all).
      * @param[in] network        Select only addresses of this network (nullopt = all).
+     * @param[in] filtered       Select only addresses that are considered high quality (false = all).
      */
-    std::vector<CAddress> GetAddresses(size_t max_addresses, size_t max_pct, std::optional<Network> network) const;
+    std::vector<CAddress> GetAddresses(size_t max_addresses, size_t max_pct, std::optional<Network> network, const bool filtered = true) const;
     /**
      * Cache is used to minimize topology leaks, so it should
      * be used for all non-trusted calls, for example, p2p.
@@ -1177,6 +1178,8 @@ public:
 
     void StartExtraBlockRelayPeers();
 
+    // Count the number of full-relay peer we have.
+    int GetFullOutboundConnCount() const;
     // Return the number of outbound peers we have in excess of our target (eg,
     // if we previously called SetTryNewOutboundPeer(true), and have since set
     // to false, we may have extra peers that we wish to disconnect). This may
@@ -1190,7 +1193,7 @@ public:
     bool AddNode(const AddedNodeParams& add) EXCLUSIVE_LOCKS_REQUIRED(!m_added_nodes_mutex);
     bool RemoveAddedNode(const std::string& node) EXCLUSIVE_LOCKS_REQUIRED(!m_added_nodes_mutex);
     bool AddedNodesContain(const CAddress& addr) const EXCLUSIVE_LOCKS_REQUIRED(!m_added_nodes_mutex);
-    std::vector<AddedNodeInfo> GetAddedNodeInfo() const EXCLUSIVE_LOCKS_REQUIRED(!m_added_nodes_mutex);
+    std::vector<AddedNodeInfo> GetAddedNodeInfo(bool include_connected) const EXCLUSIVE_LOCKS_REQUIRED(!m_added_nodes_mutex);
 
     /**
      * Attempts to open a connection. Currently only used from tests.
@@ -1198,15 +1201,17 @@ public:
      * @param[in]   address     Address of node to try connecting to
      * @param[in]   conn_type   ConnectionType::OUTBOUND, ConnectionType::BLOCK_RELAY,
      *                          ConnectionType::ADDR_FETCH or ConnectionType::FEELER
+     * @param[in]   use_v2transport  Set to true if node attempts to connect using BIP 324 v2 transport protocol.
      * @return      bool        Returns false if there are no available
      *                          slots for this connection:
      *                          - conn_type not a supported ConnectionType
      *                          - Max total outbound connection capacity filled
      *                          - Max connection capacity for type is filled
      */
-    bool AddConnection(const std::string& address, ConnectionType conn_type) EXCLUSIVE_LOCKS_REQUIRED(!m_unused_i2p_sessions_mutex);
+    bool AddConnection(const std::string& address, ConnectionType conn_type, bool use_v2transport) EXCLUSIVE_LOCKS_REQUIRED(!m_unused_i2p_sessions_mutex);
 
     size_t GetNodeCount(ConnectionDirection) const;
+    std::map<CNetAddr, LocalServiceInfo> getNetLocalAddresses() const;
     uint32_t GetMappedAS(const CNetAddr& addr) const;
     void GetNodeStats(std::vector<CNodeStats>& vstats) const;
     bool DisconnectNode(const std::string& node);
@@ -1221,6 +1226,11 @@ public:
     //! which is used to advertise which services we are offering
     //! that peer during `net_processing.cpp:PushNodeVersion()`.
     ServiceFlags GetLocalServices() const;
+
+    //! Updates the local services that this node advertises to other peers
+    //! during connection handshake.
+    void AddLocalServices(ServiceFlags services) { nLocalServices = ServiceFlags(nLocalServices | services); };
+    void RemoveLocalServices(ServiceFlags services) { nLocalServices = ServiceFlags(nLocalServices & ~services); }
 
     uint64_t GetMaxOutboundTarget() const EXCLUSIVE_LOCKS_REQUIRED(!m_total_bytes_sent_mutex);
     std::chrono::seconds GetMaxOutboundTimeframe() const;
@@ -1341,7 +1351,7 @@ private:
 
     bool AttemptToEvictConnection();
     CNode* ConnectNode(CAddress addrConnect, const char *pszDest, bool fCountFailure, ConnectionType conn_type, bool use_v2transport) EXCLUSIVE_LOCKS_REQUIRED(!m_unused_i2p_sessions_mutex);
-    void AddWhitelistPermissionFlags(NetPermissionFlags& flags, const CNetAddr &addr) const;
+    void AddWhitelistPermissionFlags(NetPermissionFlags& flags, const CNetAddr &addr, const std::vector<NetWhitelistPermissions>& ranges) const;
 
     void DeleteNode(CNode* pnode);
 
@@ -1400,7 +1410,9 @@ private:
 
     // Whitelisted ranges. Any node connecting from these is automatically
     // whitelisted (as well as those connecting to whitelisted binds).
-    std::vector<NetWhitelistPermissions> vWhitelistedRange;
+    std::vector<NetWhitelistPermissions> vWhitelistedRangeIncoming;
+    // Whitelisted ranges for outgoing connections.
+    std::vector<NetWhitelistPermissions> vWhitelistedRangeOutgoing;
 
     unsigned int nSendBufferMaxSize{0};
     unsigned int nReceiveFloodSize{0};
@@ -1459,15 +1471,27 @@ private:
      * This data is replicated in each Peer instance we create.
      *
      * This data is not marked const, but after being set it should not
-     * change.
+     * change. Unless AssumeUTXO is started, in which case, the peer
+     * will be limited until the background chain sync finishes.
      *
      * \sa Peer::our_services
      */
-    ServiceFlags nLocalServices;
+    std::atomic<ServiceFlags> nLocalServices;
 
     std::unique_ptr<CSemaphore> semOutbound;
     std::unique_ptr<CSemaphore> semAddnode;
-    int nMaxConnections;
+
+    /**
+     * Maximum number of automatic connections permitted, excluding manual
+     * connections but including inbounds. May be changed by the user and is
+     * potentially limited by the operating system (number of file descriptors).
+     */
+    int m_max_automatic_connections;
+
+    /*
+     * Maximum number of peers by connection type. Might vary from defaults
+     * based on -maxconnections init value.
+     */
 
     // How many full-relay (tx, block, addr) outbound peers we want
     int m_max_outbound_full_relay;
@@ -1476,9 +1500,11 @@ private:
     // We do not relay tx or addr messages with these peers
     int m_max_outbound_block_relay;
 
-    int nMaxAddnode;
-    int nMaxFeeler;
-    int m_max_outbound;
+    int m_max_addnode{MAX_ADDNODE_CONNECTIONS};
+    int m_max_feeler{MAX_FEELER_CONNECTIONS};
+    int m_max_automatic_outbound;
+    int m_max_inbound;
+
     bool m_use_addrman_outgoing;
     CClientUIInterface* m_client_interface;
     NetEventsInterface* m_msgproc;
@@ -1541,6 +1567,18 @@ private:
     std::vector<CService> m_onion_binds;
 
     /**
+     * flag for adding 'forcerelay' permission to whitelisted inbound
+     * and manual peers with default permissions.
+     */
+    bool whitelist_forcerelay;
+
+    /**
+     * flag for adding 'relay' permission to whitelisted inbound
+     * and manual peers with default permissions.
+     */
+    bool whitelist_relay;
+
+    /**
      * Mutex protecting m_i2p_sam_sessions.
      */
     Mutex m_unused_i2p_sessions_mutex;
@@ -1600,7 +1638,7 @@ private:
                 }
             }
             if (shuffle) {
-                Shuffle(m_nodes_copy.begin(), m_nodes_copy.end(), FastRandomContext{});
+                std::shuffle(m_nodes_copy.begin(), m_nodes_copy.end(), FastRandomContext{});
             }
         }
 

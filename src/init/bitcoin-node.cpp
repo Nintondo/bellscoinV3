@@ -2,7 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include <common/args.h>
+#include <init.h>
 #include <interfaces/chain.h>
 #include <interfaces/echo.h>
 #include <interfaces/init.h>
@@ -25,11 +25,12 @@ public:
         : m_node(node),
           m_ipc(interfaces::MakeIpc(EXE_NAME, arg0, *this))
     {
-        m_node.args = &gArgs;
+        InitContext(m_node);
         m_node.init = this;
     }
     std::unique_ptr<interfaces::Node> makeNode() override { return interfaces::MakeNode(m_node); }
     std::unique_ptr<interfaces::Chain> makeChain() override { return interfaces::MakeChain(m_node); }
+    std::unique_ptr<interfaces::Mining> makeMining() override { return interfaces::MakeMining(m_node); }
     std::unique_ptr<interfaces::WalletLoader> makeWalletLoader(interfaces::Chain& chain) override
     {
         return MakeWalletLoader(chain, *Assert(m_node.args));

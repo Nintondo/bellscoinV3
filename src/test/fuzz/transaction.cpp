@@ -18,7 +18,6 @@
 #include <util/chaintype.h>
 #include <util/rbf.h>
 #include <validation.h>
-#include <version.h>
 
 #include <cassert>
 
@@ -30,13 +29,6 @@ void initialize_transaction()
 FUZZ_TARGET(transaction, .init = initialize_transaction)
 {
     CDataStream ds(buffer, SER_NETWORK, INIT_PROTO_VERSION);
-    try {
-        int nVersion;
-        ds >> nVersion;
-        ds.SetVersion(nVersion);
-    } catch (const std::ios_base::failure&) {
-        return;
-    }
     bool valid_tx = true;
     const CTransaction tx = [&] {
         try {

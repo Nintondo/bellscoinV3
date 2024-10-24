@@ -4,8 +4,6 @@
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test that fast rescan using block filters for descriptor wallets detects
    top-ups correctly and finds the same transactions than the slow variant."""
-from typing import List
-
 from test_framework.address import address_to_scriptpubkey
 from test_framework.descriptors import descsum_create
 from test_framework.test_framework import BellscoinTestFramework
@@ -32,7 +30,7 @@ class WalletFastRescanTest(BellscoinTestFramework):
         self.skip_if_no_wallet()
         self.skip_if_no_sqlite()
 
-    def get_wallet_txids(self, node: TestNode, wallet_name: str) -> List[str]:
+    def get_wallet_txids(self, node: TestNode, wallet_name: str) -> list[str]:
         w = node.get_wallet_rpc(wallet_name)
         txs = w.listtransactions('*', 1000000)
         return [tx['txid'] for tx in txs]
@@ -101,4 +99,4 @@ class WalletFastRescanTest(BellscoinTestFramework):
 
 
 if __name__ == '__main__':
-    WalletFastRescanTest().main()
+    WalletFastRescanTest(__file__).main()

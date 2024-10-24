@@ -29,7 +29,7 @@ def check_package_limits(func):
         testres_error_expected = node.testmempoolaccept(rawtxs=package_hex)
         assert_equal(len(testres_error_expected), len(package_hex))
         for txres in testres_error_expected:
-            assert_equal(txres["package-error"], "package-mempool-limits")
+            assert "package-mempool-limits" in txres["package-error"]
 
         # Clear mempool and check that the package passes now
         self.generate(node, 1)
@@ -343,4 +343,4 @@ class MempoolPackageLimitsTest(BellscoinTestFramework):
 
 
 if __name__ == "__main__":
-    MempoolPackageLimitsTest().main()
+    MempoolPackageLimitsTest(__file__).main()

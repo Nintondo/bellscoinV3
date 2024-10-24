@@ -3,8 +3,10 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <clientversion.h>
+#include <common/signmessage.h> // For MessageSign(), MessageVerify(), MESSAGE_MAGIC
 #include <hash.h> // For Hash()
 #include <key.h>  // For CKey
+#include <script/parsing.h>
 #include <sync.h>
 #include <test/util/random.h>
 #include <test/util/setup_common.h>
@@ -12,12 +14,9 @@
 #include <util/bitdeque.h>
 #include <util/fs.h>
 #include <util/fs_helpers.h>
-#include <util/getuniquepath.h>
-#include <util/message.h> // For MessageSign(), MessageVerify(), MESSAGE_MAGIC
 #include <util/moneystr.h>
 #include <util/overflow.h>
 #include <util/readwritefile.h>
-#include <util/spanparsing.h>
 #include <util/strencodings.h>
 #include <util/string.h>
 #include <util/time.h>
@@ -46,11 +45,20 @@
 #include <boost/test/unit_test.hpp>
 
 using namespace std::literals;
+using util::Join;
+using util::RemovePrefix;
+using util::RemovePrefixView;
+using util::ReplaceAll;
+using util::Split;
+using util::SplitString;
+using util::TrimString;
+using util::TrimStringView;
+
 static const std::string STRING_WITH_EMBEDDED_NULL_CHAR{"1"s "\0" "1"s};
 
 /* defined in logging.cpp */
 namespace BCLog {
-    std::string LogEscapeMessage(const std::string& str);
+    std::string LogEscapeMessage(std::string_view str);
 }
 
 BOOST_FIXTURE_TEST_SUITE(util_tests, BasicTestingSetup)
@@ -291,13 +299,18 @@ BOOST_AUTO_TEST_CASE(util_TrimString)
 
 BOOST_AUTO_TEST_CASE(util_FormatISO8601DateTime)
 {
+    BOOST_CHECK_EQUAL(FormatISO8601DateTime(971890963199), "32767-12-31T23:59:59Z");
+    BOOST_CHECK_EQUAL(FormatISO8601DateTime(971890876800), "32767-12-31T00:00:00Z");
     BOOST_CHECK_EQUAL(FormatISO8601DateTime(1317425777), "2011-09-30T23:36:17Z");
     BOOST_CHECK_EQUAL(FormatISO8601DateTime(0), "1970-01-01T00:00:00Z");
 }
 
 BOOST_AUTO_TEST_CASE(util_FormatISO8601Date)
 {
+    BOOST_CHECK_EQUAL(FormatISO8601Date(971890963199), "32767-12-31");
+    BOOST_CHECK_EQUAL(FormatISO8601Date(971890876800), "32767-12-31");
     BOOST_CHECK_EQUAL(FormatISO8601Date(1317425777), "2011-09-30");
+    BOOST_CHECK_EQUAL(FormatISO8601Date(0), "1970-01-01");
 }
 
 BOOST_AUTO_TEST_CASE(util_FormatMoney)
@@ -446,7 +459,7 @@ BOOST_AUTO_TEST_CASE(util_IsHexNumber)
 
 BOOST_AUTO_TEST_CASE(util_seed_insecure_rand)
 {
-    SeedInsecureRand(SeedRand::ZEROS);
+    SeedRandomForTest(SeedRand::ZEROS);
     for (int mod=2;mod<11;mod++)
     {
         int mask = 1;
@@ -1106,15 +1119,16 @@ BOOST_AUTO_TEST_CASE(test_ParseFixedPoint)
     BOOST_CHECK(!ParseFixedPoint("31.999999999999999999999", 3, &amount));
 }
 
-static void TestOtherThread(fs::path dirname, fs::path lockname, bool *result)
-{
-    *result = LockDirectory(dirname, lockname);
-}
-
 #ifndef WIN32 // Cannot do this test on WIN32 due to lack of fork()
 static constexpr char LockCommand = 'L';
 static constexpr char UnlockCommand = 'U';
 static constexpr char ExitCommand = 'X';
+enum : char {
+    ResSuccess = 2, // Start with 2 to avoid accidental collision with common values 0 and 1
+    ResErrorWrite,
+    ResErrorLock,
+    ResUnlockSuccess,
+};
 
 [[noreturn]] static void TestOtherProcess(fs::path dirname, fs::path lockname, int fd)
 {
@@ -1122,15 +1136,22 @@ static constexpr char ExitCommand = 'X';
     while (true) {
         int rv = read(fd, &ch, 1); // Wait for command
         assert(rv == 1);
-        switch(ch) {
+        switch (ch) {
         case LockCommand:
-            ch = LockDirectory(dirname, lockname);
+            ch = [&] {
+                switch (util::LockDirectory(dirname, lockname)) {
+                case util::LockResult::Success: return ResSuccess;
+                case util::LockResult::ErrorWrite: return ResErrorWrite;
+                case util::LockResult::ErrorLock: return ResErrorLock;
+                } // no default case, so the compiler can warn about missing cases
+                assert(false);
+            }();
             rv = write(fd, &ch, 1);
             assert(rv == 1);
             break;
         case UnlockCommand:
             ReleaseDirectoryLocks();
-            ch = true; // Always succeeds
+            ch = ResUnlockSuccess; // Always succeeds
             rv = write(fd, &ch, 1);
             assert(rv == 1);
             break;
@@ -1165,63 +1186,71 @@ BOOST_AUTO_TEST_CASE(test_LockDirectory)
         TestOtherProcess(dirname, lockname, fd[0]);
     }
     BOOST_CHECK_EQUAL(close(fd[0]), 0); // Parent: close child end
+
+    char ch;
+    // Lock on non-existent directory should fail
+    BOOST_CHECK_EQUAL(write(fd[1], &LockCommand, 1), 1);
+    BOOST_CHECK_EQUAL(read(fd[1], &ch, 1), 1);
+    BOOST_CHECK_EQUAL(ch, ResErrorWrite);
 #endif
     // Lock on non-existent directory should fail
-    BOOST_CHECK_EQUAL(LockDirectory(dirname, lockname), false);
+    BOOST_CHECK_EQUAL(util::LockDirectory(dirname, lockname), util::LockResult::ErrorWrite);
 
     fs::create_directories(dirname);
 
     // Probing lock on new directory should succeed
-    BOOST_CHECK_EQUAL(LockDirectory(dirname, lockname, true), true);
+    BOOST_CHECK_EQUAL(util::LockDirectory(dirname, lockname, true), util::LockResult::Success);
 
     // Persistent lock on new directory should succeed
-    BOOST_CHECK_EQUAL(LockDirectory(dirname, lockname), true);
+    BOOST_CHECK_EQUAL(util::LockDirectory(dirname, lockname), util::LockResult::Success);
 
     // Another lock on the directory from the same thread should succeed
-    BOOST_CHECK_EQUAL(LockDirectory(dirname, lockname), true);
+    BOOST_CHECK_EQUAL(util::LockDirectory(dirname, lockname), util::LockResult::Success);
 
     // Another lock on the directory from a different thread within the same process should succeed
-    bool threadresult;
-    std::thread thr(TestOtherThread, dirname, lockname, &threadresult);
+    util::LockResult threadresult;
+    std::thread thr([&] { threadresult = util::LockDirectory(dirname, lockname); });
     thr.join();
-    BOOST_CHECK_EQUAL(threadresult, true);
+    BOOST_CHECK_EQUAL(threadresult, util::LockResult::Success);
 #ifndef WIN32
     // Try to acquire lock in child process while we're holding it, this should fail.
-    char ch;
     BOOST_CHECK_EQUAL(write(fd[1], &LockCommand, 1), 1);
     BOOST_CHECK_EQUAL(read(fd[1], &ch, 1), 1);
-    BOOST_CHECK_EQUAL((bool)ch, false);
+    BOOST_CHECK_EQUAL(ch, ResErrorLock);
 
     // Give up our lock
     ReleaseDirectoryLocks();
     // Probing lock from our side now should succeed, but not hold on to the lock.
-    BOOST_CHECK_EQUAL(LockDirectory(dirname, lockname, true), true);
+    BOOST_CHECK_EQUAL(util::LockDirectory(dirname, lockname, true), util::LockResult::Success);
 
     // Try to acquire the lock in the child process, this should be successful.
     BOOST_CHECK_EQUAL(write(fd[1], &LockCommand, 1), 1);
     BOOST_CHECK_EQUAL(read(fd[1], &ch, 1), 1);
-    BOOST_CHECK_EQUAL((bool)ch, true);
+    BOOST_CHECK_EQUAL(ch, ResSuccess);
 
     // When we try to probe the lock now, it should fail.
-    BOOST_CHECK_EQUAL(LockDirectory(dirname, lockname, true), false);
+    BOOST_CHECK_EQUAL(util::LockDirectory(dirname, lockname, true), util::LockResult::ErrorLock);
 
     // Unlock the lock in the child process
     BOOST_CHECK_EQUAL(write(fd[1], &UnlockCommand, 1), 1);
     BOOST_CHECK_EQUAL(read(fd[1], &ch, 1), 1);
-    BOOST_CHECK_EQUAL((bool)ch, true);
+    BOOST_CHECK_EQUAL(ch, ResUnlockSuccess);
 
     // When we try to probe the lock now, it should succeed.
-    BOOST_CHECK_EQUAL(LockDirectory(dirname, lockname, true), true);
+    BOOST_CHECK_EQUAL(util::LockDirectory(dirname, lockname, true), util::LockResult::Success);
 
     // Re-lock the lock in the child process, then wait for it to exit, check
     // successful return. After that, we check that exiting the process
     // has released the lock as we would expect by probing it.
     int processstatus;
     BOOST_CHECK_EQUAL(write(fd[1], &LockCommand, 1), 1);
+    // The following line invokes the ~CNetCleanup dtor without
+    // a paired SetupNetworking call. This is acceptable as long as
+    // ~CNetCleanup is a no-op for non-Windows platforms.
     BOOST_CHECK_EQUAL(write(fd[1], &ExitCommand, 1), 1);
     BOOST_CHECK_EQUAL(waitpid(pid, &processstatus, 0), pid);
     BOOST_CHECK_EQUAL(processstatus, 0);
-    BOOST_CHECK_EQUAL(LockDirectory(dirname, lockname, true), true);
+    BOOST_CHECK_EQUAL(util::LockDirectory(dirname, lockname, true), util::LockResult::Success);
 
     // Restore SIGCHLD
     signal(SIGCHLD, old_handler);
@@ -1230,22 +1259,6 @@ BOOST_AUTO_TEST_CASE(test_LockDirectory)
     // Clean up
     ReleaseDirectoryLocks();
     fs::remove_all(dirname);
-}
-
-BOOST_AUTO_TEST_CASE(test_DirIsWritable)
-{
-    // Should be able to write to the data dir.
-    fs::path tmpdirname = m_args.GetDataDirBase();
-    BOOST_CHECK_EQUAL(DirIsWritable(tmpdirname), true);
-
-    // Should not be able to write to a non-existent dir.
-    tmpdirname = GetUniquePath(tmpdirname);
-    BOOST_CHECK_EQUAL(DirIsWritable(tmpdirname), false);
-
-    fs::create_directory(tmpdirname);
-    // Should be able to write to it now.
-    BOOST_CHECK_EQUAL(DirIsWritable(tmpdirname), true);
-    fs::remove(tmpdirname);
 }
 
 BOOST_AUTO_TEST_CASE(test_ToLower)
@@ -1288,9 +1301,9 @@ static std::string SpanToStr(const Span<const char>& span)
     return std::string(span.begin(), span.end());
 }
 
-BOOST_AUTO_TEST_CASE(test_spanparsing)
+BOOST_AUTO_TEST_CASE(test_script_parsing)
 {
-    using namespace spanparsing;
+    using namespace script;
     std::string input;
     Span<const char> sp;
     bool success;
@@ -1495,8 +1508,10 @@ struct Tracker
     Tracker(Tracker&& t) noexcept : origin(t.origin), copies(t.copies) {}
     Tracker& operator=(const Tracker& t) noexcept
     {
-        origin = t.origin;
-        copies = t.copies + 1;
+        if (this != &t) {
+            origin = t.origin;
+            copies = t.copies + 1;
+        }
         return *this;
     }
 };
