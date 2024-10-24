@@ -1929,9 +1929,11 @@ bool GenericTransactionSignatureChecker<T>::CheckSequence(const CScriptNum& nSeq
 template class GenericTransactionSignatureChecker<CTransaction>;
 template class GenericTransactionSignatureChecker<CMutableTransaction>;
 
-std::optional<bool> CheckTapscriptOpSuccess(const CScript& exec_script, unsigned int flags, ScriptError* serror)
+static bool ExecuteWitnessScript(const Span<const valtype>& stack_span, const CScript& exec_script, unsigned int flags, SigVersion sigversion, const BaseSignatureChecker& checker, ScriptExecutionData& execdata, ScriptError* serror)
 {
-    {
+    std::vector<valtype> stack{stack_span.begin(), stack_span.end()};
+
+    if (sigversion == SigVersion::TAPSCRIPT) {
         // OP_SUCCESSx processing overrides everything, including stack element size limits
         CScript::const_iterator pc = exec_script.begin();
         while (pc < exec_script.end()) {
@@ -1940,7 +1942,7 @@ std::optional<bool> CheckTapscriptOpSuccess(const CScript& exec_script, unsigned
                 // Note how this condition would not be reached if an unknown OP_SUCCESSx was found
                 return set_error(serror, SCRIPT_ERR_BAD_OPCODE);
             }
-
+            // New opcodes will be listed here. May use a different sigversion to modify existing opcodes.
             if (IsOpSuccess(opcode)) {
                 if (opcode == OP_CAT) {
                     if (flags & SCRIPT_VERIFY_DISCOURAGE_OP_CAT) {
@@ -1957,17 +1959,6 @@ std::optional<bool> CheckTapscriptOpSuccess(const CScript& exec_script, unsigned
                 }
             }
         }
-    }
-    return std::nullopt;
-}
-static bool ExecuteWitnessScript(const Span<const valtype>& stack_span, const CScript& exec_script, unsigned int flags, SigVersion sigversion, const BaseSignatureChecker& checker, ScriptExecutionData& execdata, ScriptError* serror)
-{
-    std::vector<valtype> stack{stack_span.begin(), stack_span.end()};
-
-    if (sigversion == SigVersion::TAPSCRIPT) {
-
-        auto r = CheckTapscriptOpSuccess(exec_script, flags, serror);
-        if (r.has_value()) return *r;
 
         // Tapscript enforces initial stack size limits (altstack is empty here)
         if (stack.size() > MAX_STACK_SIZE) return set_error(serror, SCRIPT_ERR_STACK_SIZE);

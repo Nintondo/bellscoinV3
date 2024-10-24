@@ -131,6 +131,8 @@ public:
 
     const ChainTxData& TxData() const { return chainTxData; }
 
+    using RenounceParameters = std::vector<Consensus::BuriedDeployment>;
+
     /**
      * SigNetOptions holds configurations for creating a signet CChainParams.
      */

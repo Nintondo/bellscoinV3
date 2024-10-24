@@ -102,6 +102,43 @@ static CBlock CreateGenesisBlock(uint32_t nTime, uint32_t nNonce, uint32_t nBits
 }
 
 const arith_uint256 maxUint = UintToArith256(uint256S("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"));
+
+template<size_t N>
+static void RenounceDeployments(const CChainParams::RenounceParameters& renounce, Consensus::HereticalDeployment (&vDeployments)[N])
+{
+    for (Consensus::BuriedDeployment dep : renounce) {
+        vDeployments[dep].nStartTime = Consensus::HereticalDeployment::NEVER_ACTIVE;
+        vDeployments[dep].nTimeout = Consensus::HereticalDeployment::NO_TIMEOUT;
+    }
+}
+
+namespace {
+struct SetupDeployment
+{
+    uint32_t year = 0, number = 0, revision = 0; // see https://github.com/bitcoin-inquisition/binana
+    int64_t start = 0;
+    int64_t timeout = 0;
+    int32_t activate = -1;
+    int32_t abandon = -1;
+    bool always = false;
+    bool never = false;
+
+    int32_t binana_id() const {
+        return static_cast<int32_t>( ((year % 32) << 22) | ((number % 16384) << 8) | (revision % 256) );
+    }
+
+    operator Consensus::HereticalDeployment () const
+    {
+        return Consensus::HereticalDeployment{
+            .signal_activate = (activate >= 0 ? activate : (VERSIONBITS_TOP_ACTIVE | binana_id())),
+            .signal_abandon = (abandon >= 0 ? abandon : (VERSIONBITS_TOP_ABANDON | binana_id())),
+            .nStartTime = (always ? Consensus::HereticalDeployment::ALWAYS_ACTIVE : never ? Consensus::HereticalDeployment::NEVER_ACTIVE : start),
+            .nTimeout = (always || never ? Consensus::HereticalDeployment::NO_TIMEOUT : timeout),
+        };
+    }
+};
+}
+
 /**
  * Main network on which people trade goods and services.
  */
@@ -155,6 +192,7 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].nStartTime = 1718409600; // 2024-06-15 00:00:00
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].nTimeout = 1735084800; // 2024-12-25 18:00:00
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].min_activation_height = 188000;
+        consensus.vDeployments[Consensus::DEPLOYMENT_OP_CAT] = SetupDeployment{.activate = 0x62000100, .abandon = 0x42000100, .never = true};
 
         consensus.nMinimumChainWork = uint256S("0x0000000000000000000000000000000000000000000000000000000000100010");
         consensus.defaultAssumeValid = uint256S("0x50c259c50c5c2ab235f2ceb45da49f7c046f0411667c00d81cb8165f2b843ea1"); // 40000

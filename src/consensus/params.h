@@ -41,6 +41,35 @@ enum DeploymentPos : uint16_t {
 constexpr bool ValidDeployment(DeploymentPos dep) { return dep < MAX_VERSION_BITS_DEPLOYMENTS; }
 
 /**
+ * Struct for each individual consensus rule change
+ */
+struct HereticalDeployment
+{
+    /** nVersion values used to signal activation */
+    int32_t signal_activate = -1;
+    /** nVersion values used to signal abandonment */
+    int32_t signal_abandon = -2;
+    /** Start MedianTime for version bits miner confirmation. Can be a date in the past */
+    int64_t nStartTime{NEVER_ACTIVE};
+    /** Timeout/expiry MedianTime for the deployment attempt. */
+    int64_t nTimeout{NEVER_ACTIVE};
+
+    /** Constant for nTimeout very far in the future. */
+    static constexpr int64_t NO_TIMEOUT = std::numeric_limits<int64_t>::max();
+
+    /** Special value for nStartTime indicating that the deployment is always active.
+     *  This is useful for testing, as it means tests don't need to deal with the activation
+     *  process (which takes at least 3 BIP9 intervals). Only tests that specifically test the
+     *  behaviour during activation cannot use this. */
+    static constexpr int64_t ALWAYS_ACTIVE = -1;
+
+    /** Special value for nStartTime indicating that the deployment is never active.
+     *  This is useful for integrating the code changes for a new feature
+     *  prior to deploying it on some or all networks. */
+    static constexpr int64_t NEVER_ACTIVE = -2;
+};
+
+/**
  * Struct for each individual consensus rule change using BIP9.
  */
 struct BIP9Deployment {

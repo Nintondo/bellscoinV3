@@ -121,7 +121,6 @@ void DoTest(const CScript& scriptPubKey, const CScript& scriptSig, const CScript
         flags |= SCRIPT_VERIFY_WITNESS;
     }
     ScriptError err;
-
     const CTransaction txCredit{BuildCreditingTransaction(scriptPubKey, nValue)};
     CMutableTransaction tx = BuildSpendingTransaction(scriptSig, scriptWitness, txCredit);
     CMutableTransaction tx2 = tx;
@@ -914,7 +913,7 @@ BOOST_AUTO_TEST_CASE(script_json_test)
     // If a witness is given, then the last value in the array should be the
     // amount (nValue) to use in the crediting tx
     UniValue tests = read_json(json_tests::script_tests);
-    
+
     const KeyData keys;
     for (unsigned int idx = 0; idx < tests.size(); idx++) {
         const UniValue& test = tests[idx];
@@ -930,7 +929,7 @@ BOOST_AUTO_TEST_CASE(script_json_test)
                 // We use #SCRIPT# to flag a non-hex script that we can read using ParseScript
                 // Taproot script must be third from the last element in witness stack
                 std::string scriptFlag = std::string("#SCRIPT#");
-                if (element.find(scriptFlag) == 0) {
+                if (element.starts_with(scriptFlag)) {
                     CScript script = ParseScript(element.substr(scriptFlag.size()));
                     witness.stack.push_back(ToByteVector(script));
                 } else if (strcmp(element.c_str(), "#CONTROLBLOCK#") == 0) {
