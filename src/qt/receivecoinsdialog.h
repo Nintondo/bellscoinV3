@@ -44,8 +44,6 @@ public:
     ~ReceiveCoinsDialog();
 
     void setModel(WalletModel *model);
-    void setAddressTypes(OutputType outputType);
-    void updateWalletTypes(int height);
 
 public Q_SLOTS:
     void clear();

@@ -2548,32 +2548,6 @@ DisconnectResult Chainstate::DisconnectBlock(const CBlock& block, const CBlockIn
     return fClean ? DISCONNECT_OK : DISCONNECT_UNCLEAN;
 }
 
-/**
- * Threshold condition checker that triggers when unknown versionbits are seen on the network.
- */
-class WarningBitsConditionChecker : public AbstractThresholdConditionChecker
-{
-private:
-    const ChainstateManager& m_chainman;
-    int m_bit;
-
-public:
-    explicit WarningBitsConditionChecker(const ChainstateManager& chainman, int bit) : m_chainman{chainman}, m_bit(bit) {}
-
-    int64_t BeginTime(const Consensus::Params& params) const override { return 0; }
-    int64_t EndTime(const Consensus::Params& params) const override { return std::numeric_limits<int64_t>::max(); }
-    int Period(const Consensus::Params& params) const override { return params.nMinerConfirmationWindow; }
-    int Threshold(const Consensus::Params& params) const override { return params.nRuleChangeActivationThreshold; }
-
-    bool Condition(const CBlockIndex* pindex, const Consensus::Params& params) const override
-    {
-        return pindex->nHeight >= params.MinBIP9WarningHeight &&
-               ((pindex->nVersion & VERSIONBITS_TOP_MASK) == VERSIONBITS_TOP_BITS) &&
-               ((pindex->GetBaseVersion() >> m_bit) & 1) != 0 &&
-               ((m_chainman.m_versionbitscache.ComputeBlockVersion(pindex->pprev, params) >> m_bit) & 1) == 0;
-    }
-};
-
 static unsigned int GetBlockScriptFlags(const CBlockIndex& block_index, const ChainstateManager& chainman)
 {
     const Consensus::Params& consensusparams = chainman.GetConsensus();
@@ -3220,25 +3194,8 @@ void Chainstate::UpdateTip(const CBlockIndex* pindexNew)
         g_best_block_cv.notify_all();
     }
 
-    std::vector<bilingual_str> warning_messages;
-    if (!m_chainman.IsInitialBlockDownload()) {
-        const CBlockIndex* pindex = pindexNew;
-        for (int bit = 0; bit < VERSIONBITS_NUM_BITS; bit++) {
-            WarningBitsConditionChecker checker(m_chainman, bit);
-            ThresholdState state = checker.GetStateFor(pindex, params.GetConsensus(), m_chainman.m_warningcache.at(bit));
-            if (state == ThresholdState::ACTIVE || state == ThresholdState::LOCKED_IN) {
-                const bilingual_str warning = strprintf(_("Unknown new rules activated (versionbit %i)"), bit);
-                if (state == ThresholdState::ACTIVE) {
-                    m_chainman.GetNotifications().warningSet(kernel::Warning::UNKNOWN_NEW_RULES_ACTIVATED, warning);
-                } else {
-                    warning_messages.push_back(warning);
-                }
-            }
-        }
-    }
     SetGlobHeight(pindexNew->nHeight);
-    UpdateTipLog(coins_tip, pindexNew, params, __func__, "",
-                 util::Join(warning_messages, Untranslated(", ")).original);
+    UpdateTipLog(coins_tip, pindexNew, params, __func__, "", "");
 }
 
 /** Disconnect m_chain's tip.
