@@ -198,8 +198,10 @@ enum opcodetype
     OP_NOP2 = OP_CHECKLOCKTIMEVERIFY,
     OP_CHECKSEQUENCEVERIFY = 0xb2,
     OP_NOP3 = OP_CHECKSEQUENCEVERIFY,
-    OP_CHECKGROTH16VERIFY = 0xb3,
-    OP_NOP5 = 0xb4,
+    OP_CHECKTEMPLATEVERIFY = 0xb3,
+    OP_NOP4 = OP_CHECKTEMPLATEVERIFY,
+    OP_CHECKGROTH16VERIFY = 0xb4,
+    OP_NOP5 = OP_CHECKGROTH16VERIFY,
     OP_NOP6 = 0xb5,
     OP_NOP7 = 0xb6,
     OP_NOP8 = 0xb7,
@@ -533,6 +535,8 @@ public:
      * pay-to-script-hash transactions:
      */
     unsigned int GetSigOpCount(const CScript& scriptSig) const;
+
+    bool IsPayToBareDefaultCheckTemplateVerifyHash() const;
 
     /*
      * OP_1 <0x4e73>

@@ -182,13 +182,42 @@ public:
         
         consensus.nRuleChangeActivationThreshold = 9576; // 95% of 10,080
         consensus.nMinerConfirmationWindow = 10080; // 60 * 24 * 7 = 10,080 blocks, or one week
-        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY] = SetupDeployment{.activate = 0x30000000, .abandon = 0, .never = true};
+        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY] = SetupDeployment{
+            .year = 2024,
+            .number = 1,
+            .revision = 0,
+            .start = Consensus::HereticalDeployment::NEVER_ACTIVE,
+            .timeout = Consensus::HereticalDeployment::NO_TIMEOUT,
+            .activate = 28,
+            .abandon = -2,
+            .always = false,
+            .never = true
+        };
 
         // Deployment of Taproot (BIPs 340-342)
-        consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].bit = 2;
-        consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].nStartTime = 1718409600; // 2024-06-15 00:00:00
-        consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].nTimeout = 1735084800; // 2024-12-25 18:00:00
-        consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].min_activation_height = 188000;
+        consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT] = SetupDeployment{
+            .year = 2024,
+            .number = 2,
+            .revision = 0,
+            .start = 1718409600,   // 2024-06-15 00:00:00
+            .timeout = 1735084800, // 2024-12-25 18:00:00
+            .activate = 2,
+            .abandon = -2,
+            .always = false,
+            .never = false
+            // min_activation_height не предусмотрен в новой структуре и может быть проигнорирован
+        };
+        consensus.vDeployments[Consensus::DEPLOYMENT_OP_CAT] = SetupDeployment{
+            .year = 2024,
+            .number = 3,
+            .revision = 0,
+            .start = 1703990400,   // 2024-12-31 00:00:00 (Unix timestamp)
+            .timeout = 1711843200, // 2025-03-31 00:00:00 (Unix timestamp)
+            .activate = 3,         // Бит для активации (можно выбрать любое свободное значение)
+            .abandon = -2,
+            .always = false,
+            .never = false
+        };
         
         consensus.vDeployments[Consensus::DEPLOYMENT_OP_CAT] = SetupDeployment{.activate = 0x62000100, .abandon = 0x42000100, .never = true};
 
@@ -227,7 +256,6 @@ public:
         base58Prefixes[SECRET_KEY] =     std::vector<unsigned char>(1,153);
         base58Prefixes[EXT_PUBLIC_KEY] = {0x02, 0xfa, 0xca, 0xfd};
         base58Prefixes[EXT_SECRET_KEY] = {0x02, 0xfa, 0xc3, 0x98};
-
 
         bech32_hrp = "bel";
 
@@ -299,18 +327,27 @@ public:
         consensus.nGroth16StartHeight = 40;
         consensus.nOPCATStartHeight = 40;
 
-        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY] = SetupDeployment{.activate = 0x30000000, .abandon = 0, .never = true};
         // Deployment of Taproot (BIPs 340-342)
-        consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].bit = 2;
-        consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].nStartTime = 1703462400; // 2023-12-25 00:00:00
-        consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].nTimeout = 1735084800; // 2024-12-25 18:00:00
-        consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].min_activation_height = 35; // No activation delay
-
-        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].bit = 16;
-        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nStartTime = 0;
-        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
-        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].min_activation_height = 50; // No activation delay
-
+        consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT] = SetupDeployment{
+            .year = 2024,
+            .number = 1,
+            .revision = 0,
+            .start = 1718409600,
+            .timeout = 1735084800,
+            .activate = 2,
+            .abandon = -2
+        };
+        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY] = SetupDeployment{
+            .year = 2024,
+            .number = 2,
+            .revision = 0,
+            .start = 0,
+            .timeout = Consensus::HereticalDeployment::NO_TIMEOUT,
+            .activate = 16,
+            .abandon = -2,
+            .always = false,
+            .never = false
+        };
         consensus.nMinimumChainWork = uint256S("0000000000000000000000000000000000000000000000000000000000100010");
         consensus.defaultAssumeValid = uint256S("0xe5be24df57c43a82d15c2f06bda961296948f8f8eb48501bed1efb929afe0698"); // genesis
 
@@ -331,7 +368,6 @@ public:
         vFixedSeeds.clear();
         vSeeds.clear();
         // nodes with support for servicebits filtering should be at the top
-
 
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,33);
         base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,22);
@@ -445,17 +481,29 @@ public:
 
         consensus.nGroth16StartHeight = 0;
         consensus.nOPCATStartHeight = 0;
-        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY] = SetupDeployment{.activate = 0x30000000, .abandon = 0, .never = true};
-        // Activation of Taproot (BIPs 340-342)
-        consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].bit = 2;
-        consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].nStartTime = Consensus::BIP9Deployment::ALWAYS_ACTIVE;
-        consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
-        consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].min_activation_height = 0; // No activation delay
+        consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT] = SetupDeployment{
+            .year = 2024,
+            .number = 1,
+            .revision = 0,
+            .start = Consensus::HereticalDeployment::ALWAYS_ACTIVE,
+            .timeout = Consensus::HereticalDeployment::NO_TIMEOUT,
+            .activate = 2,
+            .abandon = -2,
+            .always = true,
+            .never = false
+        };
 
-        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].bit = 16;
-        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nStartTime = 0;
-        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
-        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].min_activation_height = 0; // No activation delay
+        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY] = SetupDeployment{
+            .year = 2024,
+            .number = 2,
+            .revision = 0,
+            .start = 0,
+            .timeout = Consensus::HereticalDeployment::NO_TIMEOUT,
+            .activate = 16,
+            .abandon = -2,
+            .always = false,
+            .never = false
+        };
 
         // message start is defined as the first 4 bytes of the sha256d of the block script
         HashWriter h{};
@@ -487,7 +535,6 @@ public:
         // base58Prefixes[SECRET_KEY] =     std::vector<unsigned char>(1,239);
         // base58Prefixes[EXT_PUBLIC_KEY] = {0x04, 0x35, 0x87, 0xfd};
         // base58Prefixes[EXT_SECRET_KEY] = {0x04, 0x35, 0x83, 0x94};
-
 
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,30);
         base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,22);
@@ -542,17 +589,29 @@ public:
         consensus.nGroth16StartHeight = 0;
         consensus.nOPCATStartHeight = 0;
 
-        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY] = SetupDeployment{.start = 0, .timeout = Consensus::HereticalDeployment::NO_TIMEOUT, .activate = 0x30000000, .abandon = 0x50000000};
+        consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT] = SetupDeployment{
+            .year = 2024,
+            .number = 1,
+            .revision = 0,
+            .start = Consensus::HereticalDeployment::ALWAYS_ACTIVE,
+            .timeout = Consensus::HereticalDeployment::NO_TIMEOUT,
+            .activate = 2,
+            .abandon = -2,
+            .always = true,
+            .never = false
+        };
 
-        consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].bit = 2;
-        consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].nStartTime = Consensus::BIP9Deployment::ALWAYS_ACTIVE;
-        consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
-        consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].min_activation_height = 0; // No activation delay
-        
-        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].bit = 16;
-        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nStartTime = 0;
-        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
-        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].min_activation_height = 0; // No activation delay
+        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY] = SetupDeployment{
+            .year = 2024,
+            .number = 2,
+            .revision = 0,
+            .start = 0,
+            .timeout = Consensus::HereticalDeployment::NO_TIMEOUT,
+            .activate = 16,
+            .abandon = -2,
+            .always = false,
+            .never = false
+        };
 
         consensus.nMinimumChainWork = uint256S("0x00");
         consensus.defaultAssumeValid = uint256S("0x00");
