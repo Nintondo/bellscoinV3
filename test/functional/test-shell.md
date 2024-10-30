@@ -4,16 +4,16 @@ Test Shell for Interactive Environments
 This document describes how to use the `TestShell` submodule in the functional
 test suite.
 
-The `TestShell` submodule extends the `BitcoinTestFramework` functionality to
+The `TestShell` submodule extends the `BellscoinTestFramework` functionality to
 external interactive environments for prototyping and educational purposes. Just
-like `BitcoinTestFramework`, the `TestShell` allows the user to:
+like `BellscoinTestFramework`, the `TestShell` allows the user to:
 
 * Manage regtest bellsd subprocesses.
 * Access RPC interfaces of the underlying bellsd instances.
 * Log events to the functional test logging utility.
 
 The `TestShell` can be useful in interactive environments where it is necessary
-to extend the object lifetime of the underlying `BitcoinTestFramework` between
+to extend the object lifetime of the underlying `BellscoinTestFramework` between
 user inputs. Such environments include the Python3 command line interpreter or
 [Jupyter](https://jupyter.org/) notebooks running a Python3 kernel.
 
@@ -40,7 +40,7 @@ processes and logging utilities.
 * `TestShell().setup()`
 * `TestShell().shutdown()`
 
-The `TestShell` inherits all `BitcoinTestFramework` members and methods, such
+The `TestShell` inherits all `BellscoinTestFramework` members and methods, such
 as:
 * `TestShell().nodes[index].rpc_method()`
 * `TestShell().log.info("Custom log message")`
@@ -55,7 +55,7 @@ The following sections demonstrate how to initialize, run, and shut down a
 20XX-XX-XXTXX:XX:XX.XXXXXXX TestFramework (INFO): Initializing test directory /path/to/bitcoin_func_test_XXXXXXX
 ```
 The `TestShell` forwards all functional test parameters of the parent
-`BitcoinTestFramework` object. The full set of argument keywords which can be
+`BellscoinTestFramework` object. The full set of argument keywords which can be
 used to initialize the `TestShell` can be found in [section
 #6](#custom-testshell-parameters) of this document.
 
@@ -71,12 +71,12 @@ TestShell is already running!
 
 ## 4. Interacting with the `TestShell`
 
-Unlike the `BitcoinTestFramework` class, the `TestShell` keeps the underlying
+Unlike the `BellscoinTestFramework` class, the `TestShell` keeps the underlying
 Bitcoind subprocesses (nodes) and logging utilities running until the user
 explicitly shuts down the `TestShell` object.
 
 During the time between the `setup` and `shutdown` calls, all `bitcoind` node
-processes and `BitcoinTestFramework` convenience methods can be accessed
+processes and `BellscoinTestFramework` convenience methods can be accessed
 interactively.
 
 **Example: Mining a regtest chain**
@@ -153,7 +153,7 @@ To prevent the logs from being removed after a shutdown, simply set the
 ```
 
 The following utility consolidates logs from the bitcoind nodes and the
-underlying `BitcoinTestFramework`:
+underlying `BellscoinTestFramework`:
 
 * `/path/to/bitcoin/test/functional/combine_logs.py
   '/path/to/bitcoin_func_test_XXXXXXX'`
@@ -161,7 +161,7 @@ underlying `BitcoinTestFramework`:
 ## 6. Custom `TestShell` parameters
 
 The `TestShell` object initializes with the default settings inherited from the
-`BitcoinTestFramework` class. The user can override these in
+`BellscoinTestFramework` class. The user can override these in
 `TestShell().setup(key=value)`.
 
 **Note:** `TestShell().reset()` will reset test parameters to default values and

@@ -4,7 +4,7 @@
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test support for XORed block data and undo files (`-blocksxor` option)."""
 
-from test_framework.test_framework import BitcoinTestFramework
+from test_framework.test_framework import BellscoinTestFramework
 from test_framework.test_node import (
     ErrorMatch,
     NULL_BLK_XOR_KEY,
@@ -17,7 +17,7 @@ from test_framework.util import (
 from test_framework.wallet import MiniWallet
 
 
-class BlocksXORTest(BitcoinTestFramework):
+class BlocksXORTest(BellscoinTestFramework):
     def set_test_params(self):
         self.num_nodes = 1
         self.extra_args = [[

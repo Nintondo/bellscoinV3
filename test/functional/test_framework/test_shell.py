@@ -69,7 +69,7 @@ class TestShell:
         # This implementation enforces singleton pattern, and will return the
         # previously initialized instance if available
         if not TestShell.instance:
-            # BitcoinTestFramework instances are supposed to be constructed with the path
+            # BellscoinTestFramework instances are supposed to be constructed with the path
             # of the calling test in order to find shared data like configuration and the
             # cache. Since TestShell is meant for interactive use, there is no concrete
             # test; passing a dummy name is fine though, as only the containing directory

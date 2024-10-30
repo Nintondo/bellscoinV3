@@ -21,14 +21,14 @@ from test_framework.messages import (
     CBlockHeader,
 )
 from test_framework.p2p import P2PInterface
-from test_framework.test_framework import BitcoinTestFramework
+from test_framework.test_framework import BellscoinTestFramework
 
 # Timeouts (in seconds)
 CHAIN_SYNC_TIMEOUT = 20 * 60
 HEADERS_RESPONSE_TIME = 2 * 60
 
 
-class P2POutEvict(BitcoinTestFramework):
+class P2POutEvict(BellscoinTestFramework):
     def set_test_params(self):
         self.num_nodes = 1
 

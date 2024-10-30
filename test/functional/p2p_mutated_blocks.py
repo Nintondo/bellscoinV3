@@ -16,7 +16,7 @@ from test_framework.messages import (
     msg_blocktxn,
     HeaderAndShortIDs,
 )
-from test_framework.test_framework import BitcoinTestFramework
+from test_framework.test_framework import BellscoinTestFramework
 from test_framework.blocktools import (
     COINBASE_MATURITY,
     create_block,
@@ -27,7 +27,7 @@ from test_framework.util import assert_equal
 from test_framework.wallet import MiniWallet
 import copy
 
-class MutatedBlocksTest(BitcoinTestFramework):
+class MutatedBlocksTest(BellscoinTestFramework):
     def set_test_params(self):
         self.setup_clean_chain = True
         self.num_nodes = 1

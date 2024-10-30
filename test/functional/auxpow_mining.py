@@ -21,7 +21,7 @@ from test_framework.auxpow_testing import (
 )
 # Bellscoin
 from test_framework.messages import (
-    CHAIN_ID,
+  CHAIN_ID,
 )
 from decimal import Decimal
 
@@ -207,4 +207,4 @@ class AuxpowMiningTest (BellscoinTestFramework):
     assert auxblock1['hash'] != auxblock2['hash']
 
 if __name__ == '__main__':
-  AuxpowMiningTest ().main ()
+  AuxpowMiningTest (__file__).main ()

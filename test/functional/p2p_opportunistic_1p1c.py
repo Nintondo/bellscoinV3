@@ -23,7 +23,7 @@ from test_framework.messages import (
 from test_framework.p2p import (
     P2PInterface,
 )
-from test_framework.test_framework import BitcoinTestFramework
+from test_framework.test_framework import BellscoinTestFramework
 from test_framework.util import (
     assert_equal,
     assert_greater_than,
@@ -54,7 +54,7 @@ def cleanup(func):
             self.nodes[0].setmocktime(0)
     return wrapper
 
-class PackageRelayTest(BitcoinTestFramework):
+class PackageRelayTest(BellscoinTestFramework):
     def set_test_params(self):
         self.setup_clean_chain = True
         self.num_nodes = 1

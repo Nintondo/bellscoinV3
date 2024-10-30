@@ -159,16 +159,6 @@ void WalletView::gotoReceiveCoinsPage()
     setCurrentWidget(receiveCoinsPage);
 }
 
-void WalletView::setAddressTypes(OutputType outputType) 
-{ 
-    receiveCoinsPage->setAddressTypes(outputType); 
-}
-
-void WalletView::updateWalletTypes(int height) 
-{ 
-    receiveCoinsPage->updateWalletTypes(height); 
-}
-
 void WalletView::gotoSendCoinsPage(QString addr)
 {
     setCurrentWidget(sendCoinsPage);

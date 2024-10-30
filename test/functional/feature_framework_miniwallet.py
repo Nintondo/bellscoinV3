@@ -7,7 +7,7 @@ import random
 import string
 
 from test_framework.blocktools import COINBASE_MATURITY
-from test_framework.test_framework import BitcoinTestFramework
+from test_framework.test_framework import BellscoinTestFramework
 from test_framework.util import (
     assert_greater_than_or_equal,
 )
@@ -17,7 +17,7 @@ from test_framework.wallet import (
 )
 
 
-class FeatureFrameworkMiniWalletTest(BitcoinTestFramework):
+class FeatureFrameworkMiniWalletTest(BellscoinTestFramework):
     def set_test_params(self):
         self.num_nodes = 1
 

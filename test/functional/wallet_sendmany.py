@@ -4,9 +4,9 @@
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test the sendmany RPC command."""
 
-from test_framework.test_framework import BitcoinTestFramework
+from test_framework.test_framework import BellscoinTestFramework
 
-class SendmanyTest(BitcoinTestFramework):
+class SendmanyTest(BellscoinTestFramework):
     # Setup and helpers
     def add_options(self, parser):
         self.add_wallet_options(parser)
