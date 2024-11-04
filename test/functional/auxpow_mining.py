@@ -207,4 +207,5 @@ class AuxpowMiningTest (BellscoinTestFramework):
     assert auxblock1['hash'] != auxblock2['hash']
 
 if __name__ == '__main__':
+  print("%s", )
   AuxpowMiningTest (__file__).main ()
