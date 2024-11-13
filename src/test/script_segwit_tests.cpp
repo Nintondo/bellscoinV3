@@ -67,12 +67,6 @@ BOOST_AUTO_TEST_CASE(IsPayToWitnessScriptHash_Invalid_Pushdata)
     BOOST_CHECK(!CScript(bytes.begin(), bytes.end()).IsPayToWitnessScriptHash());
 }
 
-BOOST_AUTO_TEST_CASE(IsGroth16Script)
-{
-    CScript groth16;
-    BOOST_CHECK(!groth16.IsGroth16Program());
-}
-
 namespace {
 
 bool IsExpectedWitnessProgram(const CScript& script, const int expectedVersion, const std::vector<unsigned char>& expectedProgram)

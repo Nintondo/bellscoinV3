@@ -177,7 +177,6 @@ public:
         consensus.nPowMaxAdjustDown = 32; // 32% adjustment down
         consensus.nPowMaxAdjustUp = 16; // 16% adjustment up
 
-        consensus.nGroth16StartHeight = 200000;
         consensus.nOPCATStartHeight = 200000;
         
         consensus.nRuleChangeActivationThreshold = 9576; // 95% of 10,080
@@ -324,7 +323,6 @@ public:
         consensus.nPowMaxAdjustDown = 32; // 32% adjustment down
         consensus.nPowMaxAdjustUp = 16; // 16% adjustment up
 
-        consensus.nGroth16StartHeight = 40;
         consensus.nOPCATStartHeight = 40;
 
         // Deployment of Taproot (BIPs 340-342)
@@ -479,7 +477,6 @@ public:
         consensus.nPostBlossomPowTargetSpacing = Consensus::POW_TARGET_SPACING;
         consensus.nPowAveragingWindow = 17;
 
-        consensus.nGroth16StartHeight = 0;
         consensus.nOPCATStartHeight = 0;
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT] = SetupDeployment{
             .year = 2024,
@@ -586,7 +583,6 @@ public:
         consensus.nPowMaxAdjustDown = 0; // Turn off adjustment down
         consensus.nPowMaxAdjustUp = 0; // Turn off adjustment up
 
-        consensus.nGroth16StartHeight = 0;
         consensus.nOPCATStartHeight = 0;
 
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT] = SetupDeployment{

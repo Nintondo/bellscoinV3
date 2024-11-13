@@ -1698,7 +1698,6 @@ if test -n "$use_sanitizers"; then
 fi
 ac_configure_args="${ac_configure_args} --disable-shared --with-pic --enable-benchmark=no --enable-module-recovery --disable-module-ecdh"
 AC_CONFIG_SUBDIRS([src/secp256k1])
-AC_CONFIG_SUBDIRS([src/mcl])
 
 AC_OUTPUT
 

@@ -200,8 +200,7 @@ enum opcodetype
     OP_NOP3 = OP_CHECKSEQUENCEVERIFY,
     OP_CHECKTEMPLATEVERIFY = 0xb3,
     OP_NOP4 = OP_CHECKTEMPLATEVERIFY,
-    OP_CHECKGROTH16VERIFY = 0xb4,
-    OP_NOP5 = OP_CHECKGROTH16VERIFY,
+    OP_NOP5 = 0xb4,
     OP_NOP6 = 0xb5,
     OP_NOP7 = 0xb6,
     OP_NOP8 = 0xb7,
@@ -550,9 +549,6 @@ public:
     bool IsPayToWitnessScriptHash() const;
     bool IsWitnessProgram(int& version, std::vector<unsigned char>& program) const;
 
-    bool IsGroth16Program() const;
-    std::string groth16_to_string();
-    
     /** Called by IsStandardTx and P2SH/BIP62 VerifyScript (which makes it consensus-critical). */
     bool IsPushOnly(const_iterator pc) const;
     bool IsPushOnly() const;

@@ -414,12 +414,15 @@ class BellscoinTestFramework(metaclass=BellscoinTestMetaClass):
 
     def setup_nodes(self):
         """Override this method to customize test node setup"""
+        print(f"----------{self.num_nodes} extra {self.extra_args}")
         self.add_nodes(self.num_nodes, self.extra_args)
         self.start_nodes()
         if self._requires_wallet:
             self.import_deterministic_coinbase_privkeys()
         if not self.setup_clean_chain:
             for n in self.nodes:
+                res = n.getblockchaininfo()["blocks"]
+                print(f"----------{res}")
                 assert_equal(n.getblockchaininfo()["blocks"], 199)
             # To ensure that all nodes are out of IBD, the most recent block
             # must have a timestamp not too old (see IsInitialBlockDownload()).

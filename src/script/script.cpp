@@ -8,7 +8,6 @@
 #include <crypto/common.h>
 #include <crypto/hex_base.h>
 #include <hash.h>
-#include <mcl/bn_c384_256.h>
 #include <uint256.h>
 #include <util/hash_type.h>
 
@@ -140,7 +139,7 @@ std::string GetOpName(opcodetype opcode)
     case OP_CHECKLOCKTIMEVERIFY    : return "OP_CHECKLOCKTIMEVERIFY";
     case OP_CHECKSEQUENCEVERIFY    : return "OP_CHECKSEQUENCEVERIFY";
     case OP_CHECKTEMPLATEVERIFY    : return "OP_CHECKTEMPLATEVERIFY";
-    case OP_CHECKGROTH16VERIFY     : return "OP_CHECKGROTH16VERIFY";
+    case OP_NOP5                   : return "OP_NOP5";
     case OP_NOP6                   : return "OP_NOP6";
     case OP_NOP7                   : return "OP_NOP7";
     case OP_NOP8                   : return "OP_NOP8";
@@ -264,19 +263,6 @@ bool CScript::IsWitnessProgram(int& version, std::vector<unsigned char>& program
     }
     return false;
 }
-
-bool CScript::IsGroth16Program() const
-{
-
-    return false;
-}
-
-std::string CScript::groth16_to_string()
-{
-    std::string ret = "CScriptGroth16("; // TODO: do for tests groth16
-    return ret + ")";
-}
-
 
 bool CScript::IsPushOnly(const_iterator pc) const
 {
