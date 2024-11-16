@@ -117,10 +117,10 @@ public:
         double f2 = (double)a.GetModFeesWithDescendants() * a.GetTxSize();
 
         if (f2 > f1) {
-            mod_fee = a.GetModFeesWithDescendants();
-            size = a.GetSizeWithDescendants();
+            mod_fee = a.GetModFeesWithDescendants().convert_to<double>();
+            size = a.GetSizeWithDescendants().convert_to<double>();
         } else {
-            mod_fee = a.GetModifiedFee();
+            mod_fee = a.GetModifiedFee().convert_to<double>();
             size = a.GetTxSize();
         }
     }

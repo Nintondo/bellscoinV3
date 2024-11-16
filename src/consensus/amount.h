@@ -5,11 +5,11 @@
 
 #ifndef BITCOIN_CONSENSUS_AMOUNT_H
 #define BITCOIN_CONSENSUS_AMOUNT_H
-
+#include <boost/multiprecision/cpp_int.hpp>
 #include <cstdint>
 
 /** Amount in satoshis (Can be negative) */
-typedef int64_t CAmount;
+typedef boost::multiprecision::int128_t CAmount;
 
 /** The amount of satoshis in one BEL. */
 static constexpr CAmount COIN = 100000000;
