@@ -193,6 +193,19 @@ public:
             .never = true
         };
 
+        // Deployment of CheckTemplateVerify
+        consensus.vDeployments[Consensus::DEPLOYMENT_CHECKTEMPLATEVERIFY] = SetupDeployment{
+            .year = 2025,
+            .number = 1,
+            .revision = 0,
+            .start = 1735689600,   // 2025-01-01 00:00:00
+            .timeout = 1751318400, // 2025-08-01 00:00:00 (пример окончания через 7 месяцев)
+            .activate = 4,
+            .abandon = -2,
+            .always = false,
+            .never = false
+        };
+
         // Deployment of Taproot (BIPs 340-342)
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT] = SetupDeployment{
             .year = 2024,
@@ -204,8 +217,8 @@ public:
             .abandon = -2,
             .always = false,
             .never = false
-            // min_activation_height не предусмотрен в новой структуре и может быть проигнорирован
         };
+
         consensus.vDeployments[Consensus::DEPLOYMENT_OP_CAT] = SetupDeployment{
             .year = 2024,
             .number = 3,
@@ -217,8 +230,6 @@ public:
             .always = false,
             .never = false
         };
-        
-        consensus.vDeployments[Consensus::DEPLOYMENT_OP_CAT] = SetupDeployment{.activate = 0x62000100, .abandon = 0x42000100, .never = true};
 
         consensus.nMinimumChainWork = uint256S("0x0000000000000000000000000000000000000000000000000000000000100010");
         consensus.defaultAssumeValid = uint256S("0x50c259c50c5c2ab235f2ceb45da49f7c046f0411667c00d81cb8165f2b843ea1"); // 40000
@@ -335,6 +346,20 @@ public:
             .activate = 2,
             .abandon = -2
         };
+
+        // Deployment of CheckTemplateVerify
+        consensus.vDeployments[Consensus::DEPLOYMENT_CHECKTEMPLATEVERIFY] = SetupDeployment{
+            .year = 2024,
+            .number = 1,
+            .revision = 0,
+            .start = 1718409600,
+            .timeout = 1735084800,
+            .activate = 4,
+            .abandon = -2,
+            .always = false,
+            .never = false
+        };
+
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY] = SetupDeployment{
             .year = 2024,
             .number = 2,
@@ -490,6 +515,13 @@ public:
             .never = false
         };
 
+        consensus.vDeployments[Consensus::DEPLOYMENT_CHECKTEMPLATEVERIFY] = SetupDeployment{
+            .start = 1654041600, // 2022-06-01
+            .timeout = 1969660800, // 2032-06-01
+            .activate = 0x60007700,
+            .abandon = 0x40007700,
+        };
+
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY] = SetupDeployment{
             .year = 2024,
             .number = 2,
@@ -595,6 +627,12 @@ public:
             .abandon = -2,
             .always = true,
             .never = false
+        };
+
+        consensus.vDeployments[Consensus::DEPLOYMENT_CHECKTEMPLATEVERIFY] = SetupDeployment{
+            .activate = 0x60007700, 
+            .abandon = 0x40007700, 
+            .always = true
         };
 
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY] = SetupDeployment{

@@ -152,6 +152,10 @@ TxoutType Solver(const CScript& scriptPubKey, std::vector<std::vector<unsigned c
         return TxoutType::SCRIPTHASH;
     }
 
+    if (scriptPubKey.IsPayToBareDefaultCheckTemplateVerifyHash()) {
+        return TxoutType::TX_BARE_DEFAULT_CHECK_TEMPLATE_VERIFY_HASH;
+    }
+
     int witnessversion;
     std::vector<unsigned char> witnessprogram;
     if (scriptPubKey.IsWitnessProgram(witnessversion, witnessprogram)) {
@@ -169,10 +173,6 @@ TxoutType Solver(const CScript& scriptPubKey, std::vector<std::vector<unsigned c
         }
         if (scriptPubKey.IsPayToAnchor()) {
             return TxoutType::ANCHOR;
-        }
-
-        if (scriptPubKey.IsPayToBareDefaultCheckTemplateVerifyHash()) {
-            return TxoutType::TX_BARE_DEFAULT_CHECK_TEMPLATE_VERIFY_HASH;
         }
 
         if (witnessversion != 0) {
