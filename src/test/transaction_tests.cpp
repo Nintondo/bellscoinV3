@@ -347,20 +347,20 @@ BOOST_AUTO_TEST_CASE(tx_invalid)
             }
 
             // Not using FillFlags() in the main test, in order to detect invalid verifyFlags combination
-            //BOOST_CHECK_MESSAGE(CheckTxScripts(tx, mapprevOutScriptPubKeys, mapprevOutValues, verify_flags, txdata, strTest, /*expect_valid=*/false),
-            //                    "Tx unexpectedly passed: " << strTest);
+            BOOST_CHECK_MESSAGE(CheckTxScripts(tx, mapprevOutScriptPubKeys, mapprevOutValues, verify_flags, txdata, strTest, /*expect_valid=*/false),
+                               "Tx unexpectedly passed: " << strTest);
 
             // Backwards compatibility of script verification flags: Adding any flag(s) should not validate an invalid transaction
             for (const auto& [name, flag] : mapFlagNames) {
                 unsigned int flags = FillFlags(verify_flags | flag);
                 // Adding individual flags
                 if (!CheckTxScripts(tx, mapprevOutScriptPubKeys, mapprevOutValues, flags, txdata, strTest, /*expect_valid=*/false)) {
-                    //BOOST_ERROR("Tx unexpectedly passed with flag " << name << " set: " << strTest);
+                    BOOST_ERROR("Tx unexpectedly passed with flag " << name << " set: " << strTest);
                 }
                 // Adding random combinations of flags
                 flags = FillFlags(verify_flags | (unsigned int)InsecureRandBits(mapFlagNames.size()));
                 if (!CheckTxScripts(tx, mapprevOutScriptPubKeys, mapprevOutValues, flags, txdata, strTest, /*expect_valid=*/false)) {
-                    //BOOST_ERROR("Tx unexpectedly passed with random flags " << name << ": " << strTest);
+                    BOOST_ERROR("Tx unexpectedly passed with random flags " << name << ": " << strTest);
                 }
             }
 
