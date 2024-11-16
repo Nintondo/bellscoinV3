@@ -123,8 +123,8 @@ BOOST_AUTO_TEST_CASE(ctvhash_from_data)
                     case 4: {
                         // Mutate nVersion
                         do {
-                            txc.version = fr.rand32();
-                        } while (txc.version == tx.version);
+                            txc.nVersion = fr.rand32();
+                        } while (txc.nVersion == tx.nVersion);
                         hash_will_change = true;
                         break;
                     }

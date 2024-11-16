@@ -19,6 +19,7 @@ JSON_TEST_FILES = \
   test/data/bip341_wallet_vectors.json \
   test/data/base58_encode_decode.json \
   test/data/blockfilters.json \
+  test/data/ctvhash.json \
   test/data/key_io_valid.json \
   test/data/key_io_invalid.json \
   test/data/script_tests.json \
