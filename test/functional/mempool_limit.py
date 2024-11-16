@@ -306,7 +306,7 @@ class MempoolLimitTest(BellscoinTestFramework):
         self.log.info("Check a package that passes mempoolminfee but is evicted immediately after submission")
         mempoolmin_feerate = node.getmempoolinfo()["mempoolminfee"]
         current_mempool = node.getrawmempool(verbose=False)
-        worst_feerate_btcvb = Decimal("21000000")
+        worst_feerate_btcvb = Decimal("92000000")
         for txid in current_mempool:
             entry = node.getmempoolentry(txid)
             worst_feerate_btcvb = min(worst_feerate_btcvb, entry["fees"]["descendant"] / entry["descendantsize"])

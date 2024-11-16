@@ -202,8 +202,8 @@ struct DepGraphFormatter
                 // Read fee, encoded as an unsigned varint (odd=negative, even=non-negative).
                 uint64_t coded_fee;
                 s >> VARINT(coded_fee);
-                coded_fee &= 0xFFFFFFFFFFFFF; // Enough for fee between -21M...21M BTC.
-                static_assert(0xFFFFFFFFFFFFF > uint64_t{2} * 21000000 * 100000000);
+                coded_fee &= 0xFFFFFFFFFFFFFFFF; // Enough for fee between -99M...99M BTC.
+                static_assert(0xFFFFFFFFFFFFFFFF > uint64_t{2} * 500000000 * 100000000);
                 auto fee = UnsignedToSigned(coded_fee);
                 // Extend topo_depgraph with the new transaction (at the end).
                 auto topo_idx = topo_depgraph.AddTransaction({fee, size});

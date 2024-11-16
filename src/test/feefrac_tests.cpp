@@ -71,7 +71,7 @@ BOOST_AUTO_TEST_CASE(feefrac_operators)
     FeeFrac busted{(static_cast<int64_t>(INT32_MAX)) + 1, INT32_MAX};
     BOOST_CHECK(!(busted < busted));
 
-    FeeFrac max_fee{2100000000000000, INT32_MAX};
+    FeeFrac max_fee{9200000000000000, INT32_MAX};
     BOOST_CHECK(!(max_fee < max_fee));
     BOOST_CHECK(!(max_fee > max_fee));
     BOOST_CHECK(max_fee <= max_fee);
