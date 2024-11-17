@@ -1550,11 +1550,14 @@ static std::vector<unsigned int> AllConsensusFlags()
         if (i & 16) flag |= SCRIPT_VERIFY_CHECKSEQUENCEVERIFY;
         if (i & 32) flag |= SCRIPT_VERIFY_WITNESS;
         if (i & 64) flag |= SCRIPT_VERIFY_TAPROOT;
+        if (i & 128) flag |= SCRIPT_VERIFY_ANYPREVOUT;
 
         // SCRIPT_VERIFY_WITNESS requires SCRIPT_VERIFY_P2SH
         if (flag & SCRIPT_VERIFY_WITNESS && !(flag & SCRIPT_VERIFY_P2SH)) continue;
         // SCRIPT_VERIFY_TAPROOT requires SCRIPT_VERIFY_WITNESS
         if (flag & SCRIPT_VERIFY_TAPROOT && !(flag & SCRIPT_VERIFY_WITNESS)) continue;
+        // SCRIPT_VERIFY_ANYPREVOUT requires SCRIPT_VERIFY_TAPROOT
+        if ((flag & SCRIPT_VERIFY_ANYPREVOUT) && !(flag & SCRIPT_VERIFY_TAPROOT)) continue;
 
         ret.push_back(flag);
     }
@@ -1734,7 +1737,17 @@ BOOST_AUTO_TEST_CASE(compute_tapleaf)
     BOOST_CHECK_EQUAL(ComputeTapleafHash(0xc2, Span(script)), tlc2);
 }
 
-std::tuple<CScript, CScriptWitness> ConstructWitnessForTaprootLeafSpend(std::vector<unsigned char> witVerifyScript, std::vector<std::vector<unsigned char>> witData) {
+BOOST_AUTO_TEST_CASE(formatscriptflags)
+{
+    // quick check that FormatScriptFlags reports any unknown/unexpected bits
+    BOOST_CHECK_EQUAL(FormatScriptFlags(SCRIPT_VERIFY_P2SH), "P2SH");
+    BOOST_CHECK_EQUAL(FormatScriptFlags(SCRIPT_VERIFY_P2SH | (1u<<31)), "P2SH,0x80000000");
+    BOOST_CHECK_EQUAL(FormatScriptFlags(SCRIPT_VERIFY_TAPROOT | (1u<<28)), "TAPROOT,0x10000000");
+    BOOST_CHECK_EQUAL(FormatScriptFlags(1u<<28), "0x10000000");
+}
+
+void DoTapscriptTest(std::vector<unsigned char> witVerifyScript, std::vector<std::vector<unsigned char>> witData, const std::string& message, int scriptError)
+{
     const KeyData keys;
     TaprootBuilder builder;
     builder.Add(/*depth=*/0, witVerifyScript, TAPROOT_LEAF_TAPSCRIPT, /*track=*/true);
@@ -1746,34 +1759,29 @@ std::tuple<CScript, CScriptWitness> ConstructWitnessForTaprootLeafSpend(std::vec
     auto controlblock = *(builder.GetSpendData().scripts[{witVerifyScript, TAPROOT_LEAF_TAPSCRIPT}].begin());
     witness.stack.push_back(controlblock);
 
+    uint32_t flags = SCRIPT_VERIFY_P2SH | SCRIPT_VERIFY_WITNESS | SCRIPT_VERIFY_TAPROOT | SCRIPT_VERIFY_OP_CAT;
     CScript scriptPubKey = CScript() << OP_1 << ToByteVector(builder.GetOutput());
-    return std::make_tuple(scriptPubKey, witness);
+    CScript scriptSig = CScript(); // Script sig is always size 0 and empty in tapscript
+    DoTest(scriptPubKey, scriptSig, witness, flags, message, scriptError, /*nValue=*/1);
 }
 
 BOOST_AUTO_TEST_CASE(cat_simple)
 {
     std::vector<std::vector<unsigned char>> witData;
-    witData.emplace_back(ParseHex("aa"));
-    witData.emplace_back(ParseHex("bbbb"));
-
+    witData.push_back(ParseHex("aa"));
+    witData.push_back(ParseHex("bbbb"));
     std::vector<unsigned char> witVerifyScript = {OP_CAT, OP_PUSHDATA1, 0x03, 0xaa, 0xbb, 0xbb, OP_EQUAL};
-    auto [scriptPubKey, wit] = ConstructWitnessForTaprootLeafSpend(witVerifyScript, witData);
-    CScript scriptSig = CScript(); // Script sig is always size 0 and empty in tapscript
-    uint32_t flags = SCRIPT_VERIFY_P2SH | SCRIPT_VERIFY_WITNESS | SCRIPT_VERIFY_TAPROOT | SCRIPT_VERIFY_OP_CAT;
-    DoTest(scriptPubKey, scriptSig, wit, flags, "Simple CAT", SCRIPT_ERR_OK, /*nValue=*/1);
+    DoTapscriptTest(witVerifyScript, witData, "Simple CAT", SCRIPT_ERR_OK);
 }
 
 BOOST_AUTO_TEST_CASE(cat_empty_stack)
 {
     // Ensures that OP_CAT successfully handles concatenating two empty stack elements
     std::vector<std::vector<unsigned char>> witData;
-    witData.emplace_back();
-    witData.emplace_back();
-    std::vector<unsigned char> witVerifyScript = {OP_CAT, OP_PUSHDATA1, 0x00, OP_EQUAL};
-    auto [scriptPubKey, wit] = ConstructWitnessForTaprootLeafSpend(witVerifyScript, witData);
-    CScript scriptSig = CScript(); // Script sig is always size 0 and empty in tapscript
-    uint32_t flags = SCRIPT_VERIFY_P2SH | SCRIPT_VERIFY_WITNESS | SCRIPT_VERIFY_TAPROOT | SCRIPT_VERIFY_OP_CAT;
-    DoTest(scriptPubKey, scriptSig, wit, flags, "CAT empty stack", SCRIPT_ERR_OK, /*nValue=*/1);
+    witData.push_back({});
+    witData.push_back({});
+    std::vector<unsigned char> witVerifyScript = {OP_CAT, OP_PUSHDATA1, 0x00,OP_EQUAL};
+    DoTapscriptTest(witVerifyScript, witData, "CAT empty stack", SCRIPT_ERR_OK);
 }
 
 BOOST_AUTO_TEST_CASE(cat_dup_test)
@@ -1784,26 +1792,22 @@ BOOST_AUTO_TEST_CASE(cat_dup_test)
     unsigned int maxElementSize = 522;
     unsigned int maxDupsToCheck = 10;
 
-    CScript scriptSig = CScript(); // Script sig is always size 0 and empty in tapscript
-    uint32_t flags = SCRIPT_VERIFY_P2SH | SCRIPT_VERIFY_WITNESS | SCRIPT_VERIFY_TAPROOT | SCRIPT_VERIFY_OP_CAT;
-
     std::vector<std::vector<unsigned char>> witData;
-    witData.emplace_back();
+    witData.push_back({});
     for (unsigned int elementSize = 1; elementSize <= maxElementSize; elementSize++) {
         std::vector<unsigned char> witVerifyScript;
         // increase the size of stack element by one byte
-        witData.at(0).emplace_back(0x1A);
+        witData.at(0).push_back(0x1A);
         for (unsigned int dups = 1; dups <= maxDupsToCheck; dups++) {
-            witVerifyScript.emplace_back(OP_DUP);
-            witVerifyScript.emplace_back(OP_CAT);
+            witVerifyScript.push_back(OP_DUP);
+            witVerifyScript.push_back(OP_CAT);
             int expectedErr = SCRIPT_ERR_OK;
             unsigned int catedStackElementSize = witData.at(0).size()<<dups;
             if (catedStackElementSize > MAX_SCRIPT_ELEMENT_SIZE || elementSize > MAX_SCRIPT_ELEMENT_SIZE){
                 expectedErr = SCRIPT_ERR_PUSH_SIZE;
                 break;
             }
-            auto [scriptPubKey, wit] = ConstructWitnessForTaprootLeafSpend(witVerifyScript, witData);
-            DoTest(scriptPubKey, scriptSig, wit, flags, "CAT DUP test", expectedErr, /*nValue=*/1);
+            DoTapscriptTest(witVerifyScript, witData, "CAT DUP test", expectedErr);
             // Once we hit the stack element size limit, break
             if (expectedErr == SCRIPT_ERR_OK)
                 break;

@@ -29,4 +29,8 @@ inline std::string DeploymentName(Consensus::DeploymentPos pos)
 
 std::optional<Consensus::BuriedDeployment> GetBuriedDeployment(const std::string_view deployment_name);
 
+extern const std::map<std::string, uint32_t> g_verify_flag_names;
+
+std::vector<std::string> GetScriptFlagNames(uint32_t flags);
+
 #endif // BITCOIN_DEPLOYMENTINFO_H

@@ -177,8 +177,6 @@ public:
         consensus.nPowMaxAdjustDown = 32; // 32% adjustment down
         consensus.nPowMaxAdjustUp = 16; // 16% adjustment up
 
-        consensus.nOPCATStartHeight = 200000;
-        
         consensus.nRuleChangeActivationThreshold = 9576; // 95% of 10,080
         consensus.nMinerConfirmationWindow = 10080; // 60 * 24 * 7 = 10,080 blocks, or one week
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY] = SetupDeployment{
@@ -334,8 +332,6 @@ public:
         consensus.nPowMaxAdjustDown = 32; // 32% adjustment down
         consensus.nPowMaxAdjustUp = 16; // 16% adjustment up
 
-        consensus.nOPCATStartHeight = 40;
-
         // Deployment of Taproot (BIPs 340-342)
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT] = SetupDeployment{
             .year = 2024,
@@ -371,6 +367,12 @@ public:
             .always = false,
             .never = false
         };
+        consensus.vDeployments[Consensus::DEPLOYMENT_OP_CAT] = SetupDeployment{
+            .activate = 0x62000100, 
+            .abandon = 0x42000100, 
+            .never = true
+        };
+
         consensus.nMinimumChainWork = uint256S("0000000000000000000000000000000000000000000000000000000000100010");
         consensus.defaultAssumeValid = uint256S("0xe5be24df57c43a82d15c2f06bda961296948f8f8eb48501bed1efb929afe0698"); // genesis
 
@@ -502,7 +504,6 @@ public:
         consensus.nPostBlossomPowTargetSpacing = Consensus::POW_TARGET_SPACING;
         consensus.nPowAveragingWindow = 17;
 
-        consensus.nOPCATStartHeight = 0;
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT] = SetupDeployment{
             .year = 2024,
             .number = 1,
@@ -532,6 +533,16 @@ public:
             .abandon = -2,
             .always = false,
             .never = false
+        };
+
+        consensus.vDeployments[Consensus::DEPLOYMENT_OP_CAT] = SetupDeployment{
+            .year = 2024,
+            .number = 1,
+            .revision = 0,
+            .start = 1704085200, // 2024-01-01
+            .timeout = 2019704400, // 2034-01-01
+            .activate = 0x62000100,
+            .abandon = 0x42000100,
         };
 
         // message start is defined as the first 4 bytes of the sha256d of the block script
@@ -615,8 +626,6 @@ public:
         consensus.nPowMaxAdjustDown = 0; // Turn off adjustment down
         consensus.nPowMaxAdjustUp = 0; // Turn off adjustment up
 
-        consensus.nOPCATStartHeight = 0;
-
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT] = SetupDeployment{
             .year = 2024,
             .number = 1,
@@ -645,6 +654,11 @@ public:
             .abandon = -2,
             .always = false,
             .never = false
+        };
+        consensus.vDeployments[Consensus::DEPLOYMENT_OP_CAT] = SetupDeployment{
+            .activate = 0x62000100, 
+            .abandon = 0x42000100, 
+            .always = true
         };
 
         consensus.nMinimumChainWork = uint256S("0x00");
