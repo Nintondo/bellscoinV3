@@ -21,29 +21,29 @@
 
 BOOST_FIXTURE_TEST_SUITE(validation_tests, TestingSetup)
 
-static void TestBlockSubsidyHalvings(const Consensus::Params& consensusParams)
-{
-    int maxHalvings = 64;
-    CAmount nInitialSubsidy = 50 * COIN;
+// static void TestBlockSubsidyHalvings(const Consensus::Params& consensusParams)
+// {
+//     int maxHalvings = 64;
+//     CAmount nInitialSubsidy = 50 * COIN;
 
-    CAmount nPreviousSubsidy = nInitialSubsidy * 2; // for height == 0
-    BOOST_CHECK_EQUAL(nPreviousSubsidy, nInitialSubsidy * 2);
-    for (int nHalvings = 0; nHalvings < maxHalvings; nHalvings++) {
-        int nHeight = nHalvings * consensusParams.nSubsidyHalvingInterval;
-        CAmount nSubsidy = GetBlockSubsidy(nHeight, consensusParams);
-        BOOST_CHECK(nSubsidy <= nInitialSubsidy);
-        BOOST_CHECK_EQUAL(nSubsidy, nPreviousSubsidy / 2);
-        nPreviousSubsidy = nSubsidy;
-    }
-    BOOST_CHECK_EQUAL(GetBlockSubsidy(maxHalvings * consensusParams.nSubsidyHalvingInterval, consensusParams), 0);
-}
+//     CAmount nPreviousSubsidy = nInitialSubsidy * 2; // for height == 0
+//     BOOST_CHECK_EQUAL(nPreviousSubsidy, nInitialSubsidy * 2);
+//     for (int nHalvings = 0; nHalvings < maxHalvings; nHalvings++) {
+//         int nHeight = nHalvings * consensusParams.nSubsidyHalvingInterval;
+//         CAmount nSubsidy = GetBlockSubsidy(nHeight, consensusParams);
+//         BOOST_CHECK(nSubsidy <= nInitialSubsidy);
+//         BOOST_CHECK_EQUAL(nSubsidy, nPreviousSubsidy / 2);
+//         nPreviousSubsidy = nSubsidy;
+//     }
+//     BOOST_CHECK_EQUAL(GetBlockSubsidy(maxHalvings * consensusParams.nSubsidyHalvingInterval, consensusParams), 0);
+// }
 
-static void TestBlockSubsidyHalvings(int nSubsidyHalvingInterval)
-{
-    // Consensus::Params consensusParams;
-    // consensusParams.nSubsidyHalvingInterval = nSubsidyHalvingInterval;
-    // TestBlockSubsidyHalvings(consensusParams);
-}
+// static void TestBlockSubsidyHalvings(int nSubsidyHalvingInterval)
+// {
+//     // Consensus::Params consensusParams;
+//     // consensusParams.nSubsidyHalvingInterval = nSubsidyHalvingInterval;
+//     // TestBlockSubsidyHalvings(consensusParams);
+// }
 
 BOOST_AUTO_TEST_CASE(block_after_auxpow_test)
 {

@@ -30,9 +30,7 @@ class AuxpowMiningTest (BellscoinTestFramework):
     self.skip_if_no_wallet()
 
   def set_test_params (self):
-    print("----F11")
     self.num_nodes = 2
-    print("----F12")
     # Must set '-dip3params=9000:9000' to create pre-dip3 blocks only
     self.extra_args = [[],[]] # ['-dip3params=9000:9000'],['-dip3params=9000:9000']
 
@@ -44,15 +42,11 @@ class AuxpowMiningTest (BellscoinTestFramework):
 
   def run_test (self):
     # Activate segwit if requested.
-    print("----F1")
     if self.options.segwit:
-      print("----F2")
       self.generate(self.nodes[0], 500)
 
-    print("----F3")
     # Test with getauxblock and createauxblock/submitauxblock.
     self.test_getauxblock ()
-    print("----F4")
     self.test_create_submit_auxblock ()
 
   def test_common (self, create, submit):
