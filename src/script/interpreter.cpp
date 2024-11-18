@@ -418,8 +418,6 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
 
     // sigversion cannot be TAPROOT here, as it admits no script execution.
     assert(sigversion == SigVersion::BASE || sigversion == SigVersion::WITNESS_V0 || sigversion == SigVersion::TAPSCRIPT);
-    int height = GetGlobHeight();
-    const Consensus::Params& consensusParams = GlobParams().GetConsensus();
     CScript::const_iterator pc = script.begin();
     CScript::const_iterator pend = script.end();
     CScript::const_iterator pbegincodehash = script.begin();
