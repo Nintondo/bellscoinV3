@@ -22,6 +22,7 @@
 #include <type_traits>
 #include <utility>
 #include <vector>
+#include <optional>
 
 // Maximum number of bytes pushable to the stack
 static const unsigned int MAX_SCRIPT_ELEMENT_SIZE = 520;
@@ -234,13 +235,20 @@ class CScriptNum
  * an int64 and allowing out-of-range values to be returned as a vector of bytes but
  * throwing an exception if arithmetic is done or the result is interpreted as an integer.
  */
+protected:
+    int64_t _value;
+
 public:
+    static constexpr size_t MAXIMUM_ELEMENT_SIZE_32_BIT = 4;
+    static constexpr size_t MAXIMUM_ELEMENT_SIZE_64_BIT = 8;
 
-    explicit CScriptNum(const int64_t& n)
-    {
-        m_value = n;
-    }
+    typedef std::optional<CScriptNum> ScriptNumResult;
+protected:
+    explicit constexpr CScriptNum(const int64_t &x) : _value(x) {}
 
+    static constexpr bool valid64BitRange(int64_t x) { return x != std::numeric_limits<int64_t>::min(); }
+
+public:
     static const size_t nDefaultMaxNumSize = 4;
 
     explicit CScriptNum(const std::vector<unsigned char>& vch, bool fRequireMinimal,
@@ -267,84 +275,115 @@ public:
                 }
             }
         }
-        m_value = set_vch(vch);
+        _value = set_vch(vch);
     }
 
-    inline bool operator==(const int64_t& rhs) const    { return m_value == rhs; }
-    inline bool operator!=(const int64_t& rhs) const    { return m_value != rhs; }
-    inline bool operator<=(const int64_t& rhs) const    { return m_value <= rhs; }
-    inline bool operator< (const int64_t& rhs) const    { return m_value <  rhs; }
-    inline bool operator>=(const int64_t& rhs) const    { return m_value >= rhs; }
-    inline bool operator> (const int64_t& rhs) const    { return m_value >  rhs; }
+    /**
+     * Factory method to safely construct an instance from a raw int64_t.
+     *
+     * Note the unusual enforcement of the rules regarding valid 64-bit
+     * ranges. We enforce a strict range of [INT64_MIN+1, INT64_MAX].
+     */
+    static ScriptNumResult fromInt(int64_t x) noexcept
+    {
+        if (!valid64BitRange(x))
+        {
+            return {};
+        }
+        return CScriptNum(x);
+    }
 
-    inline bool operator==(const CScriptNum& rhs) const { return operator==(rhs.m_value); }
-    inline bool operator!=(const CScriptNum& rhs) const { return operator!=(rhs.m_value); }
-    inline bool operator<=(const CScriptNum& rhs) const { return operator<=(rhs.m_value); }
-    inline bool operator< (const CScriptNum& rhs) const { return operator< (rhs.m_value); }
-    inline bool operator>=(const CScriptNum& rhs) const { return operator>=(rhs.m_value); }
-    inline bool operator> (const CScriptNum& rhs) const { return operator> (rhs.m_value); }
+    /// Performance/convenience optimization: Construct an instance from a raw
+    /// int64_t where the caller already knows that the supplied value is in range.
+    static constexpr CScriptNum fromIntUnchecked(int64_t x) noexcept { return CScriptNum(x); }
 
-    inline CScriptNum operator+(   const int64_t& rhs)    const { return CScriptNum(m_value + rhs);}
-    inline CScriptNum operator-(   const int64_t& rhs)    const { return CScriptNum(m_value - rhs);}
-    inline CScriptNum operator+(   const CScriptNum& rhs) const { return operator+(rhs.m_value);   }
-    inline CScriptNum operator-(   const CScriptNum& rhs) const { return operator-(rhs.m_value);   }
+    inline bool operator==(const int64_t& rhs) const    { return _value == rhs; }
+    inline bool operator!=(const int64_t& rhs) const    { return _value != rhs; }
+    inline bool operator<=(const int64_t& rhs) const    { return _value <= rhs; }
+    inline bool operator< (const int64_t& rhs) const    { return _value <  rhs; }
+    inline bool operator>=(const int64_t& rhs) const    { return _value >= rhs; }
+    inline bool operator> (const int64_t& rhs) const    { return _value >  rhs; }
 
-    inline CScriptNum& operator+=( const CScriptNum& rhs)       { return operator+=(rhs.m_value);  }
-    inline CScriptNum& operator-=( const CScriptNum& rhs)       { return operator-=(rhs.m_value);  }
+    inline bool operator==(const CScriptNum& rhs) const { return operator==(rhs._value); }
+    inline bool operator!=(const CScriptNum& rhs) const { return operator!=(rhs._value); }
+    inline bool operator<=(const CScriptNum& rhs) const { return operator<=(rhs._value); }
+    inline bool operator< (const CScriptNum& rhs) const { return operator< (rhs._value); }
+    inline bool operator>=(const CScriptNum& rhs) const { return operator>=(rhs._value); }
+    inline bool operator> (const CScriptNum& rhs) const { return operator> (rhs._value); }
 
-    inline CScriptNum operator&(   const int64_t& rhs)    const { return CScriptNum(m_value & rhs);}
-    inline CScriptNum operator&(   const CScriptNum& rhs) const { return operator&(rhs.m_value);   }
+    inline CScriptNum operator+(   const int64_t& rhs)    const { return CScriptNum(_value + rhs);}
+    inline CScriptNum operator-(   const int64_t& rhs)    const { return CScriptNum(_value - rhs);}
+    inline CScriptNum operator+(   const CScriptNum& rhs) const { return operator+(rhs._value);   }
+    inline CScriptNum operator-(   const CScriptNum& rhs) const { return operator-(rhs._value);   }
 
-    inline CScriptNum& operator&=( const CScriptNum& rhs)       { return operator&=(rhs.m_value);  }
+    inline CScriptNum& operator+=( const CScriptNum& rhs)       { return operator+=(rhs._value);  }
+    inline CScriptNum& operator-=( const CScriptNum& rhs)       { return operator-=(rhs._value);  }
+
+    inline CScriptNum operator&(   const int64_t& rhs)    const { return CScriptNum(_value & rhs);}
+    inline CScriptNum operator&(   const CScriptNum& rhs) const { return operator&(rhs._value);   }
+
+    inline CScriptNum& operator&=( const CScriptNum& rhs)       { return operator&=(rhs._value);  }
 
     inline CScriptNum operator-()                         const
     {
-        assert(m_value != std::numeric_limits<int64_t>::min());
-        return CScriptNum(-m_value);
+        assert(_value != std::numeric_limits<int64_t>::min());
+        return CScriptNum(-_value);
     }
 
     inline CScriptNum& operator=( const int64_t& rhs)
     {
-        m_value = rhs;
+        _value = rhs;
         return *this;
     }
 
     inline CScriptNum& operator+=( const int64_t& rhs)
     {
-        assert(rhs == 0 || (rhs > 0 && m_value <= std::numeric_limits<int64_t>::max() - rhs) ||
-                           (rhs < 0 && m_value >= std::numeric_limits<int64_t>::min() - rhs));
-        m_value += rhs;
+        assert(rhs == 0 || (rhs > 0 && _value <= std::numeric_limits<int64_t>::max() - rhs) ||
+                           (rhs < 0 && _value >= std::numeric_limits<int64_t>::min() - rhs));
+        _value += rhs;
         return *this;
     }
 
     inline CScriptNum& operator-=( const int64_t& rhs)
     {
-        assert(rhs == 0 || (rhs > 0 && m_value >= std::numeric_limits<int64_t>::min() + rhs) ||
-                           (rhs < 0 && m_value <= std::numeric_limits<int64_t>::max() + rhs));
-        m_value -= rhs;
+        assert(rhs == 0 || (rhs > 0 && _value >= std::numeric_limits<int64_t>::min() + rhs) ||
+                           (rhs < 0 && _value <= std::numeric_limits<int64_t>::max() + rhs));
+        _value -= rhs;
         return *this;
     }
 
     inline CScriptNum& operator&=( const int64_t& rhs)
     {
-        m_value &= rhs;
+        _value &= rhs;
         return *this;
     }
 
-    int getint() const
+    ScriptNumResult safeMul(int64_t x) const noexcept
     {
-        if (m_value > std::numeric_limits<int>::max())
-            return std::numeric_limits<int>::max();
-        else if (m_value < std::numeric_limits<int>::min())
-            return std::numeric_limits<int>::min();
-        return m_value;
+        const bool overflow = __builtin_mul_overflow(_value, x, &x);
+        if (overflow)
+        {
+            return {};
+        }
+        return fromInt(x);
     }
 
-    int64_t GetInt64() const { return m_value; }
+    ScriptNumResult safeMul(CScriptNum const &x) const noexcept { return safeMul(x._value); }
+
+    int getint() const
+    {
+        if (_value > std::numeric_limits<int>::max())
+            return std::numeric_limits<int>::max();
+        else if (_value < std::numeric_limits<int>::min())
+            return std::numeric_limits<int>::min();
+        return _value;
+    }
+
+    int64_t GetInt64() const { return _value; }
 
     std::vector<unsigned char> getvch() const
     {
-        return serialize(m_value);
+        return serialize(_value);
     }
 
     static std::vector<unsigned char> serialize(const int64_t& value)
@@ -398,7 +437,6 @@ private:
       return result;
     }
 
-    int64_t m_value;
 };
 
 /**
@@ -436,6 +474,20 @@ public:
     CScript(const_iterator pbegin, const_iterator pend) : CScriptBase(pbegin, pend) { }
     CScript(std::vector<unsigned char>::const_iterator pbegin, std::vector<unsigned char>::const_iterator pend) : CScriptBase(pbegin, pend) { }
     CScript(const unsigned char* pbegin, const unsigned char* pend) : CScriptBase(pbegin, pend) { }
+
+    CScript &operator+=(const CScript &b)
+    {
+        reserve(size() + b.size());
+        insert(end(), b.begin(), b.end());
+        return *this;
+    }
+
+    friend CScript operator+(const CScript &a, const CScript &b)
+    {
+        CScript ret = a;
+        ret += b;
+        return ret;
+    }
 
     SERIALIZE_METHODS(CScript, obj) { READWRITE(AsBase<CScriptBase>(obj)); }
 

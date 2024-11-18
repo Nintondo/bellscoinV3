@@ -996,6 +996,7 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
 
                 case OP_ADD:
                 case OP_SUB:
+                case OP_MUL:
                 case OP_BOOLAND:
                 case OP_BOOLOR:
                 case OP_NUMEQUAL:
@@ -1023,6 +1024,17 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
                     case OP_SUB:
                         bn = bn1 - bn2;
                         break;
+
+                    case OP_MUL:
+                    {
+                        auto res = bn1.safeMul(bn2);
+                        if (!res)
+                        {
+                            return set_error(serror, SCRIPT_ERR_INVALID_NUMBER_RANGE_64_BIT);
+                        }
+                        bn = *res;
+                        break;
+                    }
 
                     case OP_BOOLAND:             bn = (bn1 != bnZero && bn2 != bnZero); break;
                     case OP_BOOLOR:              bn = (bn1 != bnZero || bn2 != bnZero); break;
