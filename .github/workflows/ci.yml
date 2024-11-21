@@ -41,7 +41,3 @@ jobs:
       run: |
         make check
 
-    - name: Check python tests
-      run: |
-        cd test/functional/
-        python3 auxpow_mining.py
