@@ -59,7 +59,11 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <extracomment>Expanded name of the CSV file format. See: https://en.wikipedia.org/wiki/Comma-separated_values.</extracomment>
         <translation type="unfinished">কমা দিয়ে আলাদা করা ফাইল</translation>
     </message>
-    </context>
+    <message>
+        <source>Exporting Failed</source>
+        <translation type="unfinished">রপ্তানি ব্যর্থ হয়েছে৷</translation>
+    </message>
+</context>
 <context>
     <name>AddressTableModel</name>
     <message>
@@ -69,6 +73,25 @@ Signing is only possible with addresses of the type 'legacy'.</source>
     <message>
         <source>Address</source>
         <translation type="unfinished">ঠিকানা</translation>
+    </message>
+    <message>
+        <source>(no label)</source>
+        <translation type="unfinished">(কোন লেবেল নেই)</translation>
+    </message>
+</context>
+<context>
+    <name>AskPassphraseDialog</name>
+    <message>
+        <source>The passphrase entered for the wallet decryption is incorrect. It contains a null character (ie - a zero byte). If the passphrase was set with a version of this software prior to 25.0, please try again with only the characters up to — but not including — the first null character. If this is successful, please set a new passphrase to avoid this issue in the future.</source>
+        <translation type="unfinished">ওয়ালেট ডিক্রিপশনের জন্য প্রবেশ করা পাসফ্রেজটি ভুল। এটিতে একটি শূন্য অক্ষর রয়েছে (যেমন - একটি শূন্য বাইট)। যদি পাসফ্রেজটি 25.0 এর আগে এই সফ্টওয়্যারটির একটি সংস্করণের সাথে সেট করা থাকে, অনুগ্রহ করে শুধুমাত্র প্রথম শূন্য অক্ষর পর্যন্ত — কিন্তু অন্তর্ভুক্ত নয় — পর্যন্ত অক্ষর দিয়ে আবার চেষ্টা করুন। এটি সফল হলে, ভবিষ্যতে এই সমস্যাটি এড়াতে অনুগ্রহ করে একটি নতুন পাসফ্রেজ সেট করুন৷</translation>
+    </message>
+    <message>
+        <source>Passphrase change failed</source>
+        <translation type="unfinished">পাসফ্রেজ পরিবর্তন ব্যর্থ হয়েছে৷</translation>
+    </message>
+    <message>
+        <source>The old passphrase entered for the wallet decryption is incorrect. It contains a null character (ie - a zero byte). If the passphrase was set with a version of this software prior to 25.0, please try again with only the characters up to — but not including — the first null character.</source>
+        <translation type="unfinished">ওয়ালেট ডিক্রিপশনের জন্য পুরানো পাসফ্রেজটি ভুল। এটিতে একটি শূন্য অক্ষর রয়েছে (যেমন - একটি শূন্য বাইট)। যদি পাসফ্রেজটি 25.0 এর আগে এই সফ্টওয়্যারটির একটি সংস্করণের সাথে সেট করা থাকে, অনুগ্রহ করে শুধুমাত্র প্রথম শূন্য অক্ষর পর্যন্ত — কিন্তু অন্তর্ভুক্ত নয় — পর্যন্ত অক্ষর দিয়ে আবার চেষ্টা করুন।</translation>
     </message>
     </context>
 <context>
@@ -268,6 +291,10 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <translation type="unfinished">আংশিক স্বাক্ষরিত বিটকয়েন লেনদেন লোড করুন</translation>
     </message>
     <message>
+        <source>Load PSBT from &amp;clipboard…</source>
+        <translation type="unfinished">&amp;ক্লিপবোর্ড থেকে আংশিক স্বাক্ষরিত বিটকয়েন লেনদেন আনুন</translation>
+    </message>
+    <message>
         <source>Load Partially Signed Bitcoin Transaction from clipboard</source>
         <translation type="unfinished">ক্লিপবোর্ড থেকে আংশিক স্বাক্ষরিত বিটকয়েন লেনদেন লোড করুন</translation>
     </message>
@@ -458,6 +485,10 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <translation type="unfinished">ঠিকানা কপি করুন</translation>
     </message>
     <message>
+        <source>via %1</source>
+        <translation type="unfinished">এর মাধ্যমে %1</translation>
+    </message>
+    <message>
         <source>Unknown</source>
         <translation type="unfinished">অজানা</translation>
     </message>
@@ -604,6 +635,10 @@ Signing is only possible with addresses of the type 'legacy'.</source>
     <message>
         <source>ID</source>
         <translation type="unfinished">আইডি</translation>
+    </message>
+    <message>
+        <source>Exporting Failed</source>
+        <translation type="unfinished">রপ্তানি ব্যর্থ হয়েছে৷</translation>
     </message>
     <message>
         <source>Exporting Successful</source>

@@ -5,8 +5,12 @@
 """
 Test transaction download behavior
 """
+from decimal import Decimal
 import time
 
+from test_framework.mempool_util import (
+    fill_mempool,
+)
 from test_framework.messages import (
     CInv,
     MSG_TX,
@@ -14,6 +18,7 @@ from test_framework.messages import (
     MSG_WTX,
     msg_inv,
     msg_notfound,
+    msg_tx,
 )
 from test_framework.p2p import (
     P2PInterface,
@@ -54,6 +59,7 @@ MAX_GETDATA_INBOUND_WAIT = GETDATA_TX_INTERVAL + INBOUND_PEER_TX_DELAY + TXID_RE
 class TxDownloadTest(BellscoinTestFramework):
     def set_test_params(self):
         self.num_nodes = 2
+        self.extra_args= [['-datacarriersize=100000', '-maxmempool=5', '-persistmempool=0']] * self.num_nodes
 
     def test_tx_requests(self):
         self.log.info("Test that we request transactions from all our peers, eventually")
@@ -241,6 +247,29 @@ class TxDownloadTest(BellscoinTestFramework):
         self.log.info('Check that spurious notfound is ignored')
         self.nodes[0].p2ps[0].send_message(msg_notfound(vec=[CInv(MSG_TX, 1)]))
 
+    def test_rejects_filter_reset(self):
+        self.log.info('Check that rejected tx is not requested again')
+        node = self.nodes[0]
+        fill_mempool(self, node)
+        self.wallet.rescan_utxos()
+        mempoolminfee = node.getmempoolinfo()['mempoolminfee']
+        peer = node.add_p2p_connection(TestP2PConn())
+        low_fee_tx = self.wallet.create_self_transfer(fee_rate=Decimal("0.9")*mempoolminfee)
+        assert_equal(node.testmempoolaccept([low_fee_tx['hex']])[0]["reject-reason"], "mempool min fee not met")
+        peer.send_and_ping(msg_tx(low_fee_tx['tx']))
+        peer.send_and_ping(msg_inv([CInv(t=MSG_WTX, h=int(low_fee_tx['wtxid'], 16))]))
+        node.setmocktime(int(time.time()))
+        node.bumpmocktime(MAX_GETDATA_INBOUND_WAIT)
+        peer.sync_with_ping()
+        assert_equal(peer.tx_getdata_count, 0)
+
+        self.log.info('Check that rejection filter is cleared after new block comes in')
+        self.generate(self.wallet, 1, sync_fun=self.no_op)
+        peer.sync_with_ping()
+        peer.send_and_ping(msg_inv([CInv(t=MSG_WTX, h=int(low_fee_tx['wtxid'], 16))]))
+        node.bumpmocktime(MAX_GETDATA_INBOUND_WAIT)
+        peer.wait_for_getdata([int(low_fee_tx['wtxid'], 16)])
+
     def run_test(self):
         self.wallet = MiniWallet(self.nodes[0])
 
@@ -257,18 +286,24 @@ class TxDownloadTest(BellscoinTestFramework):
 
         # Run each test against new bellsd instances, as setting mocktimes has long-term effects on when
         # the next trickle relay event happens.
-        for test in [self.test_in_flight_max, self.test_inv_block, self.test_tx_requests]:
+        for test, with_inbounds in [
+            (self.test_in_flight_max, True),
+            (self.test_inv_block, True),
+            (self.test_tx_requests, True),
+            (self.test_rejects_filter_reset, False),
+        ]:
             self.stop_nodes()
             self.start_nodes()
             self.connect_nodes(1, 0)
             # Setup the p2p connections
             self.peers = []
-            for node in self.nodes:
-                for _ in range(NUM_INBOUND):
-                    self.peers.append(node.add_p2p_connection(TestP2PConn()))
-            self.log.info("Nodes are setup with {} incoming connections each".format(NUM_INBOUND))
+            if with_inbounds:
+                for node in self.nodes:
+                    for _ in range(NUM_INBOUND):
+                        self.peers.append(node.add_p2p_connection(TestP2PConn()))
+                self.log.info("Nodes are setup with {} incoming connections each".format(NUM_INBOUND))
             test()
 
 
 if __name__ == '__main__':
-    TxDownloadTest().main()
+    TxDownloadTest(__file__).main()

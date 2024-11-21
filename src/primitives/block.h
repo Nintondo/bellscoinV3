@@ -19,6 +19,10 @@
  * in the block is a special one that creates a new coin owned by the creator
  * of the block.
  */
+
+int GetGlobHeight();
+void SetGlobHeight(int new_height);
+
 class CBlockHeader : public CPureBlockHeader
 {
 public:
@@ -89,8 +93,10 @@ public:
     // network and disk
     std::vector<CTransactionRef> vtx;
 
-    // memory only
-    mutable bool fChecked;
+    // Memory-only flags for caching expensive checks
+    mutable bool fChecked;                            // CheckBlock()
+    mutable bool m_checked_witness_commitment{false}; // CheckWitnessCommitment()
+    mutable bool m_checked_merkle_root{false};        // CheckMerkleRoot()
 
     CBlock()
     {
@@ -113,6 +119,8 @@ public:
         CBlockHeader::SetNull();
         vtx.clear();
         fChecked = false;
+        m_checked_witness_commitment = false;
+        m_checked_merkle_root = false;
     }
 
     CBlockHeader GetBlockHeader() const
@@ -148,7 +156,7 @@ struct CBlockLocator
 
     std::vector<uint256> vHave;
 
-    CBlockLocator() {}
+    CBlockLocator() = default;
 
     explicit CBlockLocator(std::vector<uint256>&& have) : vHave(std::move(have)) {}
 

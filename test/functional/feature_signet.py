@@ -82,4 +82,4 @@ class SignetBasicTest(BellscoinTestFramework):
 
 
 if __name__ == '__main__':
-    SignetBasicTest().main()
+    SignetBasicTest(__file__).main()

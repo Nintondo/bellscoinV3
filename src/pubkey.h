@@ -233,6 +233,11 @@ private:
     uint256 m_keydata;
 
 public:
+    /** Nothing Up My Sleeve point H
+     *  Used as an internal key for provably disabling the key path spend
+     *  see BIP341 for more details */
+    static const XOnlyPubKey NUMS_H;
+
     /** Construct an empty x-only pubkey. */
     XOnlyPubKey() = default;
 
@@ -285,10 +290,11 @@ public:
     CPubKey GetEvenCorrespondingCPubKey() const;
 
     const unsigned char& operator[](int pos) const { return *(m_keydata.begin() + pos); }
-    const unsigned char* data() const { return m_keydata.begin(); }
     static constexpr size_t size() { return decltype(m_keydata)::size(); }
+    const unsigned char* data() const { return m_keydata.begin(); }
     const unsigned char* begin() const { return m_keydata.begin(); }
     const unsigned char* end() const { return m_keydata.end(); }
+    unsigned char* data() { return m_keydata.begin(); }
     unsigned char* begin() { return m_keydata.begin(); }
     unsigned char* end() { return m_keydata.end(); }
     bool operator==(const XOnlyPubKey& other) const { return m_keydata == other.m_keydata; }

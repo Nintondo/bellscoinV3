@@ -69,4 +69,4 @@ class MessageCaptureTest(BellscoinTestFramework):
 
 
 if __name__ == '__main__':
-    MessageCaptureTest().main()
+    MessageCaptureTest(__file__).main()

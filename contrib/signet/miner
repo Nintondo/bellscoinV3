@@ -30,7 +30,7 @@ logging.basicConfig(
 
 SIGNET_HEADER = b"\xec\xc7\xda\xa2"
 PSBT_SIGNET_BLOCK = b"\xfc\x06signetb"    # proprietary PSBT global field holding the block being signed
-RE_MULTIMINER = re.compile("^(\d+)(-(\d+))?/(\d+)$")
+RE_MULTIMINER = re.compile(r"^(\d+)(-(\d+))?/(\d+)$")
 
 def create_coinbase(height, value, spk):
     cb = CTransaction()
@@ -52,10 +52,10 @@ def signet_txs(block, challenge):
     mroot = block.get_merkle_root(hashes)
 
     sd = b""
-    sd += struct.pack("<i", block.nVersion)
+    sd += block.nVersion.to_bytes(4, "little", signed=True)
     sd += ser_uint256(block.hashPrevBlock)
     sd += ser_uint256(mroot)
-    sd += struct.pack("<I", block.nTime)
+    sd += block.nTime.to_bytes(4, "little")
 
     to_spend = CTransaction()
     to_spend.nVersion = 0
@@ -469,7 +469,7 @@ def do_calibrate(args):
     print("nbits=%08x for %ds average mining time" % (target_to_nbits(want_targ), want_time))
     return 0
 
-def bitcoin_cli(basecmd, args, **kwargs):
+def bells_cli(basecmd, args, **kwargs):
     cmd = basecmd + ["-signet"] + args
     logging.debug("Calling bitcoin-cli: %r", cmd)
     out = subprocess.run(cmd, stdout=subprocess.PIPE, **kwargs, check=True).stdout
@@ -517,7 +517,7 @@ def main():
 
     args = parser.parse_args(sys.argv[1:])
 
-    args.bcli = lambda *a, input=b"", **kwargs: bitcoin_cli(args.cli.split(" "), list(a), input=input, **kwargs)
+    args.bcli = lambda *a, input=b"", **kwargs: bells_cli(args.cli.split(" "), list(a), input=input, **kwargs)
 
     if hasattr(args, "address") and hasattr(args, "descriptor"):
         if args.address is None and args.descriptor is None:

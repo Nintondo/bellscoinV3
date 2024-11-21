@@ -25,6 +25,8 @@ std::string ScriptErrorString(const ScriptError serror)
             return "Script failed an OP_CHECKSIGVERIFY operation";
         case SCRIPT_ERR_NUMEQUALVERIFY:
             return "Script failed an OP_NUMEQUALVERIFY operation";
+        case SCRIPT_ERR_TEMPLATE_MISMATCH:
+            return "Script failed an OP_CHECKTEMPLATEVERIFY operation";
         case SCRIPT_ERR_SCRIPT_SIZE:
             return "Script is too big";
         case SCRIPT_ERR_PUSH_SIZE:
@@ -76,6 +78,7 @@ std::string ScriptErrorString(const ScriptError serror)
         case SCRIPT_ERR_DISCOURAGE_UPGRADABLE_TAPROOT_VERSION:
             return "Taproot version reserved for soft-fork upgrades";
         case SCRIPT_ERR_DISCOURAGE_OP_SUCCESS:
+        case SCRIPT_ERR_DISCOURAGE_OP_CAT:
             return "OP_SUCCESSx reserved for soft-fork upgrades";
         case SCRIPT_ERR_DISCOURAGE_UPGRADABLE_PUBKEYTYPE:
             return "Public key version reserved for soft-fork upgrades";

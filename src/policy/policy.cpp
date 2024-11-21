@@ -111,7 +111,7 @@ bool IsStandardTx(const CTransaction& tx, const std::optional<unsigned>& max_dat
     for (const CTxIn& txin : tx.vin)
     {
         // Biggest 'standard' txin involving only keys is a 15-of-15 P2SH
-        // multisig with compressed keys (remember the 520 byte limit on
+        // multisig with compressed keys (remember the MAX_SCRIPT_ELEMENT_SIZE byte limit on
         // redeemScript size). That works out to a (15*(33+1))+3=513 byte
         // redeemScript, 513+1+15*(73+1)+3=1627 bytes of scriptSig, which
         // we round off to 1650(MAX_STANDARD_SCRIPTSIG_SIZE) bytes for
@@ -202,6 +202,11 @@ bool AreInputsStandard(const CTransaction& tx, const CCoinsViewCache& mapInputs)
             if (subscript.GetSigOpCount(true) > MAX_P2SH_SIGOPS) {
                 return false;
             }
+        } else if (whichType == TxoutType::TX_BARE_DEFAULT_CHECK_TEMPLATE_VERIFY_HASH) {
+            // after activation, only allow bare with no scriptsig.
+            // pre-activation disallowing enforced via discouraged logic in the
+            // interpreter.
+            if (tx.vin[i].scriptSig.size() != 0) return false;
         }
     }
 
@@ -224,6 +229,11 @@ bool IsWitnessStandard(const CTransaction& tx, const CCoinsViewCache& mapInputs)
 
         // get the scriptPubKey corresponding to this input:
         CScript prevScript = prev.scriptPubKey;
+
+        // witness stuffing detected
+        if (prevScript.IsPayToAnchor()) {
+            return false;
+        }
 
         bool p2sh = false;
         if (prevScript.IsPayToScriptHash()) {

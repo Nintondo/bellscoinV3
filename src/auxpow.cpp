@@ -44,7 +44,10 @@ CAuxPow::check (const uint256& hashAuxBlock, int nChainId,
         const int32_t &nChainIDParent = parentBlock.GetChainId();
         if(nChainIDParent > 0) {
             if(nChainIDParent == params.nAuxpowChainId)
-                return error("Aux POW parent has our chain ID");
+            {
+              LogPrintf("Aux POW parent has our chain ID");
+              return false;
+            }
         } else {
             // const int32_t &nOldChainIDParent = parentBlock.GetOldChainId();
             // if(nOldChainIDParent == params.nAuxpowOldChainId)
@@ -53,7 +56,10 @@ CAuxPow::check (const uint256& hashAuxBlock, int nChainId,
     }
 
     if (vChainMerkleBranch.size() > 30)
-        return error("Aux POW chain merkle branch too long");
+    {
+      LogPrintf("Aux POW chain merkle branch too long");
+      return false;
+    }
 
     // Check that the chain merkle root is in the coinbase
     const uint256 &nRootHash
@@ -64,11 +70,17 @@ CAuxPow::check (const uint256& hashAuxBlock, int nChainId,
     // Check that we are in the parent block merkle tree
     if (CheckMerkleBranch(coinbaseTx->GetHash(), vMerkleBranch, 0)
           != parentBlock.hashMerkleRoot)
-        return error("Aux POW merkle root incorrect");
+    {
+      LogPrintf("Aux POW merkle root incorrect");
+      return false;
+    }
 
     // Check that there is at least one input.
     if (coinbaseTx->vin.empty())
-        return error("Aux POW coinbase has no inputs");
+    {
+      LogPrintf("Aux POW coinbase has no inputs");
+      return false;
+    }
 
     const CScript &script = coinbaseTx->vin[0].scriptSig;
 
@@ -85,7 +97,10 @@ CAuxPow::check (const uint256& hashAuxBlock, int nChainId,
         std::search(script.begin(), script.end(), vchRootHash.begin(), vchRootHash.end());
 
     if (pc == script.end())
-        return error("Aux POW missing chain merkle root in parent coinbase");
+    {
+      LogPrintf("Aux POW missing chain merkle root in parent coinbase");
+      return false;
+    }
 
     if (pcHead != script.end())
     {
@@ -93,13 +108,20 @@ CAuxPow::check (const uint256& hashAuxBlock, int nChainId,
         // mining header exists just before.
         if (script.end() != std::search(pcHead + 1, script.end(),
                                         mmHeaderBegin, mmHeaderEnd))
-            return error("Multiple merged mining headers in coinbase");
+            {
+              LogPrintf("Multiple merged mining headers in coinbase");
+              return false;
+            }
         if (pcHead + sizeof(pchMergedMiningHeader) != pc)
-            return error("Merged mining header is not just before chain merkle root");
+        {
+          LogPrintf("Merged mining header is not just before chain merkle root");
+          return false;
+        }
     }
     else
     {
-        return error("Missing auxpow header");
+      LogPrintf("Missing auxpow header");
+      return false;
     }
 
 
@@ -107,16 +129,25 @@ CAuxPow::check (const uint256& hashAuxBlock, int nChainId,
     // a nonce and our chain ID and comparing to the index.
     pc += vchRootHash.size();
     if (script.end() - pc < 8)
-        return error("Aux POW missing chain merkle tree size and nonce in parent coinbase");
+    {
+      LogPrintf("Aux POW missing chain merkle tree size and nonce in parent coinbase");
+      return false;
+    }
 
     const uint32_t &nSize = DecodeLE32 (&pc[0]);
     const unsigned &merkleHeight = vChainMerkleBranch.size ();
     if (nSize != (1u << merkleHeight))
-        return error("Aux POW merkle branch size does not match parent coinbase");
+    {
+      LogPrintf("Aux POW merkle branch size does not match parent coinbase");
+      return false;
+    }
 
     const uint32_t &nNonce = DecodeLE32 (&pc[4]);
     if (nChainIndex != getExpectedIndex (nNonce, nChainId, merkleHeight))
-        return error("Aux POW wrong index");
+    {
+      LogPrintf("Aux POW wrong index");
+      return false;
+    }
 
     return true;
 }

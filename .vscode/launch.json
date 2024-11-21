@@ -62,7 +62,7 @@
             "miDebuggerPath": "/usr/bin/gdb"
         },
         {
-            "name": "Test bitcoin qt",
+            "name": "Test bellscoin qt",
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/src/qt/test/test_bells-qt",
@@ -82,11 +82,11 @@
             "miDebuggerPath": "/usr/bin/gdb"
         },
         {
-            "name": "Test bitcoin ",
+            "name": "Test bellscoin ",
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/src/test/test_bells",
-            "args": ["--run_test=message_sign/message_sign"],
+            "args": ["--run_test=peerman_tests/connections_desirable_service_flags"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],

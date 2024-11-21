@@ -149,7 +149,7 @@ CAmount CachedTxGetImmatureCredit(const CWallet& wallet, const CWalletTx& wtx, c
 {
     AssertLockHeld(wallet.cs_wallet);
 
-    if (wallet.IsTxImmatureCoinBase(wtx) && wallet.IsTxInMainChain(wtx)) {
+    if (wallet.IsTxImmatureCoinBase(wtx) && wtx.isConfirmed()) {
         return GetCachableAmount(wallet, wtx, CWalletTx::IMMATURE_CREDIT, filter);
     }
 
@@ -173,7 +173,7 @@ CAmount CachedTxGetAvailableCredit(const CWallet& wallet, const CWalletTx& wtx, 
 
     bool allow_used_addresses = (filter & ISMINE_USED) || !wallet.IsWalletFlagSet(WALLET_FLAG_AVOID_REUSE);
     CAmount nCredit = 0;
-    uint256 hashTx = wtx.GetHash();
+    Txid hashTx = wtx.GetHash();
     for (unsigned int i = 0; i < wtx.tx->vout.size(); i++) {
         const CTxOut& txout = wtx.tx->vout[i];
         if (!wallet.IsSpent(COutPoint(hashTx, i)) && (allow_used_addresses || !wallet.IsSpentKey(txout.scriptPubKey))) {
@@ -253,12 +253,12 @@ bool CachedTxIsFromMe(const CWallet& wallet, const CWalletTx& wtx, const isminef
     return (CachedTxGetDebit(wallet, wtx, filter) > 0);
 }
 
+// NOLINTNEXTLINE(misc-no-recursion)
 bool CachedTxIsTrusted(const CWallet& wallet, const CWalletTx& wtx, std::set<uint256>& trusted_parents)
 {
     AssertLockHeld(wallet.cs_wallet);
-    int nDepth = wallet.GetTxDepthInMainChain(wtx);
-    if (nDepth >= 1) return true;
-    if (nDepth < 0) return false;
+    if (wtx.isConfirmed()) return true;
+    if (wtx.isBlockConflicted()) return false;
     // using wtx's cached debit
     if (!wallet.m_spend_zero_conf_change || !CachedTxIsFromMe(wallet, wtx, ISMINE_ALL)) return false;
 
@@ -348,7 +348,7 @@ std::map<CTxDestination, CAmount> GetAddressBalances(const CWallet& wallet)
                 if(!ExtractDestination(output.scriptPubKey, addr))
                     continue;
 
-                CAmount n = wallet.IsSpent(COutPoint(walletEntry.first, i)) ? 0 : output.nValue;
+                CAmount n = wallet.IsSpent(COutPoint(Txid::FromUint256(walletEntry.first), i)) ? 0 : output.nValue;
                 balances[addr] += n;
             }
         }

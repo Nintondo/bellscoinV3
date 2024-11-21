@@ -286,4 +286,4 @@ class ChainstateWriteCrashTest(BellscoinTestFramework):
 
 
 if __name__ == "__main__":
-    ChainstateWriteCrashTest().main()
+    ChainstateWriteCrashTest(__file__).main()

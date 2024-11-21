@@ -22,7 +22,7 @@ class ReceivedByTest(BellscoinTestFramework):
     def set_test_params(self):
         self.num_nodes = 2
         # whitelist peers to speed up tx relay / mempool sync
-        self.extra_args = [["-whitelist=noban@127.0.0.1"]] * self.num_nodes
+        self.noban_tx_relay = True
 
     def skip_test_if_missing_module(self):
         self.skip_if_no_wallet()
@@ -263,4 +263,4 @@ class ReceivedByTest(BellscoinTestFramework):
 
 
 if __name__ == '__main__':
-    ReceivedByTest().main()
+    ReceivedByTest(__file__).main()

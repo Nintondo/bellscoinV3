@@ -1,5 +1,5 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2022 The Bitcoin Core developers
+// Copyright (c) 2009-present The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -8,18 +8,19 @@
 
 #include <attributes.h>
 #include <crypto/common.h>
-#include <prevector.h>
+#include <prevector.h> // IWYU pragma: export
 #include <serialize.h>
 #include <uint256.h>
 #include <util/hash_type.h>
 
-#include <assert.h>
-#include <climits>
+#include <cassert>
+#include <cstdint>
+#include <cstring>
 #include <limits>
 #include <stdexcept>
-#include <stdint.h>
-#include <string.h>
 #include <string>
+#include <type_traits>
+#include <utility>
 #include <vector>
 
 // Maximum number of bytes pushable to the stack
@@ -197,7 +198,8 @@ enum opcodetype
     OP_NOP2 = OP_CHECKLOCKTIMEVERIFY,
     OP_CHECKSEQUENCEVERIFY = 0xb2,
     OP_NOP3 = OP_CHECKSEQUENCEVERIFY,
-    OP_NOP4 = 0xb3,
+    OP_CHECKTEMPLATEVERIFY = 0xb3,
+    OP_NOP4 = OP_CHECKTEMPLATEVERIFY,
     OP_NOP5 = 0xb4,
     OP_NOP6 = 0xb5,
     OP_NOP7 = 0xb6,
@@ -430,7 +432,7 @@ protected:
         return *this;
     }
 public:
-    CScript() { }
+    CScript() = default;
     CScript(const_iterator pbegin, const_iterator pend) : CScriptBase(pbegin, pend) { }
     CScript(std::vector<unsigned char>::const_iterator pbegin, std::vector<unsigned char>::const_iterator pend) : CScriptBase(pbegin, pend) { }
     CScript(const unsigned char* pbegin, const unsigned char* pend) : CScriptBase(pbegin, pend) { }
@@ -533,6 +535,16 @@ public:
      */
     unsigned int GetSigOpCount(const CScript& scriptSig) const;
 
+    bool IsPayToBareDefaultCheckTemplateVerifyHash() const;
+
+    /*
+     * OP_1 <0x4e73>
+     */
+    bool IsPayToAnchor() const;
+    /** Checks if output of IsWitnessProgram comes from a P2A output script
+     */
+    static bool IsPayToAnchor(int version, const std::vector<unsigned char>& program);
+
     bool IsPayToScriptHash() const;
     bool IsPayToWitnessScriptHash() const;
     bool IsWitnessProgram(int& version, std::vector<unsigned char>& program) const;
@@ -569,7 +581,7 @@ struct CScriptWitness
     std::vector<std::vector<unsigned char> > stack;
 
     // Some compilers complain without a default constructor
-    CScriptWitness() { }
+    CScriptWitness() = default;
 
     bool IsNull() const { return stack.empty(); }
 

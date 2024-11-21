@@ -104,4 +104,4 @@ class P2PLeakTxTest(BellscoinTestFramework):
 
 
 if __name__ == '__main__':
-    P2PLeakTxTest().main()
+    P2PLeakTxTest(__file__).main()

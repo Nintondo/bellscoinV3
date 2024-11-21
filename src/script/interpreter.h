@@ -6,21 +6,23 @@
 #ifndef BITCOIN_SCRIPT_INTERPRETER_H
 #define BITCOIN_SCRIPT_INTERPRETER_H
 
+#include <consensus/amount.h>
 #include <hash.h>
-#include <script/script_error.h>
-#include <span.h>
 #include <primitives/transaction.h>
+#include <script/script_error.h> // IWYU pragma: export
+#include <span.h>
+#include <uint256.h>
 
+#include <cstddef>
+#include <cstdint>
 #include <optional>
 #include <vector>
-#include <stdint.h>
 
 class CPubKey;
-class XOnlyPubKey;
 class CScript;
-class CTransaction;
-class CTxOut;
-class uint256;
+class CScriptNum;
+class XOnlyPubKey;
+struct CScriptWitness;
 
 /** Signature hash types/flags */
 enum
@@ -140,7 +142,25 @@ enum : uint32_t {
 
     // Making unknown public key versions (in BIP 342 scripts) non-standard
     SCRIPT_VERIFY_DISCOURAGE_UPGRADABLE_PUBKEYTYPE = (1U << 20),
+    
+    // support OP_CHECKTEMPLATEVERIFY for standard template
+    SCRIPT_VERIFY_DEFAULT_CHECK_TEMPLATE_VERIFY_HASH = (1U << 21),
 
+    // discourage upgradable OP_CHECKTEMPLATEVERIFY hashes
+    SCRIPT_VERIFY_DISCOURAGE_UPGRADABLE_CHECK_TEMPLATE_VERIFY_HASH = (1U << 22),
+
+    // discourage OP_CHECKTEMPLATEVERIFY
+    SCRIPT_VERIFY_DISCOURAGE_CHECK_TEMPLATE_VERIFY_HASH = (1U << 23),
+
+    // Validating ANYPREVOUT public keys
+    SCRIPT_VERIFY_ANYPREVOUT = (1U << 24),
+
+    // Making ANYPREVOUT public key versions (in BIP 342 scripts) non-standard
+    SCRIPT_VERIFY_DISCOURAGE_ANYPREVOUT = (1U << 25),
+    
+    // Support OP_CAT in tapscript
+    SCRIPT_VERIFY_OP_CAT = (1U << 26),
+    SCRIPT_VERIFY_DISCOURAGE_OP_CAT = (1U << 27),
     // Constants to point to the highest flag in use. Add new flags above this line.
     //
     SCRIPT_VERIFY_END_MARKER
@@ -157,11 +177,19 @@ struct PrecomputedTransactionData
     uint256 m_outputs_single_hash;
     uint256 m_spent_amounts_single_hash;
     uint256 m_spent_scripts_single_hash;
+
+    // BIP119 precomputed data (single SHA256).
+    uint256 m_scriptSigs_single_hash;
+    
     //! Whether the 5 fields above are initialized.
     bool m_bip341_taproot_ready = false;
 
     // BIP143 precomputed data (double-SHA256).
     uint256 hashPrevouts, hashSequence, hashOutputs;
+
+    //! Whether the bip119 fields above are initialized.
+    bool m_bip119_ctv_ready = false;
+
     //! Whether the 3 fields above are initialized.
     bool m_bip143_segwit_ready = false;
 
@@ -184,6 +212,11 @@ struct PrecomputedTransactionData
     template <class T>
     explicit PrecomputedTransactionData(const T& tx);
 };
+
+/* Standard Template Hash Declarations */
+template<typename TxType>
+uint256 GetDefaultCheckTemplateVerifyHash(const TxType& tx, const uint256& outputs_hash, const uint256& sequences_hash,
+                                const uint32_t input_index);
 
 enum class SigVersion
 {
@@ -253,6 +286,11 @@ public:
         return false;
     }
 
+    virtual bool GetSigHash(int nHashType, const CScript& scriptCode, SigVersion sigversion, uint256 * sighashOut) const
+    {
+        return false;
+    }
+
     virtual bool CheckLockTime(const CScriptNum& nLockTime) const
     {
          return false;
@@ -263,7 +301,12 @@ public:
          return false;
     }
 
-    virtual ~BaseSignatureChecker() {}
+    virtual bool CheckDefaultCheckTemplateVerifyHash(const Span<const unsigned char>& hash) const
+    {
+        return false;
+    }
+
+    virtual ~BaseSignatureChecker() = default;
 };
 
 /** Enum to specify what *TransactionSignatureChecker's behavior should be
@@ -299,6 +342,8 @@ public:
     bool CheckSchnorrSignature(Span<const unsigned char> sig, Span<const unsigned char> pubkey, SigVersion sigversion, ScriptExecutionData& execdata, ScriptError* serror = nullptr) const override;
     bool CheckLockTime(const CScriptNum& nLockTime) const override;
     bool CheckSequence(const CScriptNum& nSequence) const override;
+    bool GetSigHash(int nHashType, const CScript& scriptCode, SigVersion sigversion, uint256 * sighashOut) const override;
+    bool CheckDefaultCheckTemplateVerifyHash(const Span<const unsigned char>& hash) const override;
 };
 
 using TransactionSignatureChecker = GenericTransactionSignatureChecker<CTransaction>;

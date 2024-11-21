@@ -101,4 +101,4 @@ class LoggingTest(BellscoinTestFramework):
 
 
 if __name__ == '__main__':
-    LoggingTest().main()
+    LoggingTest(__file__).main()

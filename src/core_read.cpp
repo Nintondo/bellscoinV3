@@ -12,10 +12,11 @@
 #include <streams.h>
 #include <util/result.h>
 #include <util/strencodings.h>
-#include <version.h>
 
 #include <algorithm>
 #include <string>
+
+using util::SplitString;
 
 namespace {
 class OpCodeParser
@@ -46,7 +47,8 @@ public:
     opcodetype Parse(const std::string& s) const
     {
         auto it = mapOpNames.find(s);
-        if (it == mapOpNames.end()) throw std::runtime_error("script parse error: unknown opcode");
+        if (it == mapOpNames.end()) 
+            throw std::runtime_error("script parse error: unknown opcode");
         return it->second;
     }
 };
@@ -233,18 +235,9 @@ bool DecodeHexBlk(CBlock& block, const std::string& strHexBlk)
     return true;
 }
 
-bool ParseHashStr(const std::string& strHex, uint256& result)
-{
-    if ((strHex.size() != 64) || !IsHex(strHex))
-        return false;
-
-    result.SetHex(strHex);
-    return true;
-}
-
 util::Result<int> SighashFromStr(const std::string& sighash)
 {
-    static std::map<std::string, int> map_sighash_values = {
+    static const std::map<std::string, int> map_sighash_values = {
         {std::string("DEFAULT"), int(SIGHASH_DEFAULT)},
         {std::string("ALL"), int(SIGHASH_ALL)},
         {std::string("ALL|ANYONECANPAY"), int(SIGHASH_ALL|SIGHASH_ANYONECANPAY)},
@@ -257,6 +250,6 @@ util::Result<int> SighashFromStr(const std::string& sighash)
     if (it != map_sighash_values.end()) {
         return it->second;
     } else {
-        return util::Error{Untranslated(sighash + " is not a valid sighash parameter.")};
+        return util::Error{Untranslated("'" + sighash + "' is not a valid sighash parameter.")};
     }
 }

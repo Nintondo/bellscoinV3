@@ -13,7 +13,6 @@
 #include <test/fuzz/fuzz.h>
 #include <util/chaintype.h>
 #include <validation.h>
-#include <version.h>
 
 #include <cassert>
 #include <string>

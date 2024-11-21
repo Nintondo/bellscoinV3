@@ -2,25 +2,43 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include <config/bitcoin-config.h> // IWYU pragma: keep
+
 #include <clientversion.h>
-#include <core_io.h>
 #include <common/args.h>
+#include <common/messages.h>
+#include <common/types.h>
 #include <consensus/amount.h>
-#include <script/interpreter.h>
+#include <core_io.h>
 #include <key_io.h>
+#include <node/types.h>
 #include <outputtype.h>
 #include <rpc/util.h>
 #include <script/descriptor.h>
+#include <script/interpreter.h>
 #include <script/signingprovider.h>
 #include <script/solver.h>
 #include <tinyformat.h>
+#include <univalue.h>
 #include <util/check.h>
 #include <util/result.h>
 #include <util/strencodings.h>
 #include <util/string.h>
 #include <util/translation.h>
 
+#include <algorithm>
+#include <iterator>
+#include <string_view>
 #include <tuple>
+#include <utility>
+
+using common::PSBTError;
+using common::PSBTErrorString;
+using common::TransactionErrorString;
+using node::TransactionError;
+using util::Join;
+using util::SplitString;
+using util::TrimString;
 
 const std::string UNIX_EPOCH_TIME = "UNIX epoch time";
 const std::string EXAMPLE_ADDRESS[2] = {"bc1q09vm5lfy0j5reeulh4x5752q25uqqvz34hufdl", "bc1q02ad21edsxd23d32dfgqqsz4vv4nmtfzuklhy3"};
@@ -74,29 +92,36 @@ CAmount AmountFromValue(const UniValue& value, int decimals)
     return amount;
 }
 
-uint256 ParseHashV(const UniValue& v, std::string strName)
+CFeeRate ParseFeeRate(const UniValue& json)
+{
+    CAmount val{AmountFromValue(json)};
+    if (val >= COIN) throw JSONRPCError(RPC_INVALID_PARAMETER, "Fee rates larger than or equal to 1BTC/kvB are not accepted");
+    return CFeeRate{val};
+}
+
+uint256 ParseHashV(const UniValue& v, std::string_view name)
 {
     const std::string& strHex(v.get_str());
     if (64 != strHex.length())
-        throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("%s must be of length %d (not %d, for '%s')", strName, 64, strHex.length(), strHex));
+        throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("%s must be of length %d (not %d, for '%s')", name, 64, strHex.length(), strHex));
     if (!IsHex(strHex)) // Note: IsHex("") is false
-        throw JSONRPCError(RPC_INVALID_PARAMETER, strName+" must be hexadecimal string (not '"+strHex+"')");
+        throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("%s must be hexadecimal string (not '%s')", name, strHex));
     return uint256S(strHex);
 }
-uint256 ParseHashO(const UniValue& o, std::string strKey)
+uint256 ParseHashO(const UniValue& o, std::string_view strKey)
 {
     return ParseHashV(o.find_value(strKey), strKey);
 }
-std::vector<unsigned char> ParseHexV(const UniValue& v, std::string strName)
+std::vector<unsigned char> ParseHexV(const UniValue& v, std::string_view name)
 {
     std::string strHex;
     if (v.isStr())
         strHex = v.get_str();
     if (!IsHex(strHex))
-        throw JSONRPCError(RPC_INVALID_PARAMETER, strName+" must be hexadecimal string (not '"+strHex+"')");
+        throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("%s must be hexadecimal string (not '%s')", name, strHex));
     return ParseHex(strHex);
 }
-std::vector<unsigned char> ParseHexO(const UniValue& o, std::string strKey)
+std::vector<unsigned char> ParseHexO(const UniValue& o, std::string_view strKey)
 {
     return ParseHexV(o.find_value(strKey), strKey);
 }
@@ -160,8 +185,8 @@ std::string HelpExampleCliNamed(const std::string& methodname, const RPCArgList&
 
 std::string HelpExampleRpc(const std::string& methodname, const std::string& args)
 {
-    return "> curl --user myusername --data-binary '{\"jsonrpc\": \"1.0\", \"id\": \"curltest\", "
-        "\"method\": \"" + methodname + "\", \"params\": [" + args + "]}' -H 'content-type: text/plain;' http://127.0.0.1:8332/\n";
+    return "> curl --user myusername --data-binary '{\"jsonrpc\": \"2.0\", \"id\": \"curltest\", "
+        "\"method\": \"" + methodname + "\", \"params\": [" + args + "]}' -H 'content-type: application/json' http://127.0.0.1:8332/\n";
 }
 
 std::string HelpExampleRpcNamed(const std::string& methodname, const RPCArgList& args)
@@ -171,19 +196,22 @@ std::string HelpExampleRpcNamed(const std::string& methodname, const RPCArgList&
         params.pushKV(param.first, param.second);
     }
 
-    return "> curl --user myusername --data-binary '{\"jsonrpc\": \"1.0\", \"id\": \"curltest\", "
-           "\"method\": \"" + methodname + "\", \"params\": " + params.write() + "}' -H 'content-type: text/plain;' http://127.0.0.1:8332/\n";
+    return "> curl --user myusername --data-binary '{\"jsonrpc\": \"2.0\", \"id\": \"curltest\", "
+           "\"method\": \"" + methodname + "\", \"params\": " + params.write() + "}' -H 'content-type: application/json' http://127.0.0.1:8332/\n";
 }
 
 // Converts a hex string to a public key if possible
 CPubKey HexToPubKey(const std::string& hex_in)
 {
     if (!IsHex(hex_in)) {
-        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid public key: " + hex_in);
+        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Pubkey \"" + hex_in + "\" must be a hex string");
+    }
+    if (hex_in.length() != 66 && hex_in.length() != 130) {
+        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Pubkey \"" + hex_in + "\" must have a length of either 33 or 65 bytes");
     }
     CPubKey vchPubKey(ParseHex(hex_in));
     if (!vchPubKey.IsFullyValid()) {
-        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid public key: " + hex_in);
+        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Pubkey \"" + hex_in + "\" must be cryptographically valid.");
     }
     return vchPubKey;
 }
@@ -210,7 +238,7 @@ CPubKey AddrToPubKey(const FillableSigningProvider& keystore, const std::string&
 }
 
 // Creates a multisig address from a given list of public keys, number of signatures required, and the address type
-CTxDestination AddAndGetMultisigDestination(const int required, const std::vector<CPubKey>& pubkeys, OutputType type, FillableSigningProvider& keystore, CScript& script_out)
+CTxDestination AddAndGetMultisigDestination(const int required, const std::vector<CPubKey>& pubkeys, OutputType type, FlatSigningProvider& keystore, CScript& script_out)
 {
     // Gather public keys
     if (required < 1) {
@@ -304,6 +332,14 @@ public:
         return obj;
     }
 
+    UniValue operator()(const PayToAnchor& anchor) const
+    {
+        UniValue obj(UniValue::VOBJ);
+        obj.pushKV("isscript", true);
+        obj.pushKV("iswitness", true);
+        return obj;
+    }
+
     UniValue operator()(const WitnessUnknown& id) const
     {
         UniValue obj(UniValue::VOBJ);
@@ -346,23 +382,33 @@ unsigned int ParseConfirmTarget(const UniValue& value, unsigned int max_target)
     return unsigned_target;
 }
 
+RPCErrorCode RPCErrorFromPSBTError(PSBTError err)
+{
+    switch (err) {
+        case PSBTError::UNSUPPORTED:
+            return RPC_INVALID_PARAMETER;
+        case PSBTError::SIGHASH_MISMATCH:
+            return RPC_DESERIALIZATION_ERROR;
+        default: break;
+    }
+    return RPC_TRANSACTION_ERROR;
+}
+
 RPCErrorCode RPCErrorFromTransactionError(TransactionError terr)
 {
     switch (terr) {
         case TransactionError::MEMPOOL_REJECTED:
             return RPC_TRANSACTION_REJECTED;
-        case TransactionError::ALREADY_IN_CHAIN:
-            return RPC_TRANSACTION_ALREADY_IN_CHAIN;
-        case TransactionError::P2P_DISABLED:
-            return RPC_CLIENT_P2P_DISABLED;
-        case TransactionError::INVALID_PSBT:
-        case TransactionError::PSBT_MISMATCH:
-            return RPC_INVALID_PARAMETER;
-        case TransactionError::SIGHASH_MISMATCH:
-            return RPC_DESERIALIZATION_ERROR;
+        case TransactionError::ALREADY_IN_UTXO_SET:
+            return RPC_VERIFY_ALREADY_IN_UTXO_SET;
         default: break;
     }
     return RPC_TRANSACTION_ERROR;
+}
+
+UniValue JSONRPCPSBTError(PSBTError err)
+{
+    return JSONRPCError(RPCErrorFromPSBTError(err), PSBTErrorString(err).original);
 }
 
 UniValue JSONRPCTransactionError(TransactionError terr, const std::string& err_string)
@@ -402,6 +448,7 @@ struct Sections {
     /**
      * Recursive helper to translate an RPCArg into sections
      */
+    // NOLINTNEXTLINE(misc-no-recursion)
     void Push(const RPCArg& arg, const size_t current_indent = 5, const OuterType outer_type = OuterType::NONE)
     {
         const auto indent = std::string(current_indent, ' ');
@@ -626,7 +673,7 @@ UniValue RPCHelpMan::HandleRequest(const node::JSONRPCRequest& request) const
                 mismatch.setNull();
                 break;
             }
-            mismatch.push_back(match);
+            mismatch.push_back(std::move(match));
         }
         if (!mismatch.isNull()) {
             std::string explain{
@@ -658,7 +705,7 @@ static const UniValue* DetailMaybeArg(CheckFn* check, const std::vector<RPCArg>&
 
 static void CheckRequiredOrDefault(const RPCArg& param)
 {
-    // Must use `Arg<Type>(i)` to get the argument or its default value.
+    // Must use `Arg<Type>(key)` to get the argument or its default value.
     const bool required{
         std::holds_alternative<RPCArg::Optional>(param.m_fallback) && RPCArg::Optional::NO == std::get<RPCArg::Optional>(param.m_fallback),
     };
@@ -677,11 +724,13 @@ static void CheckRequiredOrDefault(const RPCArg& param)
     void force_semicolon(ret_type)
 
 // Optional arg (without default). Can also be called on required args, if needed.
+TMPL_INST(nullptr, const UniValue*, maybe_arg;);
 TMPL_INST(nullptr, std::optional<double>, maybe_arg ? std::optional{maybe_arg->get_real()} : std::nullopt;);
 TMPL_INST(nullptr, std::optional<bool>, maybe_arg ? std::optional{maybe_arg->get_bool()} : std::nullopt;);
 TMPL_INST(nullptr, const std::string*, maybe_arg ? &maybe_arg->get_str() : nullptr;);
 
 // Required arg or optional arg with default value.
+TMPL_INST(CheckRequiredOrDefault, const UniValue&, *CHECK_NONFATAL(maybe_arg););
 TMPL_INST(CheckRequiredOrDefault, bool, CHECK_NONFATAL(maybe_arg)->get_bool(););
 TMPL_INST(CheckRequiredOrDefault, int, CHECK_NONFATAL(maybe_arg)->getInt<int>(););
 TMPL_INST(CheckRequiredOrDefault, uint64_t, CHECK_NONFATAL(maybe_arg)->getInt<uint64_t>(););
@@ -712,6 +761,16 @@ std::vector<std::pair<std::string, bool>> RPCHelpMan::GetArgNames() const
         ret.emplace_back(arg.m_names, /*named_only=*/false);
     }
     return ret;
+}
+
+size_t RPCHelpMan::GetParamIndex(std::string_view key) const
+{
+    auto it{std::find_if(
+        m_args.begin(), m_args.end(), [&key](const auto& arg) { return arg.GetName() == key;}
+    )};
+
+    CHECK_NONFATAL(it != m_args.end());  // TODO: ideally this is checked at compile time
+    return std::distance(m_args.begin(), it);
 }
 
 std::string RPCHelpMan::ToString() const
@@ -747,7 +806,7 @@ std::string RPCHelpMan::ToString() const
         if (arg.m_opts.hidden) break; // Any arg that follows is also hidden
 
         // Push named argument name and description
-        sections.m_sections.emplace_back(::ToString(i + 1) + ". " + arg.GetFirstName(), arg.ToDescriptionString(/*is_named_arg=*/true));
+        sections.m_sections.emplace_back(util::ToString(i + 1) + ". " + arg.GetFirstName(), arg.ToDescriptionString(/*is_named_arg=*/true));
         sections.m_max_pad = std::max(sections.m_max_pad, sections.m_sections.back().m_left.size());
 
         // Recursively push nested args
@@ -787,7 +846,7 @@ UniValue RPCHelpMan::GetArgMap() const
         map.push_back(arg_name);
         map.push_back(type == RPCArg::Type::STR ||
                       type == RPCArg::Type::STR_HEX);
-        arr.push_back(map);
+        arr.push_back(std::move(map));
     };
 
     for (int i{0}; i < int(m_args.size()); ++i) {
@@ -939,6 +998,7 @@ std::string RPCArg::ToDescriptionString(bool is_named_arg) const
     return ret;
 }
 
+// NOLINTNEXTLINE(misc-no-recursion)
 void RPCResult::ToSections(Sections& sections, const OuterType outer_type, const int current_indent) const
 {
     // Indentation
@@ -1072,6 +1132,7 @@ static std::optional<UniValue::VType> ExpectedType(RPCResult::Type type)
     NONFATAL_UNREACHABLE();
 }
 
+// NOLINTNEXTLINE(misc-no-recursion)
 UniValue RPCResult::MatchesType(const UniValue& result) const
 {
     if (m_skip_type_check) {
@@ -1088,10 +1149,10 @@ UniValue RPCResult::MatchesType(const UniValue& result) const
     if (UniValue::VARR == result.getType()) {
         UniValue errors(UniValue::VOBJ);
         for (size_t i{0}; i < result.get_array().size(); ++i) {
-            // If there are more results than documented, re-use the last doc_inner.
+            // If there are more results than documented, reuse the last doc_inner.
             const RPCResult& doc_inner{m_inner.at(std::min(m_inner.size() - 1, i))};
             UniValue match{doc_inner.MatchesType(result.get_array()[i])};
-            if (!match.isTrue()) errors.pushKV(strprintf("%d", i), match);
+            if (!match.isTrue()) errors.pushKV(strprintf("%d", i), std::move(match));
         }
         if (errors.empty()) return true; // empty result array is valid
         return errors;
@@ -1104,7 +1165,7 @@ UniValue RPCResult::MatchesType(const UniValue& result) const
             const RPCResult& doc_inner{m_inner.at(0)}; // Assume all types are the same, randomly pick the first
             for (size_t i{0}; i < result.get_obj().size(); ++i) {
                 UniValue match{doc_inner.MatchesType(result.get_obj()[i])};
-                if (!match.isTrue()) errors.pushKV(result.getKeys()[i], match);
+                if (!match.isTrue()) errors.pushKV(result.getKeys()[i], std::move(match));
             }
             if (errors.empty()) return true; // empty result obj is valid
             return errors;
@@ -1130,7 +1191,7 @@ UniValue RPCResult::MatchesType(const UniValue& result) const
                 continue;
             }
             UniValue match{doc_entry.MatchesType(result_it->second)};
-            if (!match.isTrue()) errors.pushKV(doc_entry.m_key_name, match);
+            if (!match.isTrue()) errors.pushKV(doc_entry.m_key_name, std::move(match));
         }
         if (errors.empty()) return true;
         return errors;
@@ -1150,6 +1211,7 @@ void RPCResult::CheckInnerDoc() const
     CHECK_NONFATAL(inner_needed != m_inner.empty());
 }
 
+// NOLINTNEXTLINE(misc-no-recursion)
 std::string RPCArg::ToStringObj(const bool oneline) const
 {
     std::string res;
@@ -1188,6 +1250,7 @@ std::string RPCArg::ToStringObj(const bool oneline) const
     NONFATAL_UNREACHABLE();
 }
 
+// NOLINTNEXTLINE(misc-no-recursion)
 std::string RPCArg::ToString(const bool oneline) const
 {
     if (oneline && !m_opts.oneline_description.empty()) {
@@ -1214,6 +1277,7 @@ std::string RPCArg::ToString(const bool oneline) const
     case Type::OBJ:
     case Type::OBJ_NAMED_PARAMS:
     case Type::OBJ_USER_KEYS: {
+        // NOLINTNEXTLINE(misc-no-recursion)
         const std::string res = Join(m_inner, ",", [&](const RPCArg& i) { return i.ToStringObj(oneline); });
         if (m_type == Type::OBJ) {
             return "{" + res + "}";
@@ -1301,17 +1365,6 @@ std::vector<CScript> EvalDescriptorStringOrObject(const UniValue& scanobject, Fl
         std::move(scripts.begin(), scripts.end(), std::back_inserter(ret));
     }
     return ret;
-}
-
-UniValue GetServicesNames(ServiceFlags services)
-{
-    UniValue servicesNames(UniValue::VARR);
-
-    for (const auto& flag : serviceFlagsToStr(services)) {
-        servicesNames.push_back(flag);
-    }
-
-    return servicesNames;
 }
 
 /** Convert a vector of bilingual strings to a UniValue::VARR containing their original untranslated values. */

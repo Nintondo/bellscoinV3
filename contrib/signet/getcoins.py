@@ -84,7 +84,7 @@ if args.bitcoin_cli_args == []:
     args.bitcoin_cli_args = ['-signet']
 
 
-def bitcoin_cli(rpc_command_and_params):
+def bells_cli(rpc_command_and_params):
     argv = [args.cmd] + args.bitcoin_cli_args + rpc_command_and_params
     try:
         return subprocess.check_output(argv).strip().decode()
@@ -97,7 +97,7 @@ def bitcoin_cli(rpc_command_and_params):
 
 if args.faucet.lower() == DEFAULT_GLOBAL_FAUCET:
     # Get the hash of the block at height 1 of the currently active signet chain
-    curr_signet_hash = bitcoin_cli(['getblockhash', '1'])
+    curr_signet_hash = bells_cli(['getblockhash', '1'])
     if curr_signet_hash != GLOBAL_FIRST_BLOCK_HASH:
         raise SystemExit('The global faucet cannot be used with a custom Signet network. Please use the global signet or setup your custom faucet to use this functionality.\n')
 else:
@@ -107,7 +107,7 @@ else:
 
 if args.addr == '':
     # get address for receiving coins
-    args.addr = bitcoin_cli(['getnewaddress', 'faucet', 'bech32'])
+    args.addr = bells_cli(['getnewaddress', 'faucet', 'bech32'])
 
 data = {'address': args.addr, 'password': args.password, 'amount': args.amount}
 

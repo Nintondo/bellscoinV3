@@ -47,9 +47,7 @@ public:
     WalletModel* getWalletModel() const noexcept { return walletModel; }
 
     bool handlePaymentRequest(const SendCoinsRecipient& recipient);
-    void setAddressTypes(OutputType outputType);
     void showOutOfSyncWarning(bool fShow);
-    void updateWalletTypes(int height);
 
 private:
     ClientModel* clientModel{nullptr};

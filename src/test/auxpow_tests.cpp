@@ -531,7 +531,9 @@ public:
 
 BOOST_FIXTURE_TEST_CASE (auxpow_miner_blockRegeneration, TestChain100Setup)
 {
-  CTxMemPool mempool{MemPoolOptionsForTest(m_node)};
+  bilingual_str error;
+  CTxMemPool mempool{MemPoolOptionsForTest(m_node), error};
+  Assert(error.empty());
   AuxpowMinerForTest miner;
   int64_t nMedianTime;
   {
@@ -597,8 +599,10 @@ BOOST_FIXTURE_TEST_CASE (auxpow_miner_blockRegeneration, TestChain100Setup)
 }
 
 BOOST_FIXTURE_TEST_CASE (auxpow_miner_createAndLookupBlock, TestChain100Setup)
-{
-  CTxMemPool mempool{MemPoolOptionsForTest(m_node)};
+{   
+  bilingual_str error;
+  CTxMemPool mempool{MemPoolOptionsForTest(m_node), error};
+  Assert(error.empty());
   AuxpowMinerForTest miner;
   LOCK (miner.cs);
 

@@ -109,4 +109,4 @@ class MempoolUnbroadcastTest(BellscoinTestFramework):
 
 
 if __name__ == "__main__":
-    MempoolUnbroadcastTest().main()
+    MempoolUnbroadcastTest(__file__).main()

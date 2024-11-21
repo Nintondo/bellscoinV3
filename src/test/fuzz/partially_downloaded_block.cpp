@@ -10,6 +10,8 @@
 #include <test/util/setup_common.h>
 #include <test/util/txmempool.h>
 #include <txmempool.h>
+#include <util/check.h>
+#include <util/translation.h>
 
 #include <cstddef>
 #include <cstdint>
@@ -50,9 +52,11 @@ FUZZ_TARGET(partially_downloaded_block, .init = initialize_pdb)
         return;
     }
 
-    CBlockHeaderAndShortTxIDs cmpctblock{*block};
+    CBlockHeaderAndShortTxIDs cmpctblock{*block, fuzzed_data_provider.ConsumeIntegral<uint64_t>()};
 
-    CTxMemPool pool{MemPoolOptionsForTest(g_setup->m_node)};
+    bilingual_str error;
+    CTxMemPool pool{MemPoolOptionsForTest(g_setup->m_node), error};
+    Assert(error.empty());
     PartiallyDownloadedBlock pdb{&pool};
 
     // Set of available transactions (mempool or extra_txn)
@@ -60,7 +64,7 @@ FUZZ_TARGET(partially_downloaded_block, .init = initialize_pdb)
     // The coinbase is always available
     available.insert(0);
 
-    std::vector<std::pair<uint256, CTransactionRef>> extra_txn;
+    std::vector<CTransactionRef> extra_txn;
     for (size_t i = 1; i < block->vtx.size(); ++i) {
         auto tx{block->vtx[i]};
 
@@ -68,11 +72,11 @@ FUZZ_TARGET(partially_downloaded_block, .init = initialize_pdb)
         bool add_to_mempool{fuzzed_data_provider.ConsumeBool()};
 
         if (add_to_extra_txn) {
-            extra_txn.emplace_back(tx->GetWitnessHash(), tx);
+            extra_txn.emplace_back(tx);
             available.insert(i);
         }
 
-        if (add_to_mempool) {
+        if (add_to_mempool && !pool.exists(GenTxid::Txid(tx->GetHash()))) {
             LOCK2(cs_main, pool.cs);
             pool.addUnchecked(ConsumeTxMemPoolEntry(fuzzed_data_provider, *tx));
             available.insert(i);

@@ -20,6 +20,8 @@
 
 #include <boost/test/unit_test.hpp>
 
+using util::ToString;
+
 BOOST_FIXTURE_TEST_SUITE(argsman_tests, BasicTestingSetup)
 
 BOOST_AUTO_TEST_CASE(util_datadir)
@@ -658,9 +660,6 @@ BOOST_AUTO_TEST_CASE(util_GetChainTypeString)
     BOOST_CHECK(test_args.ParseParameters(0, argv_testnet, error));
     BOOST_CHECK_EQUAL(test_args.GetChainTypeString(), "main");
 
-    BOOST_CHECK(test_args.ParseParameters(2, argv_testnet, error));
-    BOOST_CHECK_EQUAL(test_args.GetChainTypeString(), "test");
-
     BOOST_CHECK(test_args.ParseParameters(2, argv_regtest, error));
     BOOST_CHECK_EQUAL(test_args.GetChainTypeString(), "regtest");
 
@@ -904,7 +903,7 @@ BOOST_FIXTURE_TEST_CASE(util_ArgsMerge, ArgsMergeTestingSetup)
 
     // If check below fails, should manually dump the results with:
     //
-    //   ARGS_MERGE_TEST_OUT=results.txt ./test_bitcoin --run_test=util_tests/util_ArgsMerge
+    //   ARGS_MERGE_TEST_OUT=results.txt ./test_bells --run_test=argsman_tests/util_ArgsMerge
     //
     // And verify diff against previous results to make sure the changes are expected.
     //
@@ -1007,14 +1006,14 @@ BOOST_FIXTURE_TEST_CASE(util_ChainMerge, ChainMergeTestingSetup)
 
     // If check below fails, should manually dump the results with:
     //
-    //   CHAIN_MERGE_TEST_OUT=results.txt ./test_bitcoin --run_test=util_tests/util_ChainMerge
+    //   CHAIN_MERGE_TEST_OUT=results.txt ./test_bells --run_test=argsman_tests/util_ChainMerge
     //
     // And verify diff against previous results to make sure the changes are expected.
     //
     // Results file is formatted like:
     //
     //   <input> || <output>
-    BOOST_CHECK_EQUAL(out_sha_hex, "f263493e300023b6509963887444c41386f44b63bc30047eb8402e8c1144854c");
+    BOOST_CHECK_EQUAL(out_sha_hex, "48ecc0890b99f7cd69c59d91fc77bd7af9369a874da030e9c2727dbba0f54fb0");
 }
 
 BOOST_AUTO_TEST_CASE(util_ReadWriteSettings)

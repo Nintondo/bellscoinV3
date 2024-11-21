@@ -135,7 +135,7 @@ void WalletView::processNewTransaction(const QModelIndex& parent, int start, int
         return;
 
     QString date = ttm->index(start, TransactionTableModel::Date, parent).data().toString();
-    qint64 amount = ttm->index(start, TransactionTableModel::Amount, parent).data(Qt::EditRole).toULongLong();
+    qint64 amount = ttm->index(start, TransactionTableModel::Amount, parent).data(Qt::EditRole).toLongLong();
     QString type = ttm->index(start, TransactionTableModel::Type, parent).data().toString();
     QModelIndex index = ttm->index(start, 0, parent);
     QString address = ttm->data(index, TransactionTableModel::AddressRole).toString();
@@ -157,16 +157,6 @@ void WalletView::gotoHistoryPage()
 void WalletView::gotoReceiveCoinsPage()
 {
     setCurrentWidget(receiveCoinsPage);
-}
-
-void WalletView::setAddressTypes(OutputType outputType) 
-{ 
-    receiveCoinsPage->setAddressTypes(outputType); 
-}
-
-void WalletView::updateWalletTypes(int height) 
-{ 
-    receiveCoinsPage->updateWalletTypes(height); 
 }
 
 void WalletView::gotoSendCoinsPage(QString addr)

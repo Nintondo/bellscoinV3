@@ -19,6 +19,8 @@
 /// Protocol version used to serialize parameters in GCS filter encoding.
 static constexpr int GCS_SER_VERSION = 0;
 
+using util::Join;
+
 static const std::map<BlockFilterType, std::string> g_filter_types = {
     {BlockFilterType::BASIC, "basic"},
 };
@@ -62,7 +64,7 @@ GCSFilter::GCSFilter(const Params& params, std::vector<unsigned char> encoded_fi
 
     // Verify that the encoded filter contains exactly N elements. If it has too much or too little
     // data, a std::ios_base::failure exception will be raised.
-    BitStreamReader<SpanReader> bitreader{stream};
+    BitStreamReader bitreader{stream};
     for (uint64_t i = 0; i < m_N; ++i) {
         GolombRiceDecode(bitreader, m_params.m_P);
     }
@@ -109,7 +111,7 @@ bool GCSFilter::MatchInternal(const uint64_t* element_hashes, size_t size) const
     uint64_t N = ReadCompactSize(stream);
     assert(N == m_N);
 
-    BitStreamReader<SpanReader> bitreader{stream};
+    BitStreamReader bitreader{stream};
 
     uint64_t value = 0;
     size_t hashes_index = 0;

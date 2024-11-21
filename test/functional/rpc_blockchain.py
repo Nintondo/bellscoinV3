@@ -58,6 +58,7 @@ TIME_RANGE_STEP = 600  # ten-minute steps
 TIME_RANGE_MTP = TIME_GENESIS_BLOCK + (HEIGHT - 6) * TIME_RANGE_STEP
 TIME_RANGE_TIP = TIME_GENESIS_BLOCK + (HEIGHT - 1) * TIME_RANGE_STEP
 TIME_RANGE_END = TIME_GENESIS_BLOCK + HEIGHT * TIME_RANGE_STEP
+DIFFICULTY_ADJUSTMENT_INTERVAL = 144
 
 
 class BlockchainTest(BellscoinTestFramework):
@@ -190,7 +191,7 @@ class BlockchainTest(BellscoinTestFramework):
         assert_equal(res['prune_target_size'], 576716800)
         assert_greater_than(res['size_on_disk'], 0)
 
-    def check_signalling_deploymentinfo_result(self, gdi_result, height, blockhash, status_next):
+    def check_signalling_deploymentinfo_result(self, gdi_result, height, blockhash):
         assert height >= 144 and height <= 287
 
         assert_equal(gdi_result, {
@@ -203,21 +204,16 @@ class BlockchainTest(BellscoinTestFramework):
             'csv': {'type': 'buried', 'active': True, 'height': 5},
             'segwit': {'type': 'buried', 'active': True, 'height': 6},
             'testdummy': {
-                'type': 'bip9',
-                'bip9': {
-                    'bit': 28,
-                    'start_time': 0,
-                    'timeout': 0x7fffffffffffffff,  # testdummy does not have a timeout so is set to the max int64 value
-                    'min_activation_height': 0,
-                    'status': 'started',
-                    'status_next': status_next,
-                    'since': 144,
-                    'statistics': {
+                'type': 'heretical',
+                'heretical': {
+                        'start_time': 0,
+                        'timeout': 0x7fffffffffffffff,  # testdummy does not have a timeout so is set to the max int64 value
                         'period': 144,
-                        'threshold': 108,
-                        'elapsed': height - 143,
-                        'count': height - 143,
-                        'possible': True,
+                        'status': 'started',
+                        'status_next': 'started',
+                        'since': 144,
+                        'signal_activate': "30000000",
+                        'signal_abandon': "50000000",
                     },
                     'signalling': '#'*(height-143),
                 },
@@ -235,7 +231,21 @@ class BlockchainTest(BellscoinTestFramework):
                 },
                 'height': 0,
                 'active': True
-            }
+            },
+            'opcat': {
+                'type': 'heretical',
+                'heretical': {
+                    'binana-id': "BIN-2024-0001-000",
+                    'start_time': -1,
+                    'timeout': 9223372036854775807,
+                    'period': 144,
+                    'status': 'active',
+                    'since': 0,
+                    'status_next': 'active'
+                },
+                'height': 0,
+                'active': True,
+            },
           }
         })
 
@@ -254,15 +264,15 @@ class BlockchainTest(BellscoinTestFramework):
         ])
 
         gbci207 = self.nodes[0].getblockchaininfo()
-        self.check_signalling_deploymentinfo_result(self.nodes[0].getdeploymentinfo(), gbci207["blocks"], gbci207["bestblockhash"], "started")
+        self.check_signalling_deploymentinfo_result(self.nodes[0].getdeploymentinfo(), gbci207["blocks"], gbci207["bestblockhash"])
 
         # block just prior to lock in
         self.generate(self.wallet, 287 - gbci207["blocks"])
         gbci287 = self.nodes[0].getblockchaininfo()
-        self.check_signalling_deploymentinfo_result(self.nodes[0].getdeploymentinfo(), gbci287["blocks"], gbci287["bestblockhash"], "locked_in")
+        self.check_signalling_deploymentinfo_result(self.nodes[0].getdeploymentinfo(), gbci287["blocks"], gbci287["bestblockhash"])
 
         # calling with an explicit hash works
-        self.check_signalling_deploymentinfo_result(self.nodes[0].getdeploymentinfo(gbci207["bestblockhash"]), gbci207["blocks"], gbci207["bestblockhash"], "started")
+        self.check_signalling_deploymentinfo_result(self.nodes[0].getdeploymentinfo(gbci207["bestblockhash"]), gbci207["blocks"], gbci207["bestblockhash"])
 
     def _test_y2106(self):
         self.log.info("Check that block timestamps work until year 2106")
@@ -436,7 +446,6 @@ class BlockchainTest(BellscoinTestFramework):
 
     def _test_getnetworkhashps(self):
         self.log.info("Test getnetworkhashps")
-        hashes_per_second = self.nodes[0].getnetworkhashps()
         assert_raises_rpc_error(
             -3,
             textwrap.dedent("""
@@ -448,8 +457,46 @@ class BlockchainTest(BellscoinTestFramework):
             """).strip(),
             lambda: self.nodes[0].getnetworkhashps("a", []),
         )
+        assert_raises_rpc_error(
+            -8,
+            "Block does not exist at specified height",
+            lambda: self.nodes[0].getnetworkhashps(100, self.nodes[0].getblockcount() + 1),
+        )
+        assert_raises_rpc_error(
+            -8,
+            "Block does not exist at specified height",
+            lambda: self.nodes[0].getnetworkhashps(100, -10),
+        )
+        assert_raises_rpc_error(
+            -8,
+            "Invalid nblocks. Must be a positive number or -1.",
+            lambda: self.nodes[0].getnetworkhashps(-100),
+        )
+        assert_raises_rpc_error(
+            -8,
+            "Invalid nblocks. Must be a positive number or -1.",
+            lambda: self.nodes[0].getnetworkhashps(0),
+        )
+
+        # Genesis block height estimate should return 0
+        hashes_per_second = self.nodes[0].getnetworkhashps(100, 0)
+        assert_equal(hashes_per_second, 0)
+
         # This should be 2 hashes every 10 minutes or 1/300
+        hashes_per_second = self.nodes[0].getnetworkhashps()
         assert abs(hashes_per_second * 300 - 1) < 0.0001
+
+        # Test setting the first param of getnetworkhashps to -1 returns the average network
+        # hashes per second from the last difficulty change.
+        current_block_height = self.nodes[0].getmininginfo()['blocks']
+        blocks_since_last_diff_change = current_block_height % DIFFICULTY_ADJUSTMENT_INTERVAL + 1
+        expected_hashes_per_second_since_diff_change = self.nodes[0].getnetworkhashps(blocks_since_last_diff_change)
+
+        assert_equal(self.nodes[0].getnetworkhashps(-1), expected_hashes_per_second_since_diff_change)
+
+        # Ensure long lookups get truncated to chain length
+        hashes_per_second = self.nodes[0].getnetworkhashps(self.nodes[0].getblockcount() + 1000)
+        assert hashes_per_second > 0.003
 
     def _test_stopatheight(self):
         self.log.info("Test stopping at height")
@@ -597,4 +644,4 @@ class BlockchainTest(BellscoinTestFramework):
 
 
 if __name__ == '__main__':
-    BlockchainTest().main()
+    BlockchainTest(__file__).main()

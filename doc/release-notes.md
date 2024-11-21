@@ -1,335 +1,357 @@
-26.0 Release Notes
-==================
+Bellscoin Core version 28.0 is now available from:
 
-Bitcoin Core version 26.0 is now available from:
-
-  <https://bitcoincore.org/bin/bitcoin-core-26.0/>
+  <https://bellscoincore.org/bin/bellscoin-core-28.0/>
 
 This release includes new features, various bug fixes and performance
 improvements, as well as updated translations.
 
 Please report bugs using the issue tracker at GitHub:
 
-  <https://github.com/bitcoin/bitcoin/issues>
+  <https://github.com/bellscoin/bellscoin/issues>
 
 To receive security and update notifications, please subscribe to:
 
-  <https://bitcoincore.org/en/list/announcements/join/>
+  <https://bellscoincore.org/en/list/announcements/join/>
 
 How to Upgrade
 ==============
 
 If you are running an older version, shut it down. Wait until it has completely
 shut down (which might take a few minutes in some cases), then run the
-installer (on Windows) or just copy over `/Applications/Bitcoin-Qt` (on macOS)
-or `bitcoind`/`bellscoin-qt` (on Linux).
+installer (on Windows) or just copy over `/Applications/Bellscoin-Qt` (on macOS)
+or `bellscoind`/`bellscoin-qt` (on Linux).
 
-Upgrading directly from a version of Bitcoin Core that has reached its EOL is
+Upgrading directly from a version of Bellscoin Core that has reached its EOL is
 possible, but it might take some time if the data directory needs to be migrated. Old
-wallet versions of Bitcoin Core are generally supported.
+wallet versions of Bellscoin Core are generally supported.
+
+Running Bellscoin Core binaries on macOS requires self signing.
+```
+cd /path/to/bellscoin-28.0/bin
+xattr -d com.apple.quarantine bellscoin-cli bellscoin-qt bellscoin-tx bellscoin-util bellscoin-wallet bellscoind test_bellscoin
+codesign -s - bellscoin-cli bellscoin-qt bellscoin-tx bellscoin-util bellscoin-wallet bellscoind test_bellscoin
+```
 
 Compatibility
 ==============
 
-Bitcoin Core is supported and extensively tested on operating systems
-using the Linux kernel, macOS 11.0+, and Windows 7 and newer.  Bitcoin
-Core should also work on most other Unix-like systems but is not as
-frequently tested on them.  It is not recommended to use Bitcoin Core on
+Bellscoin Core is supported and extensively tested on operating systems
+using the Linux Kernel 3.17+, macOS 11.0+, and Windows 7 and newer. Bellscoin
+Core should also work on most other UNIX-like systems but is not as
+frequently tested on them. It is not recommended to use Bellscoin Core on
 unsupported systems.
 
-Notable changes
-===============
+Windows Data Directory
+----------------------
 
-P2P and network changes
+The default data directory on Windows has been moved from `C:\Users\Username\AppData\Roaming\Bellscoin`
+to `C:\Users\Username\AppData\Local\Bellscoin`. Bellscoin Core will check the existence
+of the old directory first and continue to use that directory for backwards
+compatibility if it is present. (#27064)
+
+JSON-RPC 2.0 Support
+--------------------
+
+The JSON-RPC server now recognizes JSON-RPC 2.0 requests and responds with
+strict adherence to the [specification](https://www.jsonrpc.org/specification).
+See [JSON-RPC-interface.md](https://github.com/bellscoin/bellscoin/blob/master/doc/JSON-RPC-interface.md#json-rpc-11-vs-20) for details. (#27101)
+
+JSON-RPC clients may need to be updated to be compatible with the JSON-RPC server.
+Please open an issue on GitHub if any compatibility issues are found.
+
+libbellscoinconsensus Removal
+---------------------------
+
+The libbellscoin-consensus library was deprecated in 27.0 and is now completely removed. (#29648)
+
+P2P and Network Changes
 -----------------------
 
-- Experimental support for the v2 transport protocol defined in
-  [BIP324](https://github.com/bitcoin/bips/blob/master/bip-0324.mediawiki) was added.
-  It is off by default, but when enabled using `-v2transport` it will be negotiated
-  on a per-connection basis with other peers that support it too. The existing
-  v1 transport protocol remains fully supported.
+- Previously if Bellscoin Core was listening for P2P connections, either using
+  default settings or via `bind=addr:port` it would always also bind to
+  `127.0.0.1:8334` to listen for Tor connections. It was not possible to switch
+  this off, even if the node didn't use Tor. This has been changed and now
+  `bind=addr:port` results in binding on `addr:port` only. The default behavior
+  of binding to `0.0.0.0:8333` and `127.0.0.1:8334` has not been changed.
 
-- Nodes with multiple reachable networks will actively try to have at least one
-  outbound connection to each network. This improves individual resistance to
-  eclipse attacks and network level resistance to partition attacks. Users no
-  longer need to perform active measures to ensure being connected to multiple
-  enabled networks. (#27213)
+  If you are using a `bind=...` configuration without `bind=...=onion` and rely
+  on the previous implied behavior to accept incoming Tor connections at
+  `127.0.0.1:8334`, you need to now make this explicit by using
+  `bind=... bind=127.0.0.1:8334=onion`. (#22729)
 
-Pruning
--------
+- Bellscoin Core will now fail to start up if any of its P2P binds fail, rather
+  than the previous behaviour where it would only abort startup if all P2P
+  binds had failed. (#22729)
 
-- When using assumeutxo with `-prune`, the prune budget may be exceeded if it is set
-  lower than 1100MB (i.e. `MIN_DISK_SPACE_FOR_BLOCK_FILES * 2`). Prune budget is normally
-  split evenly across each chainstate, unless the resulting prune budget per chainstate
-  is beneath `MIN_DISK_SPACE_FOR_BLOCK_FILES` in which case that value will be used. (#27596)
+- UNIX domain sockets can now be used for proxy connections. Set `-onion` or `-proxy`
+  to the local socket path with the prefix `unix:` (e.g. `-onion=unix:/home/me/torsocket`).
+  (#27375)
+
+- UNIX socket paths are now accepted for `-zmqpubrawblock` and `-zmqpubrawtx` with
+  the format `-zmqpubrawtx=unix:/path/to/file` (#27679)
+
+- Additional "in" and "out" flags have been added to `-whitelist` to control whether
+  permissions apply to inbound connections and/or manual ones (default: inbound only). (#27114)
+
+- Transactions having a feerate that is too low will be opportunistically paired with
+  their child transactions and submitted as a package, thus enabling the node to download
+  1-parent-1-child packages using the existing transaction relay protocol. Combined with
+  other mempool policies, this change allows limited "package relay" when a parent transaction
+  is below the mempool minimum feerate. Topologically Restricted Until Confirmation (TRUC)
+  parents are additionally allowed to be below the minimum relay feerate (i.e., pay 0 fees).
+  Use the `submitpackage` RPC to submit packages directly to the node. Warning: this P2P
+  feature is limited (unlike the `submitpackage` interface, a child with multiple unconfirmed
+  parents is not supported) and not yet reliable under adversarial conditions. (#28970)
+
+Mempool Policy Changes
+----------------------
+
+- Transactions with version number set to 3 are now treated as standard on all networks (#29496),
+  subject to opt-in Topologically Restricted Until Confirmation (TRUC) transaction policy as
+  described in [BIP 431](https://github.com/bellscoin/bips/blob/master/bip-0431.mediawiki).  The
+  policy includes limits on spending unconfirmed outputs (#28948), eviction of a previous descendant
+  if a more incentive-compatible one is submitted (#29306), and a maximum transaction size of 10,000vB
+  (#29873). These restrictions simplify the assessment of incentive compatibility of accepting or
+  replacing TRUC transactions, thus ensuring any replacements are more profitable for the node and
+  making fee-bumping more reliable.
+
+- Pay To Anchor (P2A) is a new standard witness output type for spending,
+  a newly recognised output template. This allows for key-less anchor
+  outputs, with compact spending conditions for additional efficiencies on
+  top of an equivalent `sh(OP_TRUE)` output, in addition to the txid stability
+  of the spending transaction.
+  N.B. propagation of this output spending on the network will be limited
+  until a sufficient number of nodes on the network adopt this upgrade. (#30352)
+
+- Limited package RBF is now enabled, where the proposed conflicting package would result in
+  a connected component, aka cluster, of size 2 in the mempool. All clusters being conflicted
+  against must be of size 2 or lower. (#28984)
+
+- The default value of the `-mempoolfullrbf` configuration option has been changed from 0 to 1,
+  i.e. `mempoolfullrbf=1`. (#30493)
 
 Updated RPCs
 ------------
 
-- Setting `-rpcserialversion=0` is deprecated and will be removed in
-  a future release. It can currently still be used by also adding
-  the `-deprecatedrpc=serialversion` option. (#28448)
+- The `dumptxoutset` RPC now returns the UTXO set dump in a new and
+  improved format. Correspondingly, the `loadtxoutset` RPC now expects
+  this new format in the dumps it tries to load. Dumps with the old
+  format are no longer supported and need to be recreated using the
+  new format to be usable. (#29612)
 
-- The `hash_serialized_2` value has been removed from `gettxoutsetinfo` since the value it
-  calculated contained a bug and did not take all data into account. It is superseded by
-  `hash_serialized_3` which provides the same functionality but serves the correctly calculated hash. (#28685)
+- AssumeUTXO mainnet parameters have been added for height 840,000.
+  This means the `loadtxoutset` RPC can now be used on mainnet with
+  the matching UTXO set from that height. (#28553)
 
-- New fields `transport_protocol_type` and `session_id` were added to the `getpeerinfo` RPC to indicate
-  whether the v2 transport protocol is in use, and if so, what the session id is.
+- The `warnings` field in `getblockchaininfo`, `getmininginfo` and
+  `getnetworkinfo` now returns all the active node warnings as an array
+  of strings, instead of a single warning. The current behaviour
+  can be temporarily restored by running Bellscoin Core with the configuration
+  option `-deprecatedrpc=warnings`. (#29845)
 
-- A new argument `v2transport` was added to the `addnode` RPC to indicate whether a v2 transaction connection
-  is to be attempted with the peer.
+- Previously when using the `sendrawtransaction` RPC and specifying outputs
+  that are already in the UTXO set, an RPC error code of `-27` with the
+  message "Transaction already in block chain" was returned in response.
+  The error message has been changed to "Transaction outputs already in utxo set"
+  to more accurately describe the source of the issue. (#30212)
 
-- [Miniscript](https://bitcoin.sipa.be/miniscript/) expressions can now be used in Taproot descriptors for all RPCs working with descriptors. (#27255)
+- The default mode for the `estimatesmartfee` RPC has been updated from `conservative` to `economical`,
+  which is expected to reduce over-estimation for many users, particularly if Replace-by-Fee is an option.
+  For users that require high confidence in their fee estimates at the cost of potentially over-estimating,
+  the `conservative` mode remains available. (#30275)
 
-- `finalizepsbt` is now able to finalize a PSBT with inputs spending [Miniscript](https://bitcoin.sipa.be/miniscript/)-compatible Taproot leaves. (#27255)
+- RPC `scantxoutset` now returns 2 new fields in the "unspents" JSON array: `blockhash` and `confirmations`.
+  See the scantxoutset help for details. (#30515)
 
-Changes to wallet related RPCs can be found in the Wallet section below.
+- RPC `submitpackage` now allows 2 new arguments to be passed: `maxfeerate` and `maxburnamount`. See the
+  subtmitpackage help for details. (#28950)
 
-New RPCs
---------
+Changes to wallet-related RPCs can be found in the Wallet section below.
 
-- `loadtxoutset` has been added, which allows loading a UTXO snapshot of the format
-  generated by `dumptxoutset`. Once this snapshot is loaded, its contents will be
-  deserialized into a second chainstate data structure, which is then used to sync to
-  the network's tip.
+Updated REST APIs
+-----------------
+- Parameter validation for `/rest/getutxos` has been improved by rejecting
+  truncated or overly large txids and malformed outpoint indices via raising
+  an HTTP_BAD_REQUEST "Parse error". These requests were previously handled
+  silently. (#30482, #30444)
 
-  Meanwhile, the original chainstate will complete the initial block download process in
-  the background, eventually validating up to the block that the snapshot is based upon.
-
-  The result is a usable bitcoind instance that is current with the network tip in a
-  matter of minutes rather than hours. UTXO snapshot are typically obtained via
-  third-party sources (HTTP, torrent, etc.) which is reasonable since their contents
-  are always checked by hash.
-
-  You can find more information on this process in the `assumeutxo` design
-  document (<https://github.com/bitcoin/bitcoin/blob/master/doc/design/assumeutxo.md>).
-
-  `getchainstates` has been added to aid in monitoring the assumeutxo sync process.
-
-- A new `getprioritisedtransactions` RPC has been added. It returns a map of all fee deltas created by the
-  user with prioritisetransaction, indexed by txid. The map also indicates whether each transaction is
-  present in the mempool. (#27501)
-
-- A new RPC, `submitpackage`, has been added. It can be used to submit a list of raw hex
-transactions to the mempool to be evaluated as a package using consensus and mempool policy rules.
-These policies include package CPFP, allowing a child with high fees to bump a parent below the
-mempool minimum feerate (but not minimum relay feerate). (#27609)
-
-  - Warning: successful submission does not mean the transactions will propagate throughout the
-    network, as package relay is not supported.
-
-  - Not all features are available. The package is limited to a child with all of its
-    unconfirmed parents, and no parent may spend the output of another parent.  Also, package
-    RBF is not supported. Refer to doc/policy/packages.md for more details on package policies
-    and limitations.
-
-  - This RPC is experimental. Its interface may change.
-
-- A new RPC `getaddrmaninfo` has been added to view the distribution of addresses in the new and tried table of the
-  node's address manager across different networks(ipv4, ipv6, onion, i2p, cjdns). The RPC returns count of addresses
-  in new and tried table as well as their sum for all networks. (#27511)
-
-- A new `importmempool` RPC has been added. It loads a valid `mempool.dat` file and attempts to
-  add its contents to the mempool. This can be useful to import mempool data from another node
-  without having to modify the datadir contents and without having to restart the node. (#27460)
-    - Warning: Importing untrusted files is dangerous, especially if metadata from the file is taken over.
-    - If you want to apply fee deltas, it is recommended to use the `getprioritisedtransactions` and
-      `prioritisetransaction` RPCs instead of the `apply_fee_delta_priority` option to avoid
-      double-prioritising any already-prioritised transactions in the mempool.
-
-Updated settings
-----------------
-
-- `bitcoind` and `bellscoin-qt` will now raise an error on startup
- if a datadir that is being used contains a bitcoin.conf file that
- will be ignored, which can happen when a datadir= line is used in
- a bitcoin.conf file. The error message is just a diagnostic intended
- to prevent accidental misconfiguration, and it can be disabled to
- restore the previous behavior of using the datadir while ignoring
- the bitcoin.conf contained in it. (#27302)
-
-- Passing an invalid `-debug`, `-debugexclude`, or `-loglevel` logging configuration
-  option now raises an error, rather than logging an easily missed warning. (#27632)
-
-Changes to GUI or wallet related settings can be found in the GUI or Wallet section below.
-
-New settings
+Build System
 ------------
 
-Tools and Utilities
--------------------
+- GCC 11.1 or later, or Clang 16.0 or later,
+are now required to compile Bellscoin Core. (#29091, #30263)
 
-- A new `bitcoinconsensus_verify_script_with_spent_outputs` function is available in libconsensus which optionally accepts the spent outputs of the transaction being verified.
-- A new `bitcoinconsensus_SCRIPT_FLAGS_VERIFY_TAPROOT` flag is available in libconsensus that will verify scripts with the Taproot spending rules.
+- The minimum required glibc to run Bellscoin Core is now
+2.31. This means that RHEL 8 and Ubuntu 18.04 (Bionic)
+are no-longer supported. (#29987)
+
+- `--enable-lcov-branch-coverage` has been removed, given
+incompatibilities between lcov version 1 & 2. `LCOV_OPTS`
+should be used to set any options instead. (#30192)
+
+Updated Settings
+----------------
+
+- When running with `-alertnotify`, an alert can now be raised multiple
+times instead of just once. Previously, it was only raised when unknown
+new consensus rules were activated. Its scope has now been increased to
+include all kernel warnings. Specifically, alerts will now also be raised
+when an invalid chain with a large amount of work has been detected.
+Additional warnings may be added in the future. (#30058)
+
+Changes to GUI or wallet related settings can be found in the GUI or Wallet section below.
 
 Wallet
 ------
 
-- Wallet loading has changed in this release. Wallets with some corrupted records that could be
-  previously loaded (with warnings) may no longer load. For example, wallets with corrupted
-  address book entries may no longer load. If this happens, it is recommended
-  load the wallet in a previous version of Bitcoin Core and import the data into a new wallet.
-  Please also report an issue to help improve the software and make wallet loading more robust
-  in these cases. (#24914)
+- The wallet now detects when wallet transactions conflict with the mempool. Mempool-conflicting
+  transactions can be seen in the `"mempoolconflicts"` field of `gettransaction`. The inputs
+  of mempool-conflicted transactions can now be respent without manually abandoning the
+  transactions when the parent transaction is dropped from the mempool, which can cause wallet
+  balances to appear higher. (#27307)
 
-- The `gettransaction`, `listtransactions`, `listsinceblock` RPCs now return
-  the `abandoned` field for all transactions. Previously, the "abandoned" field
-  was only returned for sent transactions. (#25158)
+- A new `max_tx_weight` option has been added to the RPCs `fundrawtransaction`, `walletcreatefundedpsbt`, and `send`.
+It specifies the maximum transaction weight. If the limit is exceeded during funding, the transaction will not be built.
+The default value is 4,000,000 WU. (#29523)
 
-- The `listdescriptors`, `decodepsbt` and similar RPC methods now show `h` rather than apostrophe (`'`) to indicate
-  hardened derivation. This does not apply when using the `private` parameter, which
-  matches the marker used when descriptor was generated or imported. Newly created
-  wallets use `h`. This change makes it easier to handle descriptor strings manually.
-  E.g. the `importdescriptors` RPC call is easiest to use `h` as the marker: `'["desc": ".../0h/..."]'`.
-  With this change `listdescriptors` will use `h`, so you can copy-paste the result,
-  without having to add escape characters or switch `'` to 'h' manually.
-  Note that this changes the descriptor checksum.
-  For legacy wallets the `hdkeypath` field in `getaddressinfo` is unchanged,
-  nor is the serialization format of wallet dumps. (#26076)
+- A new `createwalletdescriptor` RPC allows users to add new automatically generated
+  descriptors to their wallet. This can be used to upgrade wallets created prior to the
+  introduction of a new standard descriptor, such as taproot. (#29130)
 
-- The `getbalances` RPC now returns a `lastprocessedblock` JSON object which contains the wallet's last processed block
-  hash and height at the time the balances were calculated. This result shouldn't be cached because importing new keys could invalidate it. (#26094)
+- A new RPC `gethdkeys` lists all of the BIP32 HD keys in use by all of the descriptors in the wallet.
+  These keys can be used in conjunction with `createwalletdescriptor` to create and add single key
+  descriptors to the wallet for a particular key that the wallet already knows. (#29130)
 
-- The `gettransaction` RPC now returns a `lastprocessedblock` JSON object which contains the wallet's last processed block
-  hash and height at the time the transaction information was generated. (#26094)
+- The `sendall` RPC can now spend unconfirmed change and will include additional fees as necessary
+  for the resulting transaction to bump the unconfirmed transactions' feerates to the specified feerate. (#28979)
 
-- The `getwalletinfo` RPC now returns a `lastprocessedblock` JSON object which contains the wallet's last processed block
-  hash and height at the time the wallet information was generated. (#26094)
+- In RPC `bumpfee`, if a `fee_rate` is specified, the feerate is no longer restricted
+  to following the wallet's incremental feerate of 5 sat/vb. The feerate must still be
+  at least the sum of the original fee and the mempool's incremental feerate. (#27969)
 
-- Coin selection and transaction building now accounts for unconfirmed low-feerate ancestor transactions. When it is necessary to spend unconfirmed outputs, the wallet will add fees to ensure that the new transaction with its ancestors will achieve a mining score equal to the feerate requested by the user. (#26152)
-
-- For RPC methods which accept `options` parameters ((`importmulti`, `listunspent`,
-  `fundrawtransaction`, `bumpfee`, `send`, `sendall`, `walletcreatefundedpsbt`,
-  `simulaterawtransaction`), it is now possible to pass the options as named
-  parameters without the need for a nested object. (#26485)
-
-This means it is possible make calls like:
-
-```sh
-src/bitcoin-cli -named bumpfee txid fee_rate=100
-```
-
-instead of
-
-```sh
-src/bitcoin-cli -named bumpfee txid options='{"fee_rate": 100}'
-```
-
-- The `deprecatedrpc=walletwarningfield` configuration option has been removed.
-  The `createwallet`, `loadwallet`, `restorewallet` and `unloadwallet` RPCs no
-  longer return the "warning" string field. The same information is provided
-  through the "warnings" field added in v25.0, which returns a JSON array of
-  strings. The "warning" string field was deprecated also in v25.0. (#27757)
-
-- The `signrawtransactionwithkey`, `signrawtransactionwithwallet`,
-  `walletprocesspsbt` and `descriptorprocesspsbt` calls now return the more
-  specific RPC_INVALID_PARAMETER error instead of RPC_MISC_ERROR if their
-  sighashtype argument is malformed. (#28113)
-
-- RPC `walletprocesspsbt`, and `descriptorprocesspsbt` return
-  object now includes field `hex` (if the transaction
-  is complete) containing the serialized transaction
-  suitable for RPC `sendrawtransaction`. (#28414)
-
-- It's now possible to use [Miniscript](https://bitcoin.sipa.be/miniscript/) inside Taproot leaves for descriptor wallets. (#27255)
-
-GUI changes
+GUI Changes
 -----------
 
-- The transaction list in the GUI no longer provides a special category for "payment to yourself". Now transactions that have both inputs and outputs that affect the wallet are displayed on separate lines for spending and receiving. (gui#119)
+- The "Migrate Wallet" menu allows users to migrate any legacy wallet in their wallet
+directory, regardless of the wallets loaded. (gui#824)
 
-- A new menu option allows migrating a legacy wallet based on keys and implied output script types stored in BerkeleyDB (BDB) to a modern wallet that uses descriptors stored in SQLite. (gui#738)
+- The "Information" window now displays the maximum mempool size along with the
+mempool usage. (gui#825)
 
-- The PSBT operations dialog marks outputs paying your own wallet with "own address". (gui#740)
-
-- The ability to create legacy wallets is being removed. (gui#764)
-
-Low-level changes
+Low-level Changes
 =================
 
 Tests
 -----
 
-- Non-standard transactions are now disabled by default on testnet
-  for relay and mempool acceptance. The previous behaviour can be
-  re-enabled by setting `-acceptnonstdtxn=1`. (#28354)
+- The BIP94 timewarp attack mitigation is now active on the `regtest` network. (#30681)
+
+- A new `-testdatadir` option has been added to `test_bellscoin` to allow specifying the
+  location of unit test data directories. (#26564)
+
+Blockstorage
+------------
+
+- Block files are now XOR'd by default with a key stored in the blocksdir.
+Previous releases of Bellscoin Core or previous external software will not be able to read the blocksdir with a non-zero XOR-key.
+Refer to the `-blocksxor` help for more details. (#28052)
+
+Chainstate
+----------
+
+- The chainstate database flushes that occur when blocks are pruned will no longer
+empty the database cache. The cache will remain populated longer, which significantly
+reduces the time for initial block download to complete. (#28280)
+
+Dependencies
+------------
+
+- The dependency on Boost.Process has been replaced with cpp-subprocess, which is contained in source.
+Builders will no longer need Boost.Process to build with external signer support. (#28981)
 
 Credits
 =======
 
 Thanks to everyone who directly contributed to this release:
-
 - 0xb10c
-- Amiti Uttarwar
-- Andrew Chow
+- Alfonso Roman Zubeldia
 - Andrew Toth
+- AngusP
 - Anthony Towns
 - Antoine Poinsot
-- Antoine Riard
-- Ari
-- Aurèle Oulès
+- Anton A
+- Ava Chow
 - Ayush Singh
-- Ben Woosley
+- Ben Westgate
 - Brandon Odiwuor
-- Brotcrunsher
 - brunoerg
-- Bufo
-- Carl Dong
-- Casey Carter
+- bstin
+- Charlie
+- Christopher Bergqvist
 - Cory Fields
-- David Álvarez Rosa
+- crazeteam
+- Daniela Brozzoni
+- David Gumberg
 - dergoegge
-- dhruv
-- dimitaracev
-- Erik Arvstedt
-- Erik McKelvey
+- Edil Medeiros
+- Epic Curious
 - Fabian Jahr
+- fanquake
 - furszy
 - glozow
 - Greg Sanders
-- Harris
+- hanmz
 - Hennadii Stepanov
 - Hernan Marino
+- Hodlinator
 - ishaanam
 - ismaelsadeeq
-- Jake Rawsthorne
-- James O'Beirne
-- John Moffett
+- Jadi
 - Jon Atack
 - josibake
+- jrakibi
 - kevkevin
-- Kiminuo
+- kevkevinpal
+- Konstantin Akimov
+- laanwj
 - Larry Ruane
+- Lőrinc
+- Luis Schwab
 - Luke Dashjr
 - MarcoFalke
+- marcofleon
 - Marnix
-- Martin Leitner-Ankerl
+- Martin Saposnic
 - Martin Zumsande
+- Matt Corallo
 - Matthew Zipkin
-- Michael Ford
-- Michael Tidwell
-- mruddy
+- Matt Whitlock
+- Max Edwards
+- Michael Dietz
 - Murch
-- ns-xvrn
+- nanlour
 - pablomartin4btc
+- Peter Todd
 - Pieter Wuille
-- Reese Russell
-- Rhythm Garg
+- @RandyMcMillan
+- RoboSchmied
+- Roman Zeyde
 - Ryan Ofsky
 - Sebastian Falbesoner
+- Sergi Delgado Segura
 - Sjors Provoost
+- spicyzboss
+- StevenMia
 - stickies-v
 - stratospher
 - Suhas Daftuar
+- sunerok
+- tdb3
 - TheCharlatan
-- Tim Neubauer
-- Tim Ruffing
+- umiumi
 - Vasil Dimov
 - virtu
-- vuittont60
 - willcl-ark
-- Yusuf Sahin HAMZA
 
 As well as to everyone that helped with translations on
-[Transifex](https://www.transifex.com/bitcoin/bitcoin/).
+[Transifex](https://www.transifex.com/bellscoin/bellscoin/).

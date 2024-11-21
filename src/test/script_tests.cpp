@@ -23,10 +23,6 @@
 #include <util/fs.h>
 #include <util/strencodings.h>
 
-#if defined(HAVE_CONSENSUS_LIB)
-#include <script/bitcoinconsensus.h>
-#endif
-
 #include <cstdint>
 #include <fstream>
 #include <string>
@@ -94,6 +90,7 @@ static ScriptErrorDesc script_errors[]={
     {SCRIPT_ERR_WITNESS_PUBKEYTYPE, "WITNESS_PUBKEYTYPE"},
     {SCRIPT_ERR_OP_CODESEPARATOR, "OP_CODESEPARATOR"},
     {SCRIPT_ERR_SIG_FINDANDDELETE, "SIG_FINDANDDELETE"},
+    {SCRIPT_ERR_DISCOURAGE_OP_CAT, "DISCOURAGE_OP_CAT"},
 };
 
 static std::string FormatScriptError(ScriptError_t err)
@@ -139,21 +136,6 @@ void DoTest(const CScript& scriptPubKey, const CScript& scriptSig, const CScript
         if (combined_flags & SCRIPT_VERIFY_WITNESS && ~combined_flags & SCRIPT_VERIFY_P2SH) continue;
         BOOST_CHECK_MESSAGE(VerifyScript(scriptSig, scriptPubKey, &scriptWitness, combined_flags, MutableTransactionSignatureChecker(&tx, 0, txCredit.vout[0].nValue, MissingDataBehavior::ASSERT_FAIL), &err) == expect, message + strprintf(" (with flags %x)", combined_flags));
     }
-
-#if defined(HAVE_CONSENSUS_LIB)
-    CDataStream stream(SER_NETWORK, PROTOCOL_VERSION);
-    stream << tx2;
-    uint32_t libconsensus_flags{flags & bitcoinconsensus_SCRIPT_FLAGS_VERIFY_ALL};
-    if (libconsensus_flags == flags) {
-        int expectedSuccessCode = expect ? 1 : 0;
-        if (flags & bitcoinconsensus_SCRIPT_FLAGS_VERIFY_WITNESS) {
-            BOOST_CHECK_MESSAGE(bitcoinconsensus_verify_script_with_amount(scriptPubKey.data(), scriptPubKey.size(), txCredit.vout[0].nValue, UCharCast(stream.data()), stream.size(), 0, libconsensus_flags, nullptr) == expectedSuccessCode, message);
-        } else {
-            BOOST_CHECK_MESSAGE(bitcoinconsensus_verify_script_with_amount(scriptPubKey.data(), scriptPubKey.size(), 0, UCharCast(stream.data()), stream.size(), 0, libconsensus_flags, nullptr) == expectedSuccessCode, message);
-            BOOST_CHECK_MESSAGE(bitcoinconsensus_verify_script(scriptPubKey.data(), scriptPubKey.size(), UCharCast(stream.data()), stream.size(), 0, libconsensus_flags, nullptr) == expectedSuccessCode, message);
-        }
-    }
-#endif
 }
 
 void static NegateSignatureS(std::vector<unsigned char>& vchSig) {
@@ -415,7 +397,7 @@ public:
                 wit.push_back(HexStr(scriptWitness.stack[i]));
             }
             wit.push_back(ValueFromAmount(nValue));
-            array.push_back(wit);
+            array.push_back(std::move(wit));
         }
         array.push_back(FormatScript(spendTx.vin[0].scriptSig));
         array.push_back(FormatScript(creditTx->vout[0].scriptPubKey));
@@ -932,16 +914,34 @@ BOOST_AUTO_TEST_CASE(script_json_test)
     // amount (nValue) to use in the crediting tx
     UniValue tests = read_json(json_tests::script_tests);
 
+    const KeyData keys;
     for (unsigned int idx = 0; idx < tests.size(); idx++) {
         const UniValue& test = tests[idx];
         std::string strTest = test.write();
         CScriptWitness witness;
+        TaprootBuilder taprootBuilder;
         CAmount nValue = 0;
         unsigned int pos = 0;
         if (test.size() > 0 && test[pos].isArray()) {
             unsigned int i=0;
             for (i = 0; i < test[pos].size()-1; i++) {
-                witness.stack.push_back(ParseHex(test[pos][i].get_str()));
+                auto element = test[pos][i].get_str();
+                // We use #SCRIPT# to flag a non-hex script that we can read using ParseScript
+                // Taproot script must be third from the last element in witness stack
+                std::string scriptFlag = std::string("#SCRIPT#");
+                if (element.starts_with(scriptFlag)) {
+                    CScript script = ParseScript(element.substr(scriptFlag.size()));
+                    witness.stack.push_back(ToByteVector(script));
+                } else if (strcmp(element.c_str(), "#CONTROLBLOCK#") == 0) {
+                    // Taproot script control block - second from the last element in witness stack
+                    // If #CONTROLBLOCK# we auto-generate the control block
+                    taprootBuilder.Add(/*depth=*/0, witness.stack.back(), TAPROOT_LEAF_TAPSCRIPT, /*track=*/true);
+                    taprootBuilder.Finalize(XOnlyPubKey(keys.key0.GetPubKey()));
+                    auto controlblocks = taprootBuilder.GetSpendData().scripts[{witness.stack.back(), TAPROOT_LEAF_TAPSCRIPT}];
+                    witness.stack.push_back(*(controlblocks.begin()));
+                } else {
+                    witness.stack.push_back(ParseHex(element));
+                }
             }
             nValue = AmountFromValue(test[pos][i]);
             pos++;
@@ -956,7 +956,14 @@ BOOST_AUTO_TEST_CASE(script_json_test)
         std::string scriptSigString = test[pos++].get_str();
         CScript scriptSig = ParseScript(scriptSigString);
         std::string scriptPubKeyString = test[pos++].get_str();
-        CScript scriptPubKey = ParseScript(scriptPubKeyString);
+        CScript scriptPubKey;
+        // If requested, auto-generate the taproot output
+        if (strcmp(scriptPubKeyString.c_str(), "0x51 0x20 #TAPROOTOUTPUT#")== 0) {
+            BOOST_CHECK_MESSAGE(taprootBuilder.IsComplete(), "Failed to autogenerate Tapscript Script PubKey");
+            scriptPubKey = CScript() << OP_1 << ToByteVector(taprootBuilder.GetOutput());
+        } else {
+            scriptPubKey = ParseScript(scriptPubKeyString);
+        }
         unsigned int scriptflags = ParseScriptFlags(test[pos++].get_str());
         int scriptError = ParseScriptError(test[pos++].get_str());
 
@@ -1051,10 +1058,9 @@ sign_multisig(const CScript& scriptPubKey, const CKey& key, const CTransaction& 
 BOOST_AUTO_TEST_CASE(script_CHECKMULTISIG12)
 {
     ScriptError err;
-    CKey key1, key2, key3;
-    key1.MakeNewKey(true);
-    key2.MakeNewKey(false);
-    key3.MakeNewKey(true);
+    CKey key1 = GenerateRandomKey();
+    CKey key2 = GenerateRandomKey(/*compressed=*/false);
+    CKey key3 = GenerateRandomKey();
 
     CScript scriptPubKey12;
     scriptPubKey12 << OP_1 << ToByteVector(key1.GetPubKey()) << ToByteVector(key2.GetPubKey()) << OP_2 << OP_CHECKMULTISIG;
@@ -1081,11 +1087,10 @@ BOOST_AUTO_TEST_CASE(script_CHECKMULTISIG12)
 BOOST_AUTO_TEST_CASE(script_CHECKMULTISIG23)
 {
     ScriptError err;
-    CKey key1, key2, key3, key4;
-    key1.MakeNewKey(true);
-    key2.MakeNewKey(false);
-    key3.MakeNewKey(true);
-    key4.MakeNewKey(false);
+    CKey key1 = GenerateRandomKey();
+    CKey key2 = GenerateRandomKey(/*compressed=*/false);
+    CKey key3 = GenerateRandomKey();
+    CKey key4 = GenerateRandomKey(/*compressed=*/false);
 
     CScript scriptPubKey23;
     scriptPubKey23 << OP_2 << ToByteVector(key1.GetPubKey()) << ToByteVector(key2.GetPubKey()) << ToByteVector(key3.GetPubKey()) << OP_3 << OP_CHECKMULTISIG;
@@ -1112,7 +1117,7 @@ BOOST_AUTO_TEST_CASE(script_CHECKMULTISIG23)
     BOOST_CHECK_MESSAGE(err == SCRIPT_ERR_OK, ScriptErrorString(err));
 
     keys.clear();
-    keys.push_back(key2); keys.push_back(key2); // Can't re-use sig
+    keys.push_back(key2); keys.push_back(key2); // Can't reuse sig
     CScript badsig1 = sign_multisig(scriptPubKey23, keys, CTransaction(txTo23));
     BOOST_CHECK(!VerifyScript(badsig1, scriptPubKey23, nullptr, gFlags, MutableTransactionSignatureChecker(&txTo23, 0, txFrom23.vout[0].nValue, MissingDataBehavior::ASSERT_FAIL), &err));
     BOOST_CHECK_MESSAGE(err == SCRIPT_ERR_EVAL_FALSE, ScriptErrorString(err));
@@ -1165,8 +1170,7 @@ BOOST_AUTO_TEST_CASE(script_combineSigs)
     std::vector<CPubKey> pubkeys;
     for (int i = 0; i < 3; i++)
     {
-        CKey key;
-        key.MakeNewKey(i%2 == 1);
+        CKey key = GenerateRandomKey(/*compressed=*/i%2 == 1);
         keys.push_back(key);
         pubkeys.push_back(key.GetPubKey());
         BOOST_CHECK(keystore.AddKey(key));
@@ -1274,6 +1278,42 @@ BOOST_AUTO_TEST_CASE(script_combineSigs)
     BOOST_CHECK(combined.scriptSig == complete23);
     combined = CombineSignatures(txFrom.vout[0], txTo, partial3_sigs, partial3_sigs);
     BOOST_CHECK(combined.scriptSig == partial3c);
+}
+
+/**
+ * Reproduction of an exception incorrectly raised when parsing a public key inside a TapMiniscript.
+ */
+BOOST_AUTO_TEST_CASE(sign_invalid_miniscript)
+{
+    FillableSigningProvider keystore;
+    SignatureData sig_data;
+    CMutableTransaction prev, curr;
+
+    // Create a Taproot output which contains a leaf in which a non-32 bytes push is used where a public key is expected
+    // by the Miniscript parser. This offending Script was found by the RPC fuzzer.
+    const auto invalid_pubkey{ParseHex("173d36c8c9c9c9ffffffffffff0200000000021e1e37373721361818181818181e1e1e1e19000000000000000000b19292929292926b006c9b9b9292")};
+    TaprootBuilder builder;
+    builder.Add(0, {invalid_pubkey}, 0xc0);
+    builder.Finalize(XOnlyPubKey::NUMS_H);
+    prev.vout.emplace_back(0, GetScriptForDestination(builder.GetOutput()));
+    curr.vin.emplace_back(COutPoint{prev.GetHash(), 0});
+    sig_data.tr_spenddata = builder.GetSpendData();
+
+    // SignSignature can fail but it shouldn't raise an exception (nor crash).
+    BOOST_CHECK(!SignSignature(keystore, CTransaction(prev), curr, 0, SIGHASH_ALL, sig_data));
+}
+
+/* P2A input should be considered signed. */
+BOOST_AUTO_TEST_CASE(sign_paytoanchor)
+{
+    FillableSigningProvider keystore;
+    SignatureData sig_data;
+    CMutableTransaction prev, curr;
+    prev.vout.emplace_back(0, GetScriptForDestination(PayToAnchor{}));
+
+    curr.vin.emplace_back(COutPoint{prev.GetHash(), 0});
+
+    BOOST_CHECK(SignSignature(keystore, CTransaction(prev), curr, 0, SIGHASH_ALL, sig_data));
 }
 
 BOOST_AUTO_TEST_CASE(script_standard_push)
@@ -1480,7 +1520,7 @@ static std::vector<CTxOut> TxOutsFromJSON(const UniValue& univalue)
     std::vector<CTxOut> prevouts;
     for (size_t i = 0; i < univalue.size(); ++i) {
         CTxOut txout;
-        SpanReader{0, ParseHex(univalue[i].get_str())} >> txout;
+        SpanReader{PROTOCOL_VERSION, ParseHex(univalue[i].get_str())} >> txout;
         prevouts.push_back(std::move(txout));
     }
     return prevouts;
@@ -1497,179 +1537,6 @@ static CScriptWitness ScriptWitnessFromJSON(const UniValue& univalue)
     return scriptwitness;
 }
 
-#if defined(HAVE_CONSENSUS_LIB)
-
-/* Test simple (successful) usage of bitcoinconsensus_verify_script */
-BOOST_AUTO_TEST_CASE(bitcoinconsensus_verify_script_returns_true)
-{
-    unsigned int libconsensus_flags = 0;
-    int nIn = 0;
-
-    CScript scriptPubKey;
-    CScript scriptSig;
-    CScriptWitness wit;
-
-    scriptPubKey << OP_1;
-    CTransaction creditTx{BuildCreditingTransaction(scriptPubKey, 1)};
-    CTransaction spendTx{BuildSpendingTransaction(scriptSig, wit, creditTx)};
-
-    CDataStream stream(SER_NETWORK, PROTOCOL_VERSION);
-    stream << spendTx;
-
-    bitcoinconsensus_error err;
-    int result = bitcoinconsensus_verify_script(scriptPubKey.data(), scriptPubKey.size(), UCharCast(stream.data()), stream.size(), nIn, libconsensus_flags, &err);
-    BOOST_CHECK_EQUAL(result, 1);
-    BOOST_CHECK_EQUAL(err, bitcoinconsensus_ERR_OK);
-}
-
-/* Test bitcoinconsensus_verify_script returns invalid tx index err*/
-BOOST_AUTO_TEST_CASE(bitcoinconsensus_verify_script_tx_index_err)
-{
-    unsigned int libconsensus_flags = 0;
-    int nIn = 3;
-
-    CScript scriptPubKey;
-    CScript scriptSig;
-    CScriptWitness wit;
-
-    scriptPubKey << OP_EQUAL;
-    CTransaction creditTx{BuildCreditingTransaction(scriptPubKey, 1)};
-    CTransaction spendTx{BuildSpendingTransaction(scriptSig, wit, creditTx)};
-
-    CDataStream stream(SER_NETWORK, PROTOCOL_VERSION);
-    stream << spendTx;
-
-    bitcoinconsensus_error err;
-    int result = bitcoinconsensus_verify_script(scriptPubKey.data(), scriptPubKey.size(), UCharCast(stream.data()), stream.size(), nIn, libconsensus_flags, &err);
-    BOOST_CHECK_EQUAL(result, 0);
-    BOOST_CHECK_EQUAL(err, bitcoinconsensus_ERR_TX_INDEX);
-}
-
-/* Test bitcoinconsensus_verify_script returns tx size mismatch err*/
-BOOST_AUTO_TEST_CASE(bitcoinconsensus_verify_script_tx_size)
-{
-    unsigned int libconsensus_flags = 0;
-    int nIn = 0;
-
-    CScript scriptPubKey;
-    CScript scriptSig;
-    CScriptWitness wit;
-
-    scriptPubKey << OP_EQUAL;
-    CTransaction creditTx{BuildCreditingTransaction(scriptPubKey, 1)};
-    CTransaction spendTx{BuildSpendingTransaction(scriptSig, wit, creditTx)};
-
-    CDataStream stream(SER_NETWORK, PROTOCOL_VERSION);
-    stream << spendTx;
-
-    bitcoinconsensus_error err;
-    int result = bitcoinconsensus_verify_script(scriptPubKey.data(), scriptPubKey.size(), UCharCast(stream.data()), stream.size() * 2, nIn, libconsensus_flags, &err);
-    BOOST_CHECK_EQUAL(result, 0);
-    BOOST_CHECK_EQUAL(err, bitcoinconsensus_ERR_TX_SIZE_MISMATCH);
-}
-
-/* Test bitcoinconsensus_verify_script returns invalid tx serialization error */
-BOOST_AUTO_TEST_CASE(bitcoinconsensus_verify_script_tx_serialization)
-{
-    unsigned int libconsensus_flags = 0;
-    int nIn = 0;
-
-    CScript scriptPubKey;
-    CScript scriptSig;
-    CScriptWitness wit;
-
-    scriptPubKey << OP_EQUAL;
-    CTransaction creditTx{BuildCreditingTransaction(scriptPubKey, 1)};
-    CTransaction spendTx{BuildSpendingTransaction(scriptSig, wit, creditTx)};
-
-    CDataStream stream(SER_NETWORK, PROTOCOL_VERSION);
-    stream << 0xffffffff;
-
-    bitcoinconsensus_error err;
-    int result = bitcoinconsensus_verify_script(scriptPubKey.data(), scriptPubKey.size(), UCharCast(stream.data()), stream.size(), nIn, libconsensus_flags, &err);
-    BOOST_CHECK_EQUAL(result, 0);
-    BOOST_CHECK_EQUAL(err, bitcoinconsensus_ERR_TX_DESERIALIZE);
-}
-
-/* Test bitcoinconsensus_verify_script returns amount required error */
-BOOST_AUTO_TEST_CASE(bitcoinconsensus_verify_script_amount_required_err)
-{
-    unsigned int libconsensus_flags = bitcoinconsensus_SCRIPT_FLAGS_VERIFY_WITNESS;
-    int nIn = 0;
-
-    CScript scriptPubKey;
-    CScript scriptSig;
-    CScriptWitness wit;
-
-    scriptPubKey << OP_EQUAL;
-    CTransaction creditTx{BuildCreditingTransaction(scriptPubKey, 1)};
-    CTransaction spendTx{BuildSpendingTransaction(scriptSig, wit, creditTx)};
-
-    CDataStream stream(SER_NETWORK, PROTOCOL_VERSION);
-    stream << spendTx;
-
-    bitcoinconsensus_error err;
-    int result = bitcoinconsensus_verify_script(scriptPubKey.data(), scriptPubKey.size(), UCharCast(stream.data()), stream.size(), nIn, libconsensus_flags, &err);
-    BOOST_CHECK_EQUAL(result, 0);
-    BOOST_CHECK_EQUAL(err, bitcoinconsensus_ERR_AMOUNT_REQUIRED);
-}
-
-/* Test bitcoinconsensus_verify_script returns invalid flags err */
-BOOST_AUTO_TEST_CASE(bitcoinconsensus_verify_script_invalid_flags)
-{
-    unsigned int libconsensus_flags = 1 << 3;
-    int nIn = 0;
-
-    CScript scriptPubKey;
-    CScript scriptSig;
-    CScriptWitness wit;
-
-    scriptPubKey << OP_EQUAL;
-    CTransaction creditTx{BuildCreditingTransaction(scriptPubKey, 1)};
-    CTransaction spendTx{BuildSpendingTransaction(scriptSig, wit, creditTx)};
-
-    CDataStream stream(SER_NETWORK, PROTOCOL_VERSION);
-    stream << spendTx;
-
-    bitcoinconsensus_error err;
-    int result = bitcoinconsensus_verify_script(scriptPubKey.data(), scriptPubKey.size(), UCharCast(stream.data()), stream.size(), nIn, libconsensus_flags, &err);
-    BOOST_CHECK_EQUAL(result, 0);
-    BOOST_CHECK_EQUAL(err, bitcoinconsensus_ERR_INVALID_FLAGS);
-}
-
-/* Test bitcoinconsensus_verify_script returns spent outputs required err */
-BOOST_AUTO_TEST_CASE(bitcoinconsensus_verify_script_spent_outputs_required_err)
-{
-    unsigned int libconsensus_flags{bitcoinconsensus_SCRIPT_FLAGS_VERIFY_TAPROOT};
-    const int nIn{0};
-
-    CScript scriptPubKey;
-    CScript scriptSig;
-    CScriptWitness wit;
-
-    scriptPubKey << OP_EQUAL;
-    CTransaction creditTx{BuildCreditingTransaction(scriptPubKey, 1)};
-    CTransaction spendTx{BuildSpendingTransaction(scriptSig, wit, creditTx)};
-
-    CDataStream stream(SER_NETWORK, PROTOCOL_VERSION);
-    stream << spendTx;
-
-    bitcoinconsensus_error err;
-    int result{bitcoinconsensus_verify_script_with_spent_outputs(scriptPubKey.data(), scriptPubKey.size(), creditTx.vout[0].nValue, UCharCast(stream.data()), stream.size(), nullptr, 0, nIn, libconsensus_flags, &err)};
-    BOOST_CHECK_EQUAL(result, 0);
-    BOOST_CHECK_EQUAL(err, bitcoinconsensus_ERR_SPENT_OUTPUTS_REQUIRED);
-
-    result = bitcoinconsensus_verify_script_with_amount(scriptPubKey.data(), scriptPubKey.size(), creditTx.vout[0].nValue, UCharCast(stream.data()), stream.size(), nIn, libconsensus_flags, &err);
-    BOOST_CHECK_EQUAL(result, 0);
-    BOOST_CHECK_EQUAL(err, bitcoinconsensus_ERR_SPENT_OUTPUTS_REQUIRED);
-
-    result = bitcoinconsensus_verify_script(scriptPubKey.data(), scriptPubKey.size(), UCharCast(stream.data()), stream.size(), nIn, libconsensus_flags, &err);
-    BOOST_CHECK_EQUAL(result, 0);
-    BOOST_CHECK_EQUAL(err, bitcoinconsensus_ERR_SPENT_OUTPUTS_REQUIRED);
-}
-
-#endif // defined(HAVE_CONSENSUS_LIB)
-
 static std::vector<unsigned int> AllConsensusFlags()
 {
     std::vector<unsigned int> ret;
@@ -1683,11 +1550,14 @@ static std::vector<unsigned int> AllConsensusFlags()
         if (i & 16) flag |= SCRIPT_VERIFY_CHECKSEQUENCEVERIFY;
         if (i & 32) flag |= SCRIPT_VERIFY_WITNESS;
         if (i & 64) flag |= SCRIPT_VERIFY_TAPROOT;
+        if (i & 128) flag |= SCRIPT_VERIFY_ANYPREVOUT;
 
         // SCRIPT_VERIFY_WITNESS requires SCRIPT_VERIFY_P2SH
         if (flag & SCRIPT_VERIFY_WITNESS && !(flag & SCRIPT_VERIFY_P2SH)) continue;
         // SCRIPT_VERIFY_TAPROOT requires SCRIPT_VERIFY_WITNESS
         if (flag & SCRIPT_VERIFY_TAPROOT && !(flag & SCRIPT_VERIFY_WITNESS)) continue;
+        // SCRIPT_VERIFY_ANYPREVOUT requires SCRIPT_VERIFY_TAPROOT
+        if ((flag & SCRIPT_VERIFY_ANYPREVOUT) && !(flag & SCRIPT_VERIFY_TAPROOT)) continue;
 
         ret.push_back(flag);
     }
@@ -1698,7 +1568,7 @@ static std::vector<unsigned int> AllConsensusFlags()
 /** Precomputed list of all valid combinations of consensus-relevant script validation flags. */
 static const std::vector<unsigned int> ALL_CONSENSUS_FLAGS = AllConsensusFlags();
 
-static void AssetTest(const UniValue& test)
+static void AssetTest(const UniValue& test, SignatureCache& signature_cache)
 {
     BOOST_CHECK(test.isObject());
 
@@ -1715,19 +1585,7 @@ static void AssetTest(const UniValue& test)
         CTransaction tx(mtx);
         PrecomputedTransactionData txdata;
         txdata.Init(tx, std::vector<CTxOut>(prevouts));
-        CachingTransactionSignatureChecker txcheck(&tx, idx, prevouts[idx].nValue, true, txdata);
-
-#if defined(HAVE_CONSENSUS_LIB)
-        CDataStream stream(SER_NETWORK, PROTOCOL_VERSION);
-        stream << tx;
-        std::vector<UTXO> utxos;
-        utxos.resize(prevouts.size());
-        for (size_t i = 0; i < prevouts.size(); i++) {
-            utxos[i].scriptPubKey = prevouts[i].scriptPubKey.data();
-            utxos[i].scriptPubKeySize = prevouts[i].scriptPubKey.size();
-            utxos[i].value = prevouts[i].nValue;
-        }
-#endif
+        CachingTransactionSignatureChecker txcheck(&tx, idx, prevouts[idx].nValue, true, signature_cache, txdata);
 
         for (const auto flags : ALL_CONSENSUS_FLAGS) {
             // "final": true tests are valid for all flags. Others are only valid with flags that are
@@ -1735,10 +1593,6 @@ static void AssetTest(const UniValue& test)
             if (fin || ((flags & test_flags) == flags)) {
                 bool ret = VerifyScript(tx.vin[idx].scriptSig, prevouts[idx].scriptPubKey, &tx.vin[idx].scriptWitness, flags, txcheck, nullptr);
                 BOOST_CHECK(ret);
-#if defined(HAVE_CONSENSUS_LIB)
-                int lib_ret = bitcoinconsensus_verify_script_with_spent_outputs(prevouts[idx].scriptPubKey.data(), prevouts[idx].scriptPubKey.size(), prevouts[idx].nValue, UCharCast(stream.data()), stream.size(), utxos.data(), utxos.size(), idx, flags, nullptr);
-                BOOST_CHECK(lib_ret == 1);
-#endif
             }
         }
     }
@@ -1749,29 +1603,13 @@ static void AssetTest(const UniValue& test)
         CTransaction tx(mtx);
         PrecomputedTransactionData txdata;
         txdata.Init(tx, std::vector<CTxOut>(prevouts));
-        CachingTransactionSignatureChecker txcheck(&tx, idx, prevouts[idx].nValue, true, txdata);
-
-#if defined(HAVE_CONSENSUS_LIB)
-        CDataStream stream(SER_NETWORK, PROTOCOL_VERSION);
-        stream << tx;
-        std::vector<UTXO> utxos;
-        utxos.resize(prevouts.size());
-        for (size_t i = 0; i < prevouts.size(); i++) {
-            utxos[i].scriptPubKey = prevouts[i].scriptPubKey.data();
-            utxos[i].scriptPubKeySize = prevouts[i].scriptPubKey.size();
-            utxos[i].value = prevouts[i].nValue;
-        }
-#endif
+        CachingTransactionSignatureChecker txcheck(&tx, idx, prevouts[idx].nValue, true, signature_cache, txdata);
 
         for (const auto flags : ALL_CONSENSUS_FLAGS) {
             // If a test is supposed to fail with test_flags, it should also fail with any superset thereof.
             if ((flags & test_flags) == test_flags) {
                 bool ret = VerifyScript(tx.vin[idx].scriptSig, prevouts[idx].scriptPubKey, &tx.vin[idx].scriptWitness, flags, txcheck, nullptr);
                 BOOST_CHECK(!ret);
-#if defined(HAVE_CONSENSUS_LIB)
-                int lib_ret = bitcoinconsensus_verify_script_with_spent_outputs(prevouts[idx].scriptPubKey.data(), prevouts[idx].scriptPubKey.size(), prevouts[idx].nValue, UCharCast(stream.data()), stream.size(), utxos.data(), utxos.size(), idx, flags, nullptr);
-                BOOST_CHECK(lib_ret == 0);
-#endif
             }
         }
     }
@@ -1781,6 +1619,7 @@ BOOST_AUTO_TEST_CASE(script_assets_test)
 {
     // See src/test/fuzz/script_assets_test_minimizer.cpp for information on how to generate
     // the script_assets_test.json file used by this test.
+    SignatureCache signature_cache{DEFAULT_SIGNATURE_CACHE_BYTES};
 
     const char* dir = std::getenv("DIR_UNIT_TEST_DATA");
     BOOST_WARN_MESSAGE(dir != nullptr, "Variable DIR_UNIT_TEST_DATA unset, skipping script_assets_test");
@@ -1801,7 +1640,7 @@ BOOST_AUTO_TEST_CASE(script_assets_test)
     BOOST_CHECK(tests.size() > 0);
 
     for (size_t i = 0; i < tests.size(); i++) {
-        AssetTest(tests[i]);
+        AssetTest(tests[i], signature_cache);
     }
     file.close();
 }
@@ -1882,20 +1721,98 @@ BOOST_AUTO_TEST_CASE(bip341_keypath_test_vectors)
 
 BOOST_AUTO_TEST_CASE(compute_tapbranch)
 {
-    uint256 hash1 = uint256S("8ad69ec7cf41c2a4001fd1f738bf1e505ce2277acdcaa63fe4765192497f47a7");
-    uint256 hash2 = uint256S("f224a923cd0021ab202ab139cc56802ddb92dcfc172b9212261a539df79a112a");
-    uint256 result = uint256S("a64c5b7b943315f9b805d7a7296bedfcfd08919270a1f7a1466e98f8693d8cd9");
+    constexpr uint256 hash1{"8ad69ec7cf41c2a4001fd1f738bf1e505ce2277acdcaa63fe4765192497f47a7"};
+    constexpr uint256 hash2{"f224a923cd0021ab202ab139cc56802ddb92dcfc172b9212261a539df79a112a"};
+    constexpr uint256 result{"a64c5b7b943315f9b805d7a7296bedfcfd08919270a1f7a1466e98f8693d8cd9"};
     BOOST_CHECK_EQUAL(ComputeTapbranchHash(hash1, hash2), result);
 }
 
 BOOST_AUTO_TEST_CASE(compute_tapleaf)
 {
-    const uint8_t script[6] = {'f','o','o','b','a','r'};
-    uint256 tlc0 = uint256S("edbc10c272a1215dcdcc11d605b9027b5ad6ed97cd45521203f136767b5b9c06");
-    uint256 tlc2 = uint256S("8b5c4f90ae6bf76e259dbef5d8a59df06359c391b59263741b25eca76451b27a");
+    constexpr uint8_t script[6] = {'f','o','o','b','a','r'};
+    constexpr uint256 tlc0{"edbc10c272a1215dcdcc11d605b9027b5ad6ed97cd45521203f136767b5b9c06"};
+    constexpr uint256 tlc2{"8b5c4f90ae6bf76e259dbef5d8a59df06359c391b59263741b25eca76451b27a"};
 
     BOOST_CHECK_EQUAL(ComputeTapleafHash(0xc0, Span(script)), tlc0);
     BOOST_CHECK_EQUAL(ComputeTapleafHash(0xc2, Span(script)), tlc2);
+}
+
+BOOST_AUTO_TEST_CASE(formatscriptflags)
+{
+    // quick check that FormatScriptFlags reports any unknown/unexpected bits
+    BOOST_CHECK_EQUAL(FormatScriptFlags(SCRIPT_VERIFY_P2SH), "P2SH");
+    BOOST_CHECK_EQUAL(FormatScriptFlags(SCRIPT_VERIFY_P2SH | (1u<<31)), "P2SH,0x80000000");
+    BOOST_CHECK_EQUAL(FormatScriptFlags(SCRIPT_VERIFY_TAPROOT | (1u<<28)), "TAPROOT,0x10000000");
+    BOOST_CHECK_EQUAL(FormatScriptFlags(1u<<28), "0x10000000");
+}
+
+void DoTapscriptTest(std::vector<unsigned char> witVerifyScript, std::vector<std::vector<unsigned char>> witData, const std::string& message, int scriptError)
+{
+    const KeyData keys;
+    TaprootBuilder builder;
+    builder.Add(/*depth=*/0, witVerifyScript, TAPROOT_LEAF_TAPSCRIPT, /*track=*/true);
+    builder.Finalize(XOnlyPubKey(keys.key0.GetPubKey()));
+
+    CScriptWitness witness;
+    witness.stack.insert(witness.stack.begin(), witData.begin(), witData.end());
+    witness.stack.push_back(witVerifyScript);
+    auto controlblock = *(builder.GetSpendData().scripts[{witVerifyScript, TAPROOT_LEAF_TAPSCRIPT}].begin());
+    witness.stack.push_back(controlblock);
+
+    uint32_t flags = SCRIPT_VERIFY_P2SH | SCRIPT_VERIFY_WITNESS | SCRIPT_VERIFY_TAPROOT | SCRIPT_VERIFY_OP_CAT;
+    CScript scriptPubKey = CScript() << OP_1 << ToByteVector(builder.GetOutput());
+    CScript scriptSig = CScript(); // Script sig is always size 0 and empty in tapscript
+    DoTest(scriptPubKey, scriptSig, witness, flags, message, scriptError, /*nValue=*/1);
+}
+
+BOOST_AUTO_TEST_CASE(cat_simple)
+{
+    std::vector<std::vector<unsigned char>> witData;
+    witData.push_back(ParseHex("aa"));
+    witData.push_back(ParseHex("bbbb"));
+    std::vector<unsigned char> witVerifyScript = {OP_CAT, OP_PUSHDATA1, 0x03, 0xaa, 0xbb, 0xbb, OP_EQUAL};
+    DoTapscriptTest(witVerifyScript, witData, "Simple CAT", SCRIPT_ERR_OK);
+}
+
+BOOST_AUTO_TEST_CASE(cat_empty_stack)
+{
+    // Ensures that OP_CAT successfully handles concatenating two empty stack elements
+    std::vector<std::vector<unsigned char>> witData;
+    witData.push_back({});
+    witData.push_back({});
+    std::vector<unsigned char> witVerifyScript = {OP_CAT, OP_PUSHDATA1, 0x00,OP_EQUAL};
+    DoTapscriptTest(witVerifyScript, witData, "CAT empty stack", SCRIPT_ERR_OK);
+}
+
+BOOST_AUTO_TEST_CASE(cat_dup_test)
+{
+    // CAT DUP exhaustion attacks using all element sizes from 1 to 522
+    // with CAT DUP repetitions up to 10. Ensures the correct error is thrown
+    // or not thrown, as appropriate.
+    unsigned int maxElementSize = 522;
+    unsigned int maxDupsToCheck = 10;
+
+    std::vector<std::vector<unsigned char>> witData;
+    witData.push_back({});
+    for (unsigned int elementSize = 1; elementSize <= maxElementSize; elementSize++) {
+        std::vector<unsigned char> witVerifyScript;
+        // increase the size of stack element by one byte
+        witData.at(0).push_back(0x1A);
+        for (unsigned int dups = 1; dups <= maxDupsToCheck; dups++) {
+            witVerifyScript.push_back(OP_DUP);
+            witVerifyScript.push_back(OP_CAT);
+            int expectedErr = SCRIPT_ERR_OK;
+            unsigned int catedStackElementSize = witData.at(0).size()<<dups;
+            if (catedStackElementSize > MAX_SCRIPT_ELEMENT_SIZE || elementSize > MAX_SCRIPT_ELEMENT_SIZE){
+                expectedErr = SCRIPT_ERR_PUSH_SIZE;
+                break;
+            }
+            DoTapscriptTest(witVerifyScript, witData, "CAT DUP test", expectedErr);
+            // Once we hit the stack element size limit, break
+            if (expectedErr == SCRIPT_ERR_OK)
+                break;
+        }
+    }
 }
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -95,8 +95,9 @@ class BIP68_112_113Test(BellscoinTestFramework):
     def set_test_params(self):
         self.num_nodes = 1
         self.setup_clean_chain = True
+        # whitelist peers to speed up tx relay / mempool sync
+        self.noban_tx_relay = True
         self.extra_args = [[
-            '-whitelist=noban@127.0.0.1',
             f'-testactivationheight=csv@{CSV_ACTIVATION_HEIGHT}',
             '-par=1',  # Use only one script thread to get the exact reject reason for testing
         ]]
@@ -256,10 +257,10 @@ class BIP68_112_113Test(BellscoinTestFramework):
         # BIP113 test transaction will be modified before each use to put in appropriate block time
         bip113tx_v1 = self.create_self_transfer_from_utxo(bip113input)
         bip113tx_v1.vin[0].nSequence = 0xFFFFFFFE
-        bip113tx_v1.nVersion = 1
+        bip113tx_v1.version = 1
         bip113tx_v2 = self.create_self_transfer_from_utxo(bip113input)
         bip113tx_v2.vin[0].nSequence = 0xFFFFFFFE
-        bip113tx_v2.nVersion = 2
+        bip113tx_v2.version = 2
 
         # For BIP68 test all 16 relative sequence locktimes
         bip68txs_v1 = self.create_bip68txs(bip68inputs, 1)
@@ -481,4 +482,4 @@ class BIP68_112_113Test(BellscoinTestFramework):
 
 
 if __name__ == '__main__':
-    BIP68_112_113Test().main()
+    BIP68_112_113Test(__file__).main()

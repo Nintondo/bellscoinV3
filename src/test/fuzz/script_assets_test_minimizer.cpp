@@ -17,6 +17,8 @@
 #include <string>
 #include <vector>
 
+using util::SplitString;
+
 // This fuzz "test" can be used to minimize test cases for script_assets_test in
 // src/test/script_tests.cpp. While it written as a fuzz test, and can be used as such,
 // fuzzing the inputs is unlikely to construct useful test cases.
@@ -96,6 +98,7 @@ const std::map<std::string, unsigned int> FLAG_NAMES = {
     {std::string("CHECKSEQUENCEVERIFY"), (unsigned int)SCRIPT_VERIFY_CHECKSEQUENCEVERIFY},
     {std::string("WITNESS"), (unsigned int)SCRIPT_VERIFY_WITNESS},
     {std::string("TAPROOT"), (unsigned int)SCRIPT_VERIFY_TAPROOT},
+    {std::string("ANYPREVOUT"), (unsigned int)SCRIPT_VERIFY_ANYPREVOUT},
 };
 
 std::vector<unsigned int> AllFlags()

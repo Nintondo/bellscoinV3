@@ -2,30 +2,31 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include <chainparams.h>
 #include <coins.h>
 #include <consensus/amount.h>
 #include <consensus/tx_check.h>
 #include <consensus/tx_verify.h>
 #include <consensus/validation.h>
-#include <key.h>
 #include <policy/policy.h>
 #include <primitives/transaction.h>
-#include <pubkey.h>
+#include <script/interpreter.h>
 #include <test/fuzz/FuzzedDataProvider.h>
 #include <test/fuzz/fuzz.h>
 #include <test/fuzz/util.h>
 #include <test/util/setup_common.h>
-#include <validation.h>
+#include <util/hasher.h>
 
+#include <cassert>
 #include <cstdint>
 #include <limits>
+#include <memory>
 #include <optional>
+#include <stdexcept>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace {
-const TestingSetup* g_setup;
 const Coin EMPTY_COIN{};
 
 bool operator==(const Coin& a, const Coin& b)
@@ -37,19 +38,21 @@ bool operator==(const Coin& a, const Coin& b)
 
 void initialize_coins_view()
 {
-    static const auto testing_setup = MakeNoLogFileContext<const TestingSetup>();
-    g_setup = testing_setup.get();
+    static const auto testing_setup = MakeNoLogFileContext<>();
 }
 
 FUZZ_TARGET(coins_view, .init = initialize_coins_view)
 {
     FuzzedDataProvider fuzzed_data_provider{buffer.data(), buffer.size()};
+    bool good_data{true};
+
     CCoinsView backend_coins_view;
     CCoinsViewCache coins_view_cache{&backend_coins_view, /*deterministic=*/true};
     COutPoint random_out_point;
     Coin random_coin;
     CMutableTransaction random_mutable_transaction;
-    LIMITED_WHILE(fuzzed_data_provider.ConsumeBool(), 10000) {
+    LIMITED_WHILE(good_data && fuzzed_data_provider.ConsumeBool(), 10'000)
+    {
         CallOneOf(
             fuzzed_data_provider,
             [&] {
@@ -95,6 +98,7 @@ FUZZ_TARGET(coins_view, .init = initialize_coins_view)
             [&] {
                 const std::optional<COutPoint> opt_out_point = ConsumeDeserializable<COutPoint>(fuzzed_data_provider);
                 if (!opt_out_point) {
+                    good_data = false;
                     return;
                 }
                 random_out_point = *opt_out_point;
@@ -102,6 +106,7 @@ FUZZ_TARGET(coins_view, .init = initialize_coins_view)
             [&] {
                 const std::optional<Coin> opt_coin = ConsumeDeserializable<Coin>(fuzzed_data_provider);
                 if (!opt_coin) {
+                    good_data = false;
                     return;
                 }
                 random_coin = *opt_coin;
@@ -109,30 +114,39 @@ FUZZ_TARGET(coins_view, .init = initialize_coins_view)
             [&] {
                 const std::optional<CMutableTransaction> opt_mutable_transaction = ConsumeDeserializable<CMutableTransaction>(fuzzed_data_provider);
                 if (!opt_mutable_transaction) {
+                    good_data = false;
                     return;
                 }
                 random_mutable_transaction = *opt_mutable_transaction;
             },
             [&] {
+                CoinsCachePair sentinel{};
+                sentinel.second.SelfRef(sentinel);
+                size_t usage{0};
                 CCoinsMapMemoryResource resource;
                 CCoinsMap coins_map{0, SaltedOutpointHasher{/*deterministic=*/true}, CCoinsMap::key_equal{}, &resource};
-                LIMITED_WHILE(fuzzed_data_provider.ConsumeBool(), 10000) {
+                LIMITED_WHILE(good_data && fuzzed_data_provider.ConsumeBool(), 10'000)
+                {
                     CCoinsCacheEntry coins_cache_entry;
-                    coins_cache_entry.flags = fuzzed_data_provider.ConsumeIntegral<unsigned char>();
+                    const auto flags{fuzzed_data_provider.ConsumeIntegral<uint8_t>()};
                     if (fuzzed_data_provider.ConsumeBool()) {
                         coins_cache_entry.coin = random_coin;
                     } else {
                         const std::optional<Coin> opt_coin = ConsumeDeserializable<Coin>(fuzzed_data_provider);
                         if (!opt_coin) {
+                            good_data = false;
                             return;
                         }
                         coins_cache_entry.coin = *opt_coin;
                     }
-                    coins_map.emplace(random_out_point, std::move(coins_cache_entry));
+                    auto it{coins_map.emplace(random_out_point, std::move(coins_cache_entry)).first};
+                    it->second.AddFlags(flags, *it, sentinel);
+                    usage += it->second.coin.DynamicMemoryUsage();
                 }
                 bool expected_code_path = false;
                 try {
-                    coins_view_cache.BatchWrite(coins_map, fuzzed_data_provider.ConsumeBool() ? ConsumeUInt256(fuzzed_data_provider) : coins_view_cache.GetBestBlock());
+                    auto cursor{CoinsViewCacheCursor(usage, sentinel, coins_map, /*will_erase=*/true)};
+                    coins_view_cache.BatchWrite(cursor, fuzzed_data_provider.ConsumeBool() ? ConsumeUInt256(fuzzed_data_provider) : coins_view_cache.GetBestBlock());
                     expected_code_path = true;
                 } catch (const std::logic_error& e) {
                     if (e.what() == std::string{"FRESH flag misapplied to coin that exists in parent cache"}) {

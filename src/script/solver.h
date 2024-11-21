@@ -22,6 +22,7 @@ template <typename C> class Span;
 enum class TxoutType {
     NONSTANDARD,
     // 'standard' transaction types:
+    ANCHOR, //!< anyone can spend script
     PUBKEY,
     PUBKEYHASH,
     SCRIPTHASH,
@@ -30,6 +31,7 @@ enum class TxoutType {
     WITNESS_V0_SCRIPTHASH,
     WITNESS_V0_KEYHASH,
     WITNESS_V1_TAPROOT,
+    TX_BARE_DEFAULT_CHECK_TEMPLATE_VERIFY_HASH,
     WITNESS_UNKNOWN, //!< Only for Witness versions not already defined above
 };
 

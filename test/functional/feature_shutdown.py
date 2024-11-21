@@ -32,4 +32,4 @@ class ShutdownTest(BellscoinTestFramework):
         self.stop_node(0, wait=1000)
 
 if __name__ == '__main__':
-    ShutdownTest().main()
+    ShutdownTest(__file__).main()

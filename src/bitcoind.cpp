@@ -3,26 +3,25 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#if defined(HAVE_CONFIG_H)
-#include <config/bitcoin-config.h>
-#endif
+#include <config/bitcoin-config.h> // IWYU pragma: keep
 
 #include <chainparams.h>
 #include <clientversion.h>
 #include <common/args.h>
 #include <common/init.h>
 #include <common/system.h>
-#include <common/url.h>
 #include <compat/compat.h>
 #include <init.h>
 #include <interfaces/chain.h>
 #include <interfaces/init.h>
+#include <kernel/context.h>
 #include <node/context.h>
 #include <node/interface_ui.h>
+#include <node/warnings.h>
 #include <noui.h>
-#include <shutdown.h>
 #include <util/check.h>
 #include <util/exception.h>
+#include <util/signalinterrupt.h>
 #include <util/strencodings.h>
 #include <util/syserror.h>
 #include <util/threadnames.h>
@@ -36,7 +35,6 @@
 using node::NodeContext;
 
 const std::function<std::string(const char*)> G_TRANSLATION_FUN = nullptr;
-UrlDecodeFn* const URL_DECODE = urlDecode;
 
 #if HAVE_DECL_FORK
 
@@ -184,7 +182,10 @@ static bool AppInit(NodeContext& node)
             return false;
         }
 
+        node.warnings = std::make_unique<node::Warnings>();
+
         node.kernel = std::make_unique<kernel::Context>();
+        node.ecc_context = std::make_unique<ECC_Context>();
         if (!AppInitSanityChecks(*node.kernel))
         {
             // InitError will have been called with detailed error, which ends up on console
@@ -272,9 +273,7 @@ MAIN_FUNCTION
     if (ProcessInitCommands(args)) return EXIT_SUCCESS;
 
     // Start application
-    if (AppInit(node)) {
-        WaitForShutdown();
-    } else {
+    if (!AppInit(node) || !Assert(node.shutdown)->wait()) {
         node.exit_status = EXIT_FAILURE;
     }
     Interrupt(node);

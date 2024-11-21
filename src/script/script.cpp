@@ -1,12 +1,15 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2021 The Bitcoin Core developers
+// Copyright (c) 2009-present The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <script/script.h>
 
+#include <crypto/common.h>
+#include <crypto/hex_base.h>
 #include <hash.h>
-#include <util/strencodings.h>
+#include <uint256.h>
+#include <util/hash_type.h>
 
 #include <string>
 
@@ -135,7 +138,7 @@ std::string GetOpName(opcodetype opcode)
     case OP_NOP1                   : return "OP_NOP1";
     case OP_CHECKLOCKTIMEVERIFY    : return "OP_CHECKLOCKTIMEVERIFY";
     case OP_CHECKSEQUENCEVERIFY    : return "OP_CHECKSEQUENCEVERIFY";
-    case OP_NOP4                   : return "OP_NOP4";
+    case OP_CHECKTEMPLATEVERIFY    : return "OP_CHECKTEMPLATEVERIFY";
     case OP_NOP5                   : return "OP_NOP5";
     case OP_NOP6                   : return "OP_NOP6";
     case OP_NOP7                   : return "OP_NOP7";
@@ -199,6 +202,31 @@ unsigned int CScript::GetSigOpCount(const CScript& scriptSig) const
     /// ... and return its opcount:
     CScript subscript(vData.begin(), vData.end());
     return subscript.GetSigOpCount(true);
+}
+
+bool CScript::IsPayToAnchor() const
+{
+    return (this->size() == 4 &&
+        (*this)[0] == OP_1 &&
+        (*this)[1] == 0x02 &&
+        (*this)[2] == 0x4e &&
+        (*this)[3] == 0x73);
+}
+
+bool CScript::IsPayToAnchor(int version, const std::vector<unsigned char>& program)
+{
+    return version == 1 &&
+        program.size() == 2 &&
+        program[0] == 0x4e &&
+        program[1] == 0x73;
+}
+
+bool CScript::IsPayToBareDefaultCheckTemplateVerifyHash() const
+{
+    // Extra-fast test for pay-to-bare-default-check-template-verify-hash CScripts:
+    return (this->size() == 34 &&
+            (*this)[0] == 0x20 &&
+            (*this)[33] == OP_CHECKTEMPLATEVERIFY);
 }
 
 bool CScript::IsPayToScriptHash() const

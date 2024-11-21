@@ -28,13 +28,11 @@
 #include <test/fuzz/util.h>
 #include <test/util/setup_common.h>
 #include <undo.h>
-#include <version.h>
 
 #include <exception>
 #include <optional>
 #include <stdexcept>
 #include <stdint.h>
-#include <unistd.h>
 
 using node::SnapshotMetadata;
 
@@ -66,7 +64,7 @@ template <typename T, typename P>
 DataStream Serialize(const T& obj, const P& params)
 {
     DataStream ds{};
-    ds << WithParams(params, obj);
+    ds << params(obj);
     return ds;
 }
 
@@ -74,7 +72,7 @@ template <typename T, typename P>
 T Deserialize(DataStream&& ds, const P& params)
 {
     T obj;
-    ds >> WithParams(params, obj);
+    ds >> params(obj);
     return obj;
 }
 
@@ -83,7 +81,7 @@ void DeserializeFromFuzzingInput(FuzzBufferType buffer, T&& obj, const P& params
 {
     DataStream ds{buffer};
     try {
-        ds >> WithParams(params, obj);
+        ds >> params(obj);
     } catch (const std::ios_base::failure&) {
         throw invalid_fuzzing_input_exception();
     }
@@ -91,7 +89,7 @@ void DeserializeFromFuzzingInput(FuzzBufferType buffer, T&& obj, const P& params
 }
 
 template <typename T>
-CDataStream Serialize(const T& obj)
+DataStream Serialize(const T& obj)
 {
     CDataStream ds{SER_NETWORK, INIT_PROTO_VERSION};
     ds << obj;
@@ -99,7 +97,7 @@ CDataStream Serialize(const T& obj)
 }
 
 template <typename T>
-T Deserialize(CDataStream ds)
+T Deserialize(DataStream ds)
 {
     T obj;
     ds >> obj;
@@ -110,15 +108,6 @@ template <typename T>
 void DeserializeFromFuzzingInput(FuzzBufferType buffer, T&& obj)
 {
     CDataStream ds{buffer, SER_NETWORK, INIT_PROTO_VERSION};
-    {
-        try {
-            int version;
-            ds >> version;
-            ds.SetVersion(version);
-        } catch (const std::ios_base::failure&) {
-            throw invalid_fuzzing_input_exception();
-        }
-    }
     try {
         ds >> obj;
     } catch (const std::ios_base::failure&) {
@@ -327,7 +316,8 @@ FUZZ_TARGET_DESERIALIZE(blocktransactionsrequest_deserialize, {
     DeserializeFromFuzzingInput(buffer, btr);
 })
 FUZZ_TARGET_DESERIALIZE(snapshotmetadata_deserialize, {
-    SnapshotMetadata snapshot_metadata;
+    auto msg_start = GlobParams().MessageStart();
+    SnapshotMetadata snapshot_metadata{msg_start};
     DeserializeFromFuzzingInput(buffer, snapshot_metadata);
 })
 FUZZ_TARGET_DESERIALIZE(uint160_deserialize, {

@@ -5,10 +5,6 @@
 #ifndef BITCOIN_NETADDRESS_H
 #define BITCOIN_NETADDRESS_H
 
-#if defined(HAVE_CONFIG_H)
-#include <config/bitcoin-config.h>
-#endif
-
 #include <compat/compat.h>
 #include <crypto/siphash.h>
 #include <prevector.h>
@@ -241,7 +237,7 @@ public:
     template <typename Stream>
     void Serialize(Stream& s) const
     {
-        if (s.GetParams().enc == Encoding::V2) {
+        if (s.template GetParams<SerParams>().enc == Encoding::V2) {
             SerializeV2Stream(s);
         } else {
             SerializeV1Stream(s);
@@ -254,12 +250,24 @@ public:
     template <typename Stream>
     void Unserialize(Stream& s)
     {
-        if (s.GetParams().enc == Encoding::V2) {
+        if (s.template GetParams<SerParams>().enc == Encoding::V2) {
             UnserializeV2Stream(s);
         } else {
             UnserializeV1Stream(s);
         }
     }
+
+    /**
+     * BIP155 network ids recognized by this software.
+     */
+    enum BIP155Network : uint8_t {
+        IPV4 = 1,
+        IPV6 = 2,
+        TORV2 = 3,
+        TORV3 = 4,
+        I2P = 5,
+        CJDNS = 6,
+    };
 
     friend class CSubNet;
 
@@ -281,18 +289,6 @@ private:
      * @see CNetAddr::IsI2P()
      */
     bool SetI2P(const std::string& addr);
-
-    /**
-     * BIP155 network ids recognized by this software.
-     */
-    enum BIP155Network : uint8_t {
-        IPV4 = 1,
-        IPV6 = 2,
-        TORV2 = 3,
-        TORV3 = 4,
-        I2P = 5,
-        CJDNS = 6,
-    };
 
     /**
      * Size of CNetAddr when serialized as ADDRv1 (pre-BIP155) (in bytes).
@@ -452,7 +448,7 @@ private:
             // Recognize NET_INTERNAL embedded in IPv6, such addresses are not
             // gossiped but could be coming from addrman, when unserializing from
             // disk.
-            if (HasPrefix(m_addr, INTERNAL_IN_IPV6_PREFIX)) {
+            if (util::HasPrefix(m_addr, INTERNAL_IN_IPV6_PREFIX)) {
                 m_net = NET_INTERNAL;
                 memmove(m_addr.data(), m_addr.data() + INTERNAL_IN_IPV6_PREFIX.size(),
                         ADDR_INTERNAL_SIZE);
@@ -460,8 +456,8 @@ private:
                 return;
             }
 
-            if (!HasPrefix(m_addr, IPV4_IN_IPV6_PREFIX) &&
-                !HasPrefix(m_addr, TORV2_IN_IPV6_PREFIX)) {
+            if (!util::HasPrefix(m_addr, IPV4_IN_IPV6_PREFIX) &&
+                !util::HasPrefix(m_addr, TORV2_IN_IPV6_PREFIX)) {
                 return;
             }
 
@@ -544,6 +540,11 @@ public:
     uint16_t GetPort() const;
     bool GetSockAddr(struct sockaddr* paddr, socklen_t* addrlen) const;
     bool SetSockAddr(const struct sockaddr* paddr);
+    /**
+     * Get the address family
+     * @returns AF_UNSPEC if unspecified
+     */
+    [[nodiscard]] sa_family_t GetSAFamily() const;
     friend bool operator==(const CService& a, const CService& b);
     friend bool operator!=(const CService& a, const CService& b) { return !(a == b); }
     friend bool operator<(const CService& a, const CService& b);
@@ -566,8 +567,8 @@ class CServiceHash
 {
 public:
     CServiceHash()
-        : m_salt_k0{GetRand<uint64_t>()},
-          m_salt_k1{GetRand<uint64_t>()}
+        : m_salt_k0{FastRandomContext().rand64()},
+          m_salt_k1{FastRandomContext().rand64()}
     {
     }
 

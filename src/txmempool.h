@@ -21,6 +21,7 @@
 #include <util/epochguard.h>
 #include <util/hasher.h>
 #include <util/result.h>
+#include <util/feefrac.h>
 
 #include <boost/multi_index/hashed_index.hpp>
 #include <boost/multi_index/identity.hpp>
@@ -40,6 +41,9 @@
 #include <vector>
 
 class CChain;
+class ValidationSignals;
+
+struct bilingual_str;
 
 /** Fake height value used in Coin to signify they are only in the memory pool (since 0.8) */
 static const uint32_t MEMPOOL_HEIGHT = 0x7FFFFFFF;
@@ -202,8 +206,6 @@ struct entry_time {};
 struct ancestor_score {};
 struct index_by_wtxid {};
 
-class CBlockPolicyEstimator;
-
 /**
  * Information about a mempool transaction.
  */
@@ -301,9 +303,7 @@ struct TxMempoolInfo
 class CTxMemPool
 {
 protected:
-    const int m_check_ratio; //!< Value n means that 1 times in n we check.
     std::atomic<unsigned int> nTransactionsUpdated{0}; //!< Used by getblocktemplate to trigger CreateNewBlock() invocation
-    CBlockPolicyEstimator* const minerPolicyEstimator;
 
     uint64_t totalTxSize GUARDED_BY(cs){0};      //!< sum of all mempool tx's virtual sizes. Differs from serialized tx size since witness data is discounted. Defined in BIP 141.
     CAmount m_total_fee GUARDED_BY(cs){0};       //!< sum of all mempool tx's fees (NOT modified fee)
@@ -329,9 +329,7 @@ public:
 
     static const int ROLLING_FEE_HALFLIFE = 60 * 60 * 12; // public only for testing
 
-    typedef boost::multi_index_container<
-        CTxMemPoolEntry,
-        boost::multi_index::indexed_by<
+    struct CTxMemPoolEntry_Indices final : boost::multi_index::indexed_by<
             // sorted by txid
             boost::multi_index::hashed_unique<mempoolentry_txid, SaltedTxidHasher>,
             // sorted by wtxid
@@ -359,6 +357,10 @@ public:
                 CompareTxMemPoolEntryByAncestorFee
             >
         >
+        {};
+    typedef boost::multi_index_container<
+        CTxMemPoolEntry,
+        CTxMemPoolEntry_Indices
     > indexed_transaction_set;
 
     /**
@@ -366,9 +368,7 @@ public:
      * that are guarded by it.
      *
      * @par Consistency guarantees
-     *
      * By design, it is guaranteed that:
-     *
      * 1. Locking both `cs_main` and `mempool.cs` will give a view of mempool
      *    that is consistent with current chain tip (`ActiveChain()` and
      *    `CoinsTip()`) and is fully populated. Fully populated means that if the
@@ -376,7 +376,6 @@ public:
      *    previously active chain, all the missing transactions will have been
      *    re-added to the mempool and should be present if they meet size and
      *    consistency constraints.
-     *
      * 2. Locking `mempool.cs` without `cs_main` will give a view of a mempool
      *    consistent with some chain that was active since `cs_main` was last
      *    locked, and that is fully populated as described above. It is ok for
@@ -392,7 +391,7 @@ public:
     indexed_transaction_set mapTx GUARDED_BY(cs);
 
     using txiter = indexed_transaction_set::nth_index<0>::type::const_iterator;
-    std::vector<std::pair<uint256, txiter>> vTxHashes GUARDED_BY(cs); //!< All tx witness hashes/entries in mapTx, in random order
+    std::vector<CTransactionRef> txns_randomized GUARDED_BY(cs); //!< All transactions in mapTx, in random order
 
     typedef std::set<txiter, CompareIteratorByHash> setEntries;
 
@@ -437,24 +436,14 @@ public:
 
     using Options = kernel::MemPoolOptions;
 
-    const int64_t m_max_size_bytes;
-    const std::chrono::seconds m_expiry;
-    const CFeeRate m_incremental_relay_feerate;
-    const CFeeRate m_min_relay_feerate;
-    const CFeeRate m_dust_relay_feerate;
-    const bool m_permit_bare_multisig;
-    const std::optional<unsigned> m_max_datacarrier_bytes;
-    const bool m_require_standard;
-    const bool m_full_rbf;
-
-    const Limits m_limits;
+    const Options m_opts;
 
     /** Create a new CTxMemPool.
      * Sanity checks will be off by default for performance, because otherwise
      * accepting transactions becomes O(N^2) where N is the number of transactions
      * in the pool.
      */
-    explicit CTxMemPool(const Options& opts);
+    explicit CTxMemPool(Options opts, bilingual_str& error);
 
     /**
      * If sanity-checking is turned on, check makes sure the pool is
@@ -471,13 +460,13 @@ public:
     // Note that addUnchecked is ONLY called from ATMP outside of tests
     // and any other callers may break wallet's in-mempool tracking (due to
     // lack of CValidationInterface::TransactionAddedToMempool callbacks).
-    void addUnchecked(const CTxMemPoolEntry& entry, bool validFeeEstimate = true) EXCLUSIVE_LOCKS_REQUIRED(cs, cs_main);
-    void addUnchecked(const CTxMemPoolEntry& entry, setEntries& setAncestors, bool validFeeEstimate = true) EXCLUSIVE_LOCKS_REQUIRED(cs, cs_main);
+    void addUnchecked(const CTxMemPoolEntry& entry) EXCLUSIVE_LOCKS_REQUIRED(cs, cs_main);
+    void addUnchecked(const CTxMemPoolEntry& entry, setEntries& setAncestors) EXCLUSIVE_LOCKS_REQUIRED(cs, cs_main);
 
     void removeRecursive(const CTransaction& tx, MemPoolRemovalReason reason) EXCLUSIVE_LOCKS_REQUIRED(cs);
     /** After reorg, filter the entries that would no longer be valid in the next block, and update
      * the entries' cached LockPoints if needed.  The mempool does not have any knowledge of
-     * consensus rules. It just appplies the callable function and removes the ones for which it
+     * consensus rules. It just applies the callable function and removes the ones for which it
      * returns true.
      * @param[in]   filter_final_and_mature   Predicate that checks the relevant validation rules
      *                                        and updates an entry's LockPoints.
@@ -487,7 +476,6 @@ public:
     void removeForBlock(const std::vector<CTransactionRef>& vtx, unsigned int nBlockHeight) EXCLUSIVE_LOCKS_REQUIRED(cs);
 
     bool CompareDepthAndScore(const uint256& hasha, const uint256& hashb, bool wtxid=false);
-    void queryHashes(std::vector<uint256>& vtxid) const;
     bool isSpent(const COutPoint& outpoint) const;
     unsigned int GetTransactionsUpdated() const;
     void AddTransactionsUpdated(unsigned int n);
@@ -524,7 +512,7 @@ public:
     /** Translate a set of hashes into a set of pool iterators to avoid repeated lookups.
      * Does not require that all of the hashes correspond to actual transactions in the mempool,
      * only returns the ones that exist. */
-    setEntries GetIterSet(const std::set<uint256>& hashes) const EXCLUSIVE_LOCKS_REQUIRED(cs);
+    setEntries GetIterSet(const std::set<Txid>& hashes) const EXCLUSIVE_LOCKS_REQUIRED(cs);
 
     /** Translate a list of hashes into a list of mempool iterators to avoid repeated lookups.
      * The nth element in txids becomes the nth element in the returned vector. If any of the txids
@@ -607,11 +595,10 @@ public:
      *                                          to mempool. The transactions need not be direct
      *                                          ancestors/descendants of each other.
      * @param[in]       total_vsize             Sum of virtual sizes for all transactions in package.
-     * @param[out]      errString               Populated with error reason if a limit is hit.
+     * @returns {} or the error reason if a limit is hit.
      */
-    bool CheckPackageLimits(const Package& package,
-                            int64_t total_vsize,
-                            std::string &errString) const EXCLUSIVE_LOCKS_REQUIRED(cs);
+    util::Result<void> CheckPackageLimits(const Package& package,
+                                          int64_t total_vsize) const EXCLUSIVE_LOCKS_REQUIRED(cs);
 
     /** Populate setDescendants with all in-mempool descendants of hash.
      *  Assumes that setDescendants includes all in-mempool descendants of anything
@@ -625,7 +612,7 @@ public:
      *  would otherwise be half of this, it is set to 0 instead.
      */
     CFeeRate GetMinFee() const {
-        return GetMinFee(m_max_size_bytes);
+        return GetMinFee(m_opts.max_size_bytes);
     }
 
     /** Remove transactions from the mempool until its dynamic size is <= sizelimit.
@@ -684,6 +671,8 @@ public:
         return (mapTx.count(gtxid.GetHash()) != 0);
     }
 
+    const CTxMemPoolEntry* GetEntry(const Txid& txid) const LIFETIMEBOUND EXCLUSIVE_LOCKS_REQUIRED(cs);
+
     CTransactionRef get(const uint256& hash) const;
     txiter get_iter_from_wtxid(const uint256& wtxid) const EXCLUSIVE_LOCKS_REQUIRED(cs)
     {
@@ -695,6 +684,7 @@ public:
     /** Returns info for a transaction if its entry_sequence < last_sequence */
     TxMempoolInfo info_for_relay(const GenTxid& gtxid, uint64_t last_sequence) const;
 
+    std::vector<CTxMemPoolEntryRef> entryAll() const EXCLUSIVE_LOCKS_REQUIRED(cs);
     std::vector<TxMempoolInfo> infoAll() const;
 
     size_t DynamicMemoryUsage() const;
@@ -733,6 +723,28 @@ public:
     uint64_t GetSequence() const EXCLUSIVE_LOCKS_REQUIRED(cs) {
         return m_sequence_number;
     }
+
+    /**
+     * Calculate the sorted chunks for the old and new mempool relating to the
+     * clusters that would be affected by a potential replacement transaction.
+     * (replacement_fees, replacement_vsize) values are gathered from a
+     * proposed set of replacement transactions that are considered as a single
+     * chunk, and represent their complete cluster. In other words, they have no
+     * in-mempool ancestors.
+     *
+     * @param[in] replacement_fees    Package fees
+     * @param[in] replacement_vsize   Package size (must be greater than 0)
+     * @param[in] direct_conflicts    All transactions that would be removed directly by
+     *                                having a conflicting input with a proposed transaction
+     * @param[in] all_conflicts       All transactions that would be removed
+     * @return old and new diagram pair respectively, or an error string if the conflicts don't match a calculable topology
+     */
+    util::Result<std::pair<std::vector<FeeFrac>, std::vector<FeeFrac>>> CalculateChunksForRBF(CAmount replacement_fees, int64_t replacement_vsize, const setEntries& direct_conflicts, const setEntries& all_conflicts) EXCLUSIVE_LOCKS_REQUIRED(cs);
+
+    /* Check that all direct conflicts are in a cluster size of two or less. Each
+     * direct conflict may be in a separate cluster.
+     */
+    std::optional<std::string> CheckConflictTopology(const setEntries& direct_conflicts);
 
 private:
     /** UpdateForDescendants is used by UpdateTransactionsFromBlock to update

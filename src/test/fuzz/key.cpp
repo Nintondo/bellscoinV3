@@ -32,7 +32,7 @@
 
 void initialize_key()
 {
-    ECC_Start();
+    static ECC_Context ecc_context{};
     SelectParams(ChainType::REGTEST);
 }
 
@@ -76,16 +76,6 @@ FUZZ_TARGET(key, .init = initialize_key)
         CKey copied_key;
         copied_key.Set(key.begin(), key.end(), key.IsCompressed());
         assert(copied_key == key);
-    }
-
-    {
-        CKey negated_key = key;
-        negated_key.Negate();
-        assert(negated_key.IsValid());
-        assert(!(negated_key == key));
-
-        negated_key.Negate();
-        assert(negated_key == key);
     }
 
     const uint256 random_uint256 = Hash(buffer);
@@ -322,7 +312,10 @@ FUZZ_TARGET(ellswift_roundtrip, .init = initialize_key)
     auto encoded_ellswift = key.EllSwiftCreate(ent32);
     auto decoded_pubkey = encoded_ellswift.Decode();
 
-    assert(key.VerifyPubKey(decoded_pubkey));
+    uint256 hash{ConsumeUInt256(fdp)};
+    std::vector<unsigned char> sig;
+    key.Sign(hash, sig);
+    assert(decoded_pubkey.Verify(hash, sig));
 }
 
 FUZZ_TARGET(bip324_ecdh, .init = initialize_key)

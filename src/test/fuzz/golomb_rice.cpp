@@ -53,7 +53,7 @@ FUZZ_TARGET(golomb_rice)
         }
         CVectorWriter stream{0, golomb_rice_data, 0};
         WriteCompactSize(stream, static_cast<uint32_t>(elements.size()));
-        BitStreamWriter<CVectorWriter> bitwriter(stream);
+        BitStreamWriter bitwriter{stream};
         if (!elements.empty()) {
             uint64_t last_value = 0;
             for (const uint64_t value : BuildHashedSet(elements, static_cast<uint64_t>(elements.size()) * static_cast<uint64_t>(BASIC_FILTER_M))) {
@@ -69,7 +69,7 @@ FUZZ_TARGET(golomb_rice)
     std::vector<uint64_t> decoded_deltas;
     {
         SpanReader stream{0, golomb_rice_data};
-        BitStreamReader<SpanReader> bitreader{stream};
+        BitStreamReader bitreader{stream}; 
         const uint32_t n = static_cast<uint32_t>(ReadCompactSize(stream));
         for (uint32_t i = 0; i < n; ++i) {
             decoded_deltas.push_back(GolombRiceDecode(bitreader, BASIC_FILTER_P));
@@ -87,7 +87,7 @@ FUZZ_TARGET(golomb_rice)
         } catch (const std::ios_base::failure&) {
             return;
         }
-        BitStreamReader<SpanReader> bitreader{stream};
+        BitStreamReader bitreader{stream};
         for (uint32_t i = 0; i < std::min<uint32_t>(n, 1024); ++i) {
             try {
                 (void)GolombRiceDecode(bitreader, BASIC_FILTER_P);

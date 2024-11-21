@@ -18,7 +18,6 @@ from test_framework.util import (
     assert_equal,
     assert_fee_amount,
     assert_raises_rpc_error,
-    find_vout_for_address,
 )
 from test_framework.wallet_util import test_address
 from test_framework.wallet import MiniWallet
@@ -33,8 +32,10 @@ class WalletTest(BellscoinTestFramework):
 
     def set_test_params(self):
         self.num_nodes = 4
+        # whitelist peers to speed up tx relay / mempool sync
+        self.noban_tx_relay = True
         self.extra_args = [[
-            "-dustrelayfee=0", "-walletrejectlongchains=0", "-whitelist=noban@127.0.0.1"
+            "-dustrelayfee=0", "-walletrejectlongchains=0"
         ]] * self.num_nodes
         self.setup_clean_chain = True
         self.supports_cli = False
@@ -460,10 +461,13 @@ class WalletTest(BellscoinTestFramework):
             assert_raises_rpc_error(-5, "Invalid Bitcoin address or script", self.nodes[0].importaddress, "invalid")
 
             # This will raise an exception for attempting to import a pubkey that isn't in hex
-            assert_raises_rpc_error(-5, "Pubkey must be a hex string", self.nodes[0].importpubkey, "not hex")
+            assert_raises_rpc_error(-5, 'Pubkey "not hex" must be a hex string', self.nodes[0].importpubkey, "not hex")
 
-            # This will raise an exception for importing an invalid pubkey
-            assert_raises_rpc_error(-5, "Pubkey is not a valid public key", self.nodes[0].importpubkey, "5361746f736869204e616b616d6f746f")
+            # This will raise exceptions for importing a pubkeys with invalid length / invalid coordinates
+            too_short_pubkey = "5361746f736869204e616b616d6f746f"
+            assert_raises_rpc_error(-5, f'Pubkey "{too_short_pubkey}" must have a length of either 33 or 65 bytes', self.nodes[0].importpubkey, too_short_pubkey)
+            not_on_curve_pubkey = bytes([4] + [0]*64).hex()  # pubkey with coordinates (0,0) is not on curve
+            assert_raises_rpc_error(-5, f'Pubkey "{not_on_curve_pubkey}" must be cryptographically valid', self.nodes[0].importpubkey, not_on_curve_pubkey)
 
             # Bech32m addresses cannot be imported into a legacy wallet
             assert_raises_rpc_error(-5, "Bech32m addresses cannot be imported into legacy wallets", self.nodes[0].importaddress, "bcrt1p0xlxvlhemja6c4dqv22uapctqupfhlxm9h8z3k2e72q4k9hcz7vqc8gma6")
@@ -471,10 +475,9 @@ class WalletTest(BellscoinTestFramework):
             # Import address and private key to check correct behavior of spendable unspents
             # 1. Send some coins to generate new UTXO
             address_to_import = self.nodes[2].getnewaddress()
-            txid = self.nodes[0].sendtoaddress(address_to_import, 1)
+            utxo = self.create_outpoints(self.nodes[0], outputs=[{address_to_import: 1}])[0]
             self.sync_mempools(self.nodes[0:3])
-            vout = find_vout_for_address(self.nodes[2], txid, address_to_import)
-            self.nodes[2].lockunspent(False, [{"txid": txid, "vout": vout}])
+            self.nodes[2].lockunspent(False, [utxo])
             self.generate(self.nodes[0], 1, sync_fun=lambda: self.sync_all(self.nodes[0:3]))
 
             self.log.info("Test sendtoaddress with fee_rate param (explicit fee rate in sat/vB)")
@@ -641,7 +644,7 @@ class WalletTest(BellscoinTestFramework):
 
         node0_balance = self.nodes[0].getbalance()
         # With walletrejectlongchains we will not create the tx and store it in our wallet.
-        assert_raises_rpc_error(-6, "Transaction has too long of a mempool chain", self.nodes[0].sendtoaddress, sending_addr, node0_balance - Decimal('0.01'))
+        assert_raises_rpc_error(-6, f"too many unconfirmed ancestors [limit: {chainlimit * 2}]", self.nodes[0].sendtoaddress, sending_addr, node0_balance - Decimal('0.01'))
 
         # Verify nothing new in wallet
         assert_equal(total_txs, len(self.nodes[0].listtransactions("*", 99999)))
@@ -681,7 +684,7 @@ class WalletTest(BellscoinTestFramework):
                                  "category": baz["category"],
                                  "vout":     baz["vout"]}
         expected_fields = frozenset({'amount', 'bip125-replaceable', 'confirmations', 'details', 'fee',
-                                     'hex', 'lastprocessedblock', 'time', 'timereceived', 'trusted', 'txid', 'wtxid', 'walletconflicts'})
+                                     'hex', 'lastprocessedblock', 'time', 'timereceived', 'trusted', 'txid', 'wtxid', 'walletconflicts', 'mempoolconflicts'})
         verbose_field = "decoded"
         expected_verbose_fields = expected_fields | {verbose_field}
 
@@ -815,4 +818,4 @@ class WalletTest(BellscoinTestFramework):
 
 
 if __name__ == '__main__':
-    WalletTest().main()
+    WalletTest(__file__).main()

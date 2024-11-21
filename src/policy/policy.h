@@ -98,7 +98,7 @@ static constexpr unsigned int MANDATORY_SCRIPT_VERIFY_FLAGS{SCRIPT_VERIFY_P2SH |
  * Standard script verification flags that standard transactions will comply
  * with. However we do not ban/disconnect nodes that forward txs violating
  * the additional (non-mandatory) rules here, to improve forwards and
- * backwards compatability.
+ * backwards compatibility.
  */
 static constexpr unsigned int STANDARD_SCRIPT_VERIFY_FLAGS{MANDATORY_SCRIPT_VERIFY_FLAGS |
                                                              SCRIPT_VERIFY_STRICTENC |
@@ -113,7 +113,12 @@ static constexpr unsigned int STANDARD_SCRIPT_VERIFY_FLAGS{MANDATORY_SCRIPT_VERI
                                                              SCRIPT_VERIFY_CONST_SCRIPTCODE |
                                                              SCRIPT_VERIFY_DISCOURAGE_UPGRADABLE_TAPROOT_VERSION |
                                                              SCRIPT_VERIFY_DISCOURAGE_OP_SUCCESS |
-                                                             SCRIPT_VERIFY_DISCOURAGE_UPGRADABLE_PUBKEYTYPE};
+                                                             SCRIPT_VERIFY_DISCOURAGE_UPGRADABLE_PUBKEYTYPE |
+                                                             SCRIPT_VERIFY_DISCOURAGE_UPGRADABLE_CHECK_TEMPLATE_VERIFY_HASH |
+                                                             SCRIPT_VERIFY_DEFAULT_CHECK_TEMPLATE_VERIFY_HASH |
+                                                             SCRIPT_VERIFY_ANYPREVOUT |
+                                                             SCRIPT_VERIFY_OP_CAT
+                                                            };
 
 /** For convenience, standard but not mandatory verify flags. */
 static constexpr unsigned int STANDARD_NOT_MANDATORY_VERIFY_FLAGS{STANDARD_SCRIPT_VERIFY_FLAGS & ~MANDATORY_SCRIPT_VERIFY_FLAGS};
@@ -131,7 +136,7 @@ bool IsStandard(const CScript& scriptPubKey, const std::optional<unsigned>& max_
 // Changing the default transaction version requires a two step process: first
 // adapting relay policy by bumping TX_MAX_STANDARD_VERSION, and then later
 // allowing the new transaction version in the wallet/RPC.
-static constexpr decltype(CTransaction::nVersion) TX_MAX_STANDARD_VERSION{2};
+static constexpr decltype(CTransaction::nVersion) TX_MAX_STANDARD_VERSION{3};
 
 /**
 * Check for standard transaction types

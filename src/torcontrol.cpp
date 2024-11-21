@@ -42,6 +42,10 @@
 #include <event2/thread.h>
 #include <event2/util.h>
 
+using util::ReplaceAll;
+using util::SplitString;
+using util::ToString;
+
 /** Default control ip and port */
 const std::string DEFAULT_TOR_CONTROL = "127.0.0.1:" + ToString(DEFAULT_TOR_CONTROL_PORT);
 /** Tor cookie size (from control-spec.txt) */
@@ -251,7 +255,7 @@ std::map<std::string,std::string> ParseTorReplyMapping(const std::string &s)
             /**
              * Unescape value. Per https://spec.torproject.org/control-spec section 2.1.1:
              *
-             *   For future-proofing, controller implementors MAY use the following
+             *   For future-proofing, controller implementers MAY use the following
              *   rules to be compatible with buggy Tor implementations and with
              *   future ones that implement the spec as intended:
              *
@@ -433,7 +437,7 @@ void TorController::add_onion_cb(TorControlConnection& _conn, const TorControlRe
             return;
         }
         service = LookupNumeric(std::string(service_id+".onion"), GlobParams().GetDefaultPort());
-        LogPrintfCategory(BCLog::TOR, "Got service ID %s, advertising service %s\n", service_id, service.ToStringAddrPort());
+        LogInfo("Got tor service ID %s, advertising service %s\n", service_id, service.ToStringAddrPort());
         if (WriteBinaryFile(GetPrivateKeyFile(), private_key)) {
             LogPrint(BCLog::TOR, "Cached service private key to %s\n", fs::PathToString(GetPrivateKeyFile()));
         } else {

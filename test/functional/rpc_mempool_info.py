@@ -96,4 +96,4 @@ class RPCMempoolInfoTest(BellscoinTestFramework):
 
 
 if __name__ == '__main__':
-    RPCMempoolInfoTest().main()
+    RPCMempoolInfoTest(__file__).main()

@@ -295,7 +295,7 @@ struct TapSatisfier: Satisfier<XOnlyPubKey> {
     //! Conversion from a raw xonly public key.
     template <typename I>
     std::optional<XOnlyPubKey> FromPKBytes(I first, I last) const {
-        CHECK_NONFATAL(last - first == 32);
+        if (last - first != 32) return {};
         XOnlyPubKey pubkey;
         std::copy(first, last, pubkey.begin());
         return pubkey;
@@ -379,7 +379,7 @@ static bool SignTaproot(const SigningProvider& provider, const BaseSignatureCrea
             result_stack.emplace_back(std::begin(script), std::end(script)); // Push the script
             result_stack.push_back(*control_blocks.begin()); // Push the smallest control block
             if (smallest_result_stack.size() == 0 ||
-                GetSerializeSize(result_stack, PROTOCOL_VERSION) < GetSerializeSize(smallest_result_stack, PROTOCOL_VERSION)) {
+                GetSerializeSize(result_stack) < GetSerializeSize(smallest_result_stack)) {
                 smallest_result_stack = std::move(result_stack);
             }
         }
@@ -412,6 +412,7 @@ static bool SignStep(const SigningProvider& provider, const BaseSignatureCreator
     case TxoutType::NONSTANDARD:
     case TxoutType::NULL_DATA:
     case TxoutType::WITNESS_UNKNOWN:
+    case TxoutType::TX_BARE_DEFAULT_CHECK_TEMPLATE_VERIFY_HASH:
         return false;
     case TxoutType::PUBKEY:
         if (!CreateSig(creator, sigdata, provider, sig, CPubKey(vSolutions[0]), scriptPubKey, sigversion)) return false;
@@ -475,6 +476,9 @@ static bool SignStep(const SigningProvider& provider, const BaseSignatureCreator
 
     case TxoutType::WITNESS_V1_TAPROOT:
         return SignTaproot(provider, creator, WitnessV1Taproot(XOnlyPubKey{vSolutions[0]}), sigdata, ret);
+
+    case TxoutType::ANCHOR:
+        return true;
     } // no default case, so the compiler can warn about missing cases
     assert(false);
 }
@@ -831,7 +835,7 @@ bool SignTransaction(CMutableTransaction& mtx, const SigningProvider* keystore, 
         }
 
         ScriptError serror = SCRIPT_ERR_OK;
-        if (!VerifyScript(txin.scriptSig, prevPubKey, &txin.scriptWitness, STANDARD_SCRIPT_VERIFY_FLAGS, TransactionSignatureChecker(&txConst, i, amount, txdata, MissingDataBehavior::FAIL), &serror)) {
+        if (!sigdata.complete && !VerifyScript(txin.scriptSig, prevPubKey, &txin.scriptWitness, STANDARD_SCRIPT_VERIFY_FLAGS, TransactionSignatureChecker(&txConst, i, amount, txdata, MissingDataBehavior::FAIL), &serror)) {
             if (serror == SCRIPT_ERR_INVALID_STACK_OPERATION) {
                 // Unable to sign input and verification failed (possible attempt to partially sign).
                 input_errors[i] = Untranslated("Unable to sign input, invalid stack size (possibly missing key)");

@@ -10,10 +10,11 @@
 #include <cstddef>
 #include <cstdint>
 #include <functional>
+#include <vector>
 
-class CBlock;
 class CBlockIndex;
 class CTransaction;
+class CBlock;
 
 class CZMQAbstractPublishNotifier : public CZMQAbstractNotifier
 {

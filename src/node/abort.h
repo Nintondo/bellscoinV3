@@ -5,13 +5,17 @@
 #ifndef BITCOIN_NODE_ABORT_H
 #define BITCOIN_NODE_ABORT_H
 
-#include <util/translation.h>
-
 #include <atomic>
-#include <string>
+
+struct bilingual_str;
+
+namespace util {
+class SignalInterrupt;
+} // namespace util
 
 namespace node {
-void AbortNode(std::atomic<int>& exit_status, const std::string& debug_message, const bilingual_str& user_message = {}, bool shutdown = true);
+class Warnings;
+void AbortNode(util::SignalInterrupt* shutdown, std::atomic<int>& exit_status, const bilingual_str& message, node::Warnings* warnings);
 } // namespace node
 
 #endif // BITCOIN_NODE_ABORT_H
