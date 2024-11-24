@@ -49,6 +49,10 @@ std::string ScriptErrorString(const ScriptError serror)
             return "Operation not valid with the current altstack size";
         case SCRIPT_ERR_OP_RETURN:
             return "OP_RETURN was encountered";
+        case INVALID_NUMBER_RANGE:
+            return "Given operand is not a number within the valid range [-2^31 + 1, 2^31 - 1]";
+        case INVALID_NUMBER_RANGE_64_BIT:
+            return "Given operand is not a number within the valid range [-2^63 + 1, 2^63 - 1]";
         case SCRIPT_ERR_UNBALANCED_CONDITIONAL:
             return "Invalid OP_IF construction";
         case SCRIPT_ERR_NEGATIVE_LOCKTIME:

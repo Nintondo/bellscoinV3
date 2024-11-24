@@ -408,8 +408,8 @@ static bool EvalChecksig(const valtype& sig, const valtype& pubkey, CScript::con
 
 bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& script, unsigned int flags, const BaseSignatureChecker& checker, SigVersion sigversion, ScriptExecutionData& execdata, ScriptError* serror)
 {
-    static const CScriptNum bnZero(0);
-    static const CScriptNum bnOne(1);
+    static const CScriptNum bnZero(CScriptNum::fromIntUnchecked(0));
+    static const CScriptNum bnOne(CScriptNum::fromIntUnchecked(1));
     // static const CScriptNum bnFalse(0);
     // static const CScriptNum bnTrue(1);
     static const valtype vchFalse(0);
@@ -430,10 +430,23 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
         return set_error(serror, SCRIPT_ERR_SCRIPT_SIZE);
     }
     int nOpCount = 0;
-    bool fRequireMinimal = (flags & SCRIPT_VERIFY_MINIMALDATA) != 0;
+    bool const fRequireMinimal = (flags & SCRIPT_VERIFY_MINIMALDATA) != 0;
+    bool const nativeIntrospection = (flags & SCRIPT_NATIVE_INTROSPECTION) != 0;
+    bool const integers64Bit = (flags & SCRIPT_64_BIT_INTEGERS) != 0;
+    bool const nativeTokens = (flags & SCRIPT_ENABLE_TOKENS) != 0;
     uint32_t opcode_pos = 0;
     execdata.m_codeseparator_pos = 0xFFFFFFFFUL;
     execdata.m_codeseparator_pos_init = true;
+
+
+    size_t const maxIntegerSize = integers64Bit ?
+        CScriptNum::MAXIMUM_ELEMENT_SIZE_64_BIT :
+        CScriptNum::MAXIMUM_ELEMENT_SIZE_32_BIT;
+
+    ScriptError const invalidNumberRangeError = integers64Bit ?
+        ScriptError::INVALID_NUMBER_RANGE_64_BIT :
+        ScriptError::INVALID_NUMBER_RANGE;
+
     try
     {
         for (; pc < pend; ++opcode_pos) {
@@ -510,7 +523,7 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
                 case OP_16:
                 {
                     // ( -- value)
-                    CScriptNum bn((int)opcode - (int)(OP_1 - 1));
+                    CScriptNum bn = CScriptNum::fromIntUnchecked(((int)opcode - (int)(OP_1 - 1)));
                     stack.push_back(bn.getvch());
                     // The result of these opcodes should always be the minimal way to push the data
                     // they push, so no need for a CheckMinimalPush here.
@@ -829,7 +842,7 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
                 case OP_DEPTH:
                 {
                     // -- stacksize
-                    CScriptNum bn(stack.size());
+                    CScriptNum bn = CScriptNum::fromIntUnchecked(stack.size());
                     stack.push_back(bn.getvch());
                 }
                 break;
@@ -927,7 +940,7 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
                     // (in -- in size)
                     if (stack.size() < 1)
                         return set_error(serror, SCRIPT_ERR_INVALID_STACK_OPERATION);
-                    CScriptNum bn(stacktop(-1).size());
+                    CScriptNum bn = CScriptNum::fromIntUnchecked(stacktop(-1).size());
                     stack.push_back(bn.getvch());
                 }
                 break;
@@ -1014,7 +1027,7 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
                         return set_error(serror, SCRIPT_ERR_INVALID_STACK_OPERATION);
                     CScriptNum bn1(stacktop(-2), fRequireMinimal);
                     CScriptNum bn2(stacktop(-1), fRequireMinimal);
-                    CScriptNum bn(0);
+                    CScriptNum bn = CScriptNum::fromIntUnchecked(0);
                     switch (opcode)
                     {
                     case OP_ADD:
@@ -1030,7 +1043,7 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
                         auto res = bn1.safeMul(bn2);
                         if (!res)
                         {
-                            return set_error(serror, SCRIPT_ERR_INVALID_NUMBER_RANGE_64_BIT);
+                            return set_error(serror, INVALID_NUMBER_RANGE_64_BIT);
                         }
                         bn = *res;
                         break;

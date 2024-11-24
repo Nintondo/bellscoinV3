@@ -23,6 +23,16 @@ typedef enum ScriptError_t
     SCRIPT_ERR_SIG_COUNT,
     SCRIPT_ERR_PUBKEY_COUNT,
 
+    /* Operands checks */
+    INVALID_OPERAND_SIZE,
+    INVALID_NUMBER_RANGE,
+    IMPOSSIBLE_ENCODING,
+    INVALID_SPLIT_RANGE,
+    INVALID_BIT_COUNT,
+
+    /* Malleability */
+    MINIMALNUM,
+
     /* Failed verify operations */
     SCRIPT_ERR_VERIFY,
     SCRIPT_ERR_EQUALVERIFY,
@@ -81,6 +91,9 @@ typedef enum ScriptError_t
     
     /* OP_CAT re-activation */
     SCRIPT_ERR_DISCOURAGE_OP_CAT,
+
+    /* Operands checks Bigger Integers (64-bit) */
+    INVALID_NUMBER_RANGE_64_BIT,
 
     /* Constant scriptCode */
     SCRIPT_ERR_OP_CODESEPARATOR,

@@ -161,6 +161,19 @@ enum : uint32_t {
     // Support OP_CAT in tapscript
     SCRIPT_VERIFY_OP_CAT = (1U << 26),
     SCRIPT_VERIFY_DISCOURAGE_OP_CAT = (1U << 27),
+
+    // Flag that allows us to determine if the script interpreter should allow
+    // 64-bit integer arithmetic and the return of OP_MUL or use the previous
+    // semantics.
+    SCRIPT_64_BIT_INTEGERS = (1U << 28),
+
+    // Native Introspection opcodes.
+    SCRIPT_NATIVE_INTROSPECTION = (1U << 29),
+
+    // Enable native tokens support, including all consensus rules & native
+    // introspection op-codes related to them.
+    SCRIPT_ENABLE_TOKENS = (1U << 30),
+
     // Constants to point to the highest flag in use. Add new flags above this line.
     //
     SCRIPT_VERIFY_END_MARKER

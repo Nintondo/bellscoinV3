@@ -12,6 +12,7 @@
 #include <serialize.h>
 #include <uint256.h>
 #include <util/hash_type.h>
+#include "script_error.h"
 
 #include <cassert>
 #include <cstdint>
@@ -219,10 +220,12 @@ static const unsigned int MAX_OPCODE = OP_NOP10;
 
 std::string GetOpName(opcodetype opcode);
 
-class scriptnum_error : public std::runtime_error
-{
-public:
-    explicit scriptnum_error(const std::string& str) : std::runtime_error(str) {}
+struct scriptnum_error : std::runtime_error {
+    ScriptError scriptError;
+    explicit
+    scriptnum_error(const std::string &str, ScriptError err = ScriptError::SCRIPT_ERR_UNKNOWN_ERROR)
+        : std::runtime_error(str), scriptError(err)
+    {}
 };
 
 class CScriptNum
@@ -277,6 +280,12 @@ public:
         }
         _value = set_vch(vch);
     }
+
+    static
+    bool IsMinimallyEncoded(const std::vector<uint8_t> &vch, size_t maxIntegerSize);
+
+    static
+    bool MinimallyEncode(std::vector<uint8_t> &data);
 
     /**
      * Factory method to safely construct an instance from a raw int64_t.
@@ -420,6 +429,22 @@ public:
     }
 
 private:
+    static
+    int64_t fromBytes(std::vector<uint8_t> const& vch, bool fRequireMinimal, size_t maxIntegerSize) {
+        if (maxIntegerSize > MAXIMUM_ELEMENT_SIZE_64_BIT) {
+            throw scriptnum_error("maxIntegerSize cannot be greater than 8");
+        }
+        if (vch.size() > maxIntegerSize) {
+            throw scriptnum_error("script number overflow",
+                                  maxIntegerSize == 8 ? ScriptError::INVALID_NUMBER_RANGE_64_BIT
+                                                      : ScriptError::INVALID_NUMBER_RANGE);
+        }
+        if (fRequireMinimal && ! IsMinimallyEncoded(vch, maxIntegerSize)) {
+            throw scriptnum_error("non-minimally encoded script number", ScriptError::MINIMALNUM);
+        }
+        return set_vch(vch);
+    }
+
     static int64_t set_vch(const std::vector<unsigned char>& vch)
     {
       if (vch.empty())
@@ -596,6 +621,7 @@ public:
     /** Checks if output of IsWitnessProgram comes from a P2A output script
      */
     static bool IsPayToAnchor(int version, const std::vector<unsigned char>& program);
+
 
     bool IsPayToScriptHash() const;
     bool IsPayToWitnessScriptHash() const;

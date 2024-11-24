@@ -26,7 +26,7 @@ static bool verify(const CScriptNum10& bignum, const CScriptNum& scriptnum)
 static void CheckCreateVch(const int64_t& num)
 {
     CScriptNum10 bignum(num);
-    CScriptNum scriptnum(num);
+    CScriptNum scriptnum(CScriptNum::fromIntUnchecked(num));
     BOOST_CHECK(verify(bignum, scriptnum));
 
     CScriptNum10 bignum2(bignum.getvch(), false);
@@ -41,7 +41,7 @@ static void CheckCreateVch(const int64_t& num)
 static void CheckCreateInt(const int64_t& num)
 {
     CScriptNum10 bignum(num);
-    CScriptNum scriptnum(num);
+    CScriptNum scriptnum(CScriptNum::fromIntUnchecked(num));
     BOOST_CHECK(verify(bignum, scriptnum));
     BOOST_CHECK(verify(CScriptNum10(bignum.getint()), CScriptNum(scriptnum.getint())));
     BOOST_CHECK(verify(CScriptNum10(scriptnum.getint()), CScriptNum(bignum.getint())));
@@ -53,12 +53,12 @@ static void CheckAdd(const int64_t& num1, const int64_t& num2)
 {
     const CScriptNum10 bignum1(num1);
     const CScriptNum10 bignum2(num2);
-    const CScriptNum scriptnum1(num1);
-    const CScriptNum scriptnum2(num2);
+    const CScriptNum scriptnum1(CScriptNum::fromIntUnchecked(num1));
+    const CScriptNum scriptnum2(CScriptNum::fromIntUnchecked(num2));
     CScriptNum10 bignum3(num1);
     CScriptNum10 bignum4(num1);
-    CScriptNum scriptnum3(num1);
-    CScriptNum scriptnum4(num1);
+    CScriptNum scriptnum3(CScriptNum::fromIntUnchecked(num1));
+    CScriptNum scriptnum4(CScriptNum::fromIntUnchecked(num1));
 
     // int64_t overflow is undefined.
     bool invalid = (((num2 > 0) && (num1 > (std::numeric_limits<int64_t>::max() - num2))) ||
@@ -74,7 +74,7 @@ static void CheckAdd(const int64_t& num1, const int64_t& num2)
 static void CheckNegate(const int64_t& num)
 {
     const CScriptNum10 bignum(num);
-    const CScriptNum scriptnum(num);
+    const CScriptNum scriptnum(CScriptNum::fromIntUnchecked(num));
 
     // -INT64_MIN is undefined
     if (num != std::numeric_limits<int64_t>::min())
@@ -85,8 +85,8 @@ static void CheckSubtract(const int64_t& num1, const int64_t& num2)
 {
     const CScriptNum10 bignum1(num1);
     const CScriptNum10 bignum2(num2);
-    const CScriptNum scriptnum1(num1);
-    const CScriptNum scriptnum2(num2);
+    const CScriptNum scriptnum1(CScriptNum::fromIntUnchecked(num1));
+    const CScriptNum scriptnum2(CScriptNum::fromIntUnchecked(num2));
 
     // int64_t overflow is undefined.
     bool invalid = ((num2 > 0 && num1 < std::numeric_limits<int64_t>::min() + num2) ||
@@ -110,8 +110,8 @@ static void CheckCompare(const int64_t& num1, const int64_t& num2)
 {
     const CScriptNum10 bignum1(num1);
     const CScriptNum10 bignum2(num2);
-    const CScriptNum scriptnum1(num1);
-    const CScriptNum scriptnum2(num2);
+    const CScriptNum scriptnum1(CScriptNum::fromIntUnchecked(num1));
+    const CScriptNum scriptnum2(CScriptNum::fromIntUnchecked(num2));
 
     BOOST_CHECK((bignum1 == bignum1) == (scriptnum1 == scriptnum1));
     BOOST_CHECK((bignum1 != bignum1) ==  (scriptnum1 != scriptnum1));
@@ -145,7 +145,7 @@ static void CheckCompare(const int64_t& num1, const int64_t& num2)
 static void RunCreate(const int64_t& num)
 {
     CheckCreateInt(num);
-    CScriptNum scriptnum(num);
+    CScriptNum scriptnum(CScriptNum::fromIntUnchecked(num));
     if (scriptnum.getvch().size() <= CScriptNum::nDefaultMaxNumSize)
         CheckCreateVch(num);
     else

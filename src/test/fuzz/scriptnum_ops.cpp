@@ -15,12 +15,12 @@
 namespace {
 bool IsValidAddition(const CScriptNum& lhs, const CScriptNum& rhs)
 {
-    return rhs == 0 || (rhs > 0 && lhs <= CScriptNum{std::numeric_limits<int64_t>::max()} - rhs) || (rhs < 0 && lhs >= CScriptNum{std::numeric_limits<int64_t>::min()} - rhs);
+    return rhs == 0 || (rhs > 0 && lhs <= CScriptNum{CScriptNum::fromIntUnchecked(std::numeric_limits<int64_t>::max())} - rhs) || (rhs < 0 && lhs >= CScriptNum{CScriptNum::fromIntUnchecked(std::numeric_limits<int64_t>::min())} - rhs);
 }
 
 bool IsValidSubtraction(const CScriptNum& lhs, const CScriptNum& rhs)
 {
-    return rhs == 0 || (rhs > 0 && lhs >= CScriptNum{std::numeric_limits<int64_t>::min()} + rhs) || (rhs < 0 && lhs <= CScriptNum{std::numeric_limits<int64_t>::max()} + rhs);
+    return rhs == 0 || (rhs > 0 && lhs >= CScriptNum{CScriptNum::fromIntUnchecked(std::numeric_limits<int64_t>::min())} + rhs) || (rhs < 0 && lhs <= CScriptNum{CScriptNum::fromIntUnchecked(std::numeric_limits<int64_t>::max())} + rhs);
 }
 } // namespace
 
@@ -38,12 +38,12 @@ FUZZ_TARGET(scriptnum_ops)
                 assert((script_num >= i) != (script_num < i));
                 // Avoid signed integer overflow:
                 // script/script.h:264:93: runtime error: signed integer overflow: -2261405121394637306 + -9223372036854775802 cannot be represented in type 'long'
-                if (IsValidAddition(script_num, CScriptNum{i})) {
+                if (IsValidAddition(script_num, CScriptNum{CScriptNum::fromIntUnchecked(i)})) {
                     assert((script_num + i) - i == script_num);
                 }
                 // Avoid signed integer overflow:
                 // script/script.h:265:93: runtime error: signed integer overflow: 9223371895120855039 - -9223372036854710486 cannot be represented in type 'long'
-                if (IsValidSubtraction(script_num, CScriptNum{i})) {
+                if (IsValidSubtraction(script_num, CScriptNum{CScriptNum::fromIntUnchecked(i)})) {
                     assert((script_num - i) + i == script_num);
                 }
             },
@@ -91,7 +91,7 @@ FUZZ_TARGET(scriptnum_ops)
                 script_num &= ConsumeScriptNum(fuzzed_data_provider);
             },
             [&] {
-                if (script_num == CScriptNum{std::numeric_limits<int64_t>::min()}) {
+                if (script_num == CScriptNum{CScriptNum::fromIntUnchecked(std::numeric_limits<int64_t>::min())}) {
                     // Avoid assertion failure:
                     // ./script/script.h:279: CScriptNum CScriptNum::operator-() const: Assertion `m_value != std::numeric_limits<int64_t>::min()' failed.
                     return;
@@ -103,7 +103,7 @@ FUZZ_TARGET(scriptnum_ops)
             },
             [&] {
                 const int64_t random_integer = fuzzed_data_provider.ConsumeIntegral<int64_t>();
-                if (!IsValidAddition(script_num, CScriptNum{random_integer})) {
+                if (!IsValidAddition(script_num, CScriptNum{CScriptNum::fromIntUnchecked(random_integer)})) {
                     // Avoid assertion failure:
                     // ./script/script.h:292: CScriptNum &CScriptNum::operator+=(const int64_t &): Assertion `rhs == 0 || (rhs > 0 && m_value <= std::numeric_limits<int64_t>::max() - rhs) || (rhs < 0 && m_value >= std::numeric_limits<int64_t>::min() - rhs)' failed.
                     return;
@@ -112,7 +112,7 @@ FUZZ_TARGET(scriptnum_ops)
             },
             [&] {
                 const int64_t random_integer = fuzzed_data_provider.ConsumeIntegral<int64_t>();
-                if (!IsValidSubtraction(script_num, CScriptNum{random_integer})) {
+                if (!IsValidSubtraction(script_num, CScriptNum{CScriptNum::fromIntUnchecked(random_integer)})) {
                     // Avoid assertion failure:
                     // ./script/script.h:300: CScriptNum &CScriptNum::operator-=(const int64_t &): Assertion `rhs == 0 || (rhs > 0 && m_value >= std::numeric_limits<int64_t>::min() + rhs) || (rhs < 0 && m_value <= std::numeric_limits<int64_t>::max() + rhs)' failed.
                     return;

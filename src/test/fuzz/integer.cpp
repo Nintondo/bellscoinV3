@@ -134,7 +134,7 @@ FUZZ_TARGET(integer, .init = initialize_integer)
     const std::chrono::seconds seconds{i64};
     assert(count_seconds(seconds) == i64);
 
-    const CScriptNum script_num{i64};
+    const CScriptNum script_num{CScriptNum::fromIntUnchecked(i64)};
     (void)script_num.getint();
     (void)script_num.getvch();
 
