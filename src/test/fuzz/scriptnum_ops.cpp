@@ -122,7 +122,7 @@ FUZZ_TARGET(scriptnum_ops)
             [&] {
                 script_num &= fuzzed_data_provider.ConsumeIntegral<int64_t>();
             });
-        (void)script_num.getint();
+        (void)script_num.getint64();
         (void)script_num.getvch();
     }
 }

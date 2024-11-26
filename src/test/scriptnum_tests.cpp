@@ -38,14 +38,14 @@ static void CheckCreateVch(const int64_t& num)
     BOOST_CHECK(verify(bignum3, scriptnum3));
 }
 
-static void CheckCreateInt(const int64_t& num)
-{
-    CScriptNum10 bignum(num);
-    CScriptNum scriptnum(CScriptNum::fromIntUnchecked(num));
-    BOOST_CHECK(verify(bignum, scriptnum));
-    BOOST_CHECK(verify(CScriptNum10(bignum.getint()), CScriptNum(scriptnum.getint())));
-    BOOST_CHECK(verify(CScriptNum10(scriptnum.getint()), CScriptNum(bignum.getint())));
-    BOOST_CHECK(verify(CScriptNum10(CScriptNum10(scriptnum.getint()).getint()), CScriptNum(CScriptNum(bignum.getint()).getint())));
+static void CheckCreateInt(const int64_t& num) {
+    auto const scriptx = CScriptNum::fromIntUnchecked(num);
+    CScriptNum10 const bigx(num);
+    BOOST_CHECK(verify(bigx, scriptx));
+    BOOST_CHECK(verify(CScriptNum10(bigx.getint()), CScriptNum::fromIntUnchecked(scriptx.getint32())));
+    BOOST_CHECK(verify(CScriptNum10(scriptx.getint32()), CScriptNum::fromIntUnchecked(bigx.getint())));
+    BOOST_CHECK(verify(CScriptNum10(CScriptNum10(scriptx.getint32()).getint()),
+                       CScriptNum::fromIntUnchecked(CScriptNum::fromIntUnchecked(bigx.getint()).getint32())));
 }
 
 

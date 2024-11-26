@@ -64,15 +64,15 @@ static constexpr bool IsSmallInteger(opcodetype opcode)
 
 /** Retrieve a minimally-encoded number in range [min,max] from an (opcode, data) pair,
  *  whether it's OP_n or through a push. */
-static std::optional<int> GetScriptNumber(opcodetype opcode, valtype data, int min, int max)
+static std::optional<int64_t> GetScriptNumber(opcodetype opcode, valtype data, int min, int max)
 {
-    int count;
+    int64_t count;
     if (IsSmallInteger(opcode)) {
         count = CScript::DecodeOP_N(opcode);
     } else if (IsPushdataOp(opcode)) {
         if (!CheckMinimalPush(data, opcode)) return {};
         try {
-            count = CScriptNum(data, /* fRequireMinimal = */ true).getint();
+            count = CScriptNum(data, /* fRequireMinimal = */ true).getint64(); // TODO: recheck we need geint32\64
         } catch (const scriptnum_error&) {
             return {};
         }

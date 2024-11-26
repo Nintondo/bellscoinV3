@@ -410,7 +410,7 @@ std::optional<int64_t> ParseScriptNumber(const Opcode& in) {
     if (!in.second.empty()) {
         if (IsPushdataOp(in.first) && !CheckMinimalPush(in.second, in.first)) return {};
         try {
-            return CScriptNum(in.second, true).GetInt64();
+            return CScriptNum(in.second, true).getint64();
         } catch(const scriptnum_error&) {}
     }
     return {};
