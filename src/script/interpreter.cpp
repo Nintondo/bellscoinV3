@@ -613,8 +613,15 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
                     // To provide for future soft-fork extensibility, if the
                     // operand has the disabled lock-time flag set,
                     // CHECKSEQUENCEVERIFY behaves as a NOP.
-                    if ((nSequence & CTxIn::SEQUENCE_LOCKTIME_DISABLE_FLAG) != 0)
+                    auto res = nSequence.safeBitwiseAnd(CTxIn::SEQUENCE_LOCKTIME_DISABLE_FLAG);
+                    if (!res) {
+                        // Defensive programming: It is impossible for the following error to be
+                        // returned unless the current possible values of the operands change.
+                        return set_error(serror, ScriptError::INVALID_NUMBER_RANGE_64_BIT);
+                    }
+                    if (*res != 0) {
                         break;
+                    }
 
                     // Compare the specified sequence number with the input.
                     if (!checker.CheckSequence(nSequence))
@@ -989,23 +996,49 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
                 case OP_0NOTEQUAL:
                 {
                     // (in -- out)
-                    if (stack.size() < 1)
-                        return set_error(serror, SCRIPT_ERR_INVALID_STACK_OPERATION);
-                    CScriptNum bn(stacktop(-1), fRequireMinimal);
-                    switch (opcode)
-                    {
-                    case OP_1ADD:       bn += bnOne; break;
-                    case OP_1SUB:       bn -= bnOne; break;
-                    case OP_NEGATE:     bn = -bn; break;
-                    case OP_ABS:        if (bn < bnZero) bn = -bn; break;
-                    case OP_NOT:        bn = (bn == bnZero); break;
-                    case OP_0NOTEQUAL:  bn = (bn != bnZero); break;
-                    default:            assert(!"invalid opcode"); break;
+                    if (stack.size() < 1) {
+                        return set_error(serror, ScriptError::SCRIPT_ERR_INVALID_STACK_OPERATION);
+                    }
+                    CScriptNum bn(stacktop(-1), fRequireMinimal, maxIntegerSize);
+
+                    switch (opcode) {
+                        case OP_1ADD: {
+                            auto res = bn.safeAdd(1);
+                            if ( ! res) {
+                                return set_error(serror, ScriptError::INVALID_NUMBER_RANGE_64_BIT);
+                            }
+                            bn = *res;
+                            break;
+                        }
+                        case OP_1SUB: {
+                            auto res = bn.safeSub(1);
+                            if ( ! res) {
+                                return set_error(serror, ScriptError::INVALID_NUMBER_RANGE_64_BIT);
+                            }
+                            bn = *res;
+                            break;
+                        }
+                        case OP_NEGATE:
+                            bn = -bn;
+                            break;
+                        case OP_ABS:
+                            if (bn < bnZero) {
+                                bn = -bn;
+                            }
+                            break;
+                        case OP_NOT:
+                            bn = CScriptNum::fromIntUnchecked(bn == bnZero);
+                            break;
+                        case OP_0NOTEQUAL:
+                            bn = CScriptNum::fromIntUnchecked(bn != bnZero);
+                            break;
+                        default:
+                            assert(!"invalid opcode");
+                            break;
                     }
                     popstack(stack);
                     stack.push_back(bn.getvch());
-                }
-                break;
+                } break;
 
                 case OP_ADD:
                 case OP_SUB:
@@ -1028,36 +1061,43 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
                     CScriptNum bn1(stacktop(-2), fRequireMinimal);
                     CScriptNum bn2(stacktop(-1), fRequireMinimal);
                     CScriptNum bn = CScriptNum::fromIntUnchecked(0);
-                    switch (opcode)
-                    {
-                    case OP_ADD:
-                        bn = bn1 + bn2;
-                        break;
-
-                    case OP_SUB:
-                        bn = bn1 - bn2;
-                        break;
-
-                    case OP_MUL:
-                    {
-                        auto res = bn1.safeMul(bn2);
-                        if (!res)
-                        {
-                            return set_error(serror, INVALID_NUMBER_RANGE_64_BIT);
+                    switch (opcode) {
+                    case OP_ADD: {
+                        auto res = bn1.safeAdd(bn2);
+                        if ( ! res) {
+                            return set_error(serror, ScriptError::INVALID_NUMBER_RANGE_64_BIT);
                         }
                         bn = *res;
                         break;
                     }
 
-                    case OP_BOOLAND:             bn = (bn1 != bnZero && bn2 != bnZero); break;
-                    case OP_BOOLOR:              bn = (bn1 != bnZero || bn2 != bnZero); break;
-                    case OP_NUMEQUAL:            bn = (bn1 == bn2); break;
-                    case OP_NUMEQUALVERIFY:      bn = (bn1 == bn2); break;
-                    case OP_NUMNOTEQUAL:         bn = (bn1 != bn2); break;
-                    case OP_LESSTHAN:            bn = (bn1 < bn2); break;
-                    case OP_GREATERTHAN:         bn = (bn1 > bn2); break;
-                    case OP_LESSTHANOREQUAL:     bn = (bn1 <= bn2); break;
-                    case OP_GREATERTHANOREQUAL:  bn = (bn1 >= bn2); break;
+                    case OP_SUB: {
+                        auto res = bn1.safeSub(bn2);
+                        if ( ! res) {
+                            return set_error(serror, ScriptError::INVALID_NUMBER_RANGE_64_BIT);
+                        }
+                        bn = *res;
+                        break;
+                    }
+
+                    case OP_MUL: {
+                        auto res = bn1.safeMul(bn2);
+                        if ( ! res) {
+                            return set_error(serror, ScriptError::INVALID_NUMBER_RANGE_64_BIT);
+                        }
+                        bn = *res;
+                        break;
+                    }
+
+                    case OP_BOOLAND:             bn = CScriptNum::fromIntUnchecked(bn1 != bnZero && bn2 != bnZero); break;
+                    case OP_BOOLOR:              bn = CScriptNum::fromIntUnchecked(bn1 != bnZero || bn2 != bnZero); break;
+                    case OP_NUMEQUAL:            bn = CScriptNum::fromIntUnchecked(bn1 == bn2); break;
+                    case OP_NUMEQUALVERIFY:      bn = CScriptNum::fromIntUnchecked(bn1 == bn2); break;
+                    case OP_NUMNOTEQUAL:         bn = CScriptNum::fromIntUnchecked(bn1 != bn2); break;
+                    case OP_LESSTHAN:            bn = CScriptNum::fromIntUnchecked(bn1 < bn2); break;
+                    case OP_GREATERTHAN:         bn = CScriptNum::fromIntUnchecked(bn1 > bn2); break;
+                    case OP_LESSTHANOREQUAL:     bn = CScriptNum::fromIntUnchecked(bn1 <= bn2); break;
+                    case OP_GREATERTHANOREQUAL:  bn = CScriptNum::fromIntUnchecked(bn1 >= bn2); break;
                     case OP_MIN:                 bn = (bn1 < bn2 ? bn1 : bn2); break;
                     case OP_MAX:                 bn = (bn1 > bn2 ? bn1 : bn2); break;
                     default:                     assert(!"invalid opcode"); break;
@@ -1175,7 +1215,8 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
                     popstack(stack);
                     popstack(stack);
                     popstack(stack);
-                    stack.push_back((num + (success ? 1 : 0)).getvch());
+                    const auto bn = num.safeAdd(CScriptNum::fromInt((success ? 1 : 0)).value());
+                    stack.push_back(bn.value().getvch());
                 }
                 break;
 
