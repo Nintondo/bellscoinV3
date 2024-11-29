@@ -681,7 +681,7 @@ public:
 
     explicit CScript(int64_t b) { operator<<(b); }
     explicit CScript(opcodetype b)     { operator<<(b); }
-    explicit CScript(const CScriptNum& b) { operator<<(b); }
+    explicit CScript(CScriptNum& b) { operator<<(b); }
     // delete non-existent constructor to defend against future introduction
     // e.g. via prevector
     explicit CScript(const std::vector<uint8_t> &b) { operator<<(b); }
@@ -699,7 +699,7 @@ public:
         return *this;
     }
 
-    CScript& operator<<(const CScriptNum& b) LIFETIMEBOUND
+    CScript& operator<<(CScriptNum& b) LIFETIMEBOUND
     {
         *this << b.getvch();
         return *this;

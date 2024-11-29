@@ -40,11 +40,11 @@ static std::vector<CTransactionRef> CreateOrderedCoins(FastRandomContext& det_ra
     for (auto x = 0; x < 100; ++x) {
         CMutableTransaction tx = CMutableTransaction();
         tx.vin.resize(1);
-        tx.vin[0].scriptSig = CScript() << CScriptNum(tx_counter);
-        tx.vin[0].scriptWitness.stack.push_back(CScriptNum(x).getvch());
+        tx.vin[0].scriptSig = CScript() << CScriptNum::fromIntUnchecked(tx_counter);
+        tx.vin[0].scriptWitness.stack.push_back(CScriptNum::fromIntUnchecked(x).getvch());
         tx.vout.resize(det_rand.randrange(10)+2);
         for (auto& out : tx.vout) {
-            out.scriptPubKey = CScript() << CScriptNum(tx_counter) << OP_EQUAL;
+            out.scriptPubKey = CScript() << CScriptNum::fromIntUnchecked(tx_counter) << OP_EQUAL;
             out.nValue = 10 * COIN;
         }
         ordered_coins.emplace_back(MakeTransactionRef(tx));
@@ -65,7 +65,7 @@ static std::vector<CTransactionRef> CreateOrderedCoins(FastRandomContext& det_ra
                 tx.vin.emplace_back();
                 tx.vin.back().prevout = COutPoint(hash, coin.vin_left++);
                 tx.vin.back().scriptSig = CScript() << coin.tx_count;
-                tx.vin.back().scriptWitness.stack.push_back(CScriptNum(coin.tx_count).getvch());
+                tx.vin.back().scriptWitness.stack.push_back(CScriptNum::fromIntUnchecked(coin.tx_count).getvch());
             }
             if (coin.vin_left == coin.ref->vin.size()) {
                 coin = available_coins.back();
@@ -73,7 +73,7 @@ static std::vector<CTransactionRef> CreateOrderedCoins(FastRandomContext& det_ra
             }
             tx.vout.resize(det_rand.randrange(10)+2);
             for (auto& out : tx.vout) {
-                out.scriptPubKey = CScript() << CScriptNum(tx_counter) << OP_EQUAL;
+                out.scriptPubKey = CScript() << CScriptNum::fromIntUnchecked(tx_counter) << OP_EQUAL;
                 out.nValue = 10 * COIN;
             }
         }

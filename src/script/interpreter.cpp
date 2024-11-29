@@ -1888,7 +1888,7 @@ bool GenericTransactionSignatureChecker<T>::CheckSchnorrSignature(Span<const uns
 }
 
 template <class T>
-bool GenericTransactionSignatureChecker<T>::CheckLockTime(const CScriptNum& nLockTime) const
+bool GenericTransactionSignatureChecker<T>::CheckLockTime(CScriptNum& nLockTime) const
 {
     // There are two kinds of nLockTime: lock-by-blockheight
     // and lock-by-blocktime, distinguished by whether
@@ -1925,7 +1925,7 @@ bool GenericTransactionSignatureChecker<T>::CheckLockTime(const CScriptNum& nLoc
 }
 
 template <class T>
-bool GenericTransactionSignatureChecker<T>::CheckSequence(const CScriptNum& nSequence) const
+bool GenericTransactionSignatureChecker<T>::CheckSequence(CScriptNum& nSequence) const
 {
     // Relative lock times are supported by comparing the passed
     // in operand to the sequence number of the input.
@@ -1947,7 +1947,14 @@ bool GenericTransactionSignatureChecker<T>::CheckSequence(const CScriptNum& nSeq
     // before doing the integer comparisons
     const uint32_t nLockTimeMask = CTxIn::SEQUENCE_LOCKTIME_TYPE_FLAG | CTxIn::SEQUENCE_LOCKTIME_MASK;
     const int64_t txToSequenceMasked = txToSequence & nLockTimeMask;
-    const CScriptNum nSequenceMasked = nSequence & nLockTimeMask;
+
+    auto const res = nSequence.safeBitwiseAnd(nLockTimeMask);
+    if ( ! res) {
+        // Defensive programming: It is impossible that this branch be taken unless the current
+        // values of the operands are changed.
+        return false;
+    }
+    auto const nSequenceMasked = *res;
 
     // There are two kinds of nSequence: lock-by-blockheight
     // and lock-by-blocktime, distinguished by whether
