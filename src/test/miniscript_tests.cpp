@@ -277,12 +277,12 @@ public:
         return sig == it->second;
     }
 
-    bool CheckLockTime(CScriptNum& locktime) const override {
+    bool CheckLockTime(const CScriptNum& locktime) const override {
         // Delegate to Satisfier.
         return ctx.CheckAfter(locktime.getint64());
     }
 
-    bool CheckSequence(CScriptNum& sequence) const override {
+    bool CheckSequence(const CScriptNum& sequence) const override {
         // Delegate to Satisfier.
         return ctx.CheckOlder(sequence.getint64());
     }

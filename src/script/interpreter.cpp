@@ -1888,7 +1888,7 @@ bool GenericTransactionSignatureChecker<T>::CheckSchnorrSignature(Span<const uns
 }
 
 template <class T>
-bool GenericTransactionSignatureChecker<T>::CheckLockTime(CScriptNum& nLockTime) const
+bool GenericTransactionSignatureChecker<T>::CheckLockTime(const CScriptNum& nLockTime) const
 {
     // There are two kinds of nLockTime: lock-by-blockheight
     // and lock-by-blocktime, distinguished by whether
@@ -1925,7 +1925,7 @@ bool GenericTransactionSignatureChecker<T>::CheckLockTime(CScriptNum& nLockTime)
 }
 
 template <class T>
-bool GenericTransactionSignatureChecker<T>::CheckSequence(CScriptNum& nSequence) const
+bool GenericTransactionSignatureChecker<T>::CheckSequence(const CScriptNum& nSequence) const
 {
     // Relative lock times are supported by comparing the passed
     // in operand to the sequence number of the input.

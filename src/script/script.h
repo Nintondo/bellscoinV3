@@ -633,7 +633,7 @@ private:
  * Tests in October 2015 showed use of this reduced dbcache memory usage by 23%
  *  and made an initial sync 13% faster.
  */
-typedef prevector<28, unsigned char> CScriptBase;
+typedef prevector<28, uint8_t> CScriptBase;
 
 bool GetScriptOp(CScriptBase::const_iterator& pc, CScriptBase::const_iterator end, opcodetype& opcodeRet, std::vector<uint8_t>* pvchRet);
 
@@ -661,7 +661,7 @@ public:
     CScript() = default;
     CScript(const_iterator pbegin, const_iterator pend) : CScriptBase(pbegin, pend) { }
     CScript(std::vector<uint8_t>::const_iterator pbegin, std::vector<uint8_t>::const_iterator pend) : CScriptBase(pbegin, pend) { }
-    CScript(const unsigned char* pbegin, const unsigned char* pend) : CScriptBase(pbegin, pend) { }
+    CScript(const uint8_t* pbegin, const uint8_t* pend) : CScriptBase(pbegin, pend) { }
 
     CScript &operator+=(const CScript &b)
     {
@@ -680,7 +680,7 @@ public:
     SERIALIZE_METHODS(CScript, obj) { READWRITE(AsBase<CScriptBase>(obj)); }
 
     explicit CScript(int64_t b) { operator<<(b); }
-    explicit CScript(opcodetype b)     { operator<<(b); }
+    explicit CScript(opcodetype b) { operator<<(b); }
     explicit CScript(CScriptNum& b) { operator<<(b); }
     // delete non-existent constructor to defend against future introduction
     // e.g. via prevector
@@ -695,11 +695,11 @@ public:
     {
         if (opcode < 0 || opcode > 0xff)
             throw std::runtime_error("CScript::operator<<(): invalid opcode");
-        insert(end(), (unsigned char)opcode);
+        insert(end(), (uint8_t)opcode);
         return *this;
     }
 
-    CScript& operator<<(CScriptNum& b) LIFETIMEBOUND
+    CScript& operator<<(const CScriptNum& b) LIFETIMEBOUND
     {
         *this << b.getvch();
         return *this;

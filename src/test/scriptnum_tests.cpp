@@ -39,7 +39,7 @@ static const int64_t values[] = {0,
 
 static const int64_t offsets[] = { 1, 0x79, 0x80, 0x81, 0xFF, 0x7FFF, 0x8000, 0xFFFF, 0x10000};
 
-static bool verify(const CScriptNum10& bignum, CScriptNum& scriptnum)
+static bool verify(const CScriptNum10& bignum, const CScriptNum& scriptnum)
 {
     return bignum.getvch() == scriptnum.getvch() && bignum.getint() == scriptnum.getint32();
 }
@@ -48,7 +48,7 @@ static void CheckCreateVch(int64_t x) {
     size_t const maxIntegerSize = CScriptNum::MAXIMUM_ELEMENT_SIZE_32_BIT;
 
     CScriptNum10 bigx(x);
-    auto const scriptx = CScriptNum::fromIntUnchecked(x);
+    CScriptNum scriptx(CScriptNum::fromIntUnchecked(x));
     BOOST_CHECK(verify(bigx, scriptx));
 
     CScriptNum10 bigb(bigx.getvch(), false);
@@ -61,7 +61,7 @@ static void CheckCreateVch(int64_t x) {
 }
 
 static void CheckCreateInt(const int64_t& num) {
-    auto const scriptx = CScriptNum::fromIntUnchecked(num);
+    CScriptNum scriptx(CScriptNum::fromIntUnchecked(num));
     CScriptNum10 const bigx(num);
     BOOST_CHECK(verify(bigx, scriptx));
     BOOST_CHECK(verify(CScriptNum10(bigx.getint()), CScriptNum::fromIntUnchecked(scriptx.getint32())));
