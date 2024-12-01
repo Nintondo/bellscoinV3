@@ -72,7 +72,7 @@ static std::optional<int64_t> GetScriptNumber(opcodetype opcode, valtype data, i
     } else if (IsPushdataOp(opcode)) {
         if (!CheckMinimalPush(data, opcode)) return {};
         try {
-            count = CScriptNum(data, /* fRequireMinimal = */ true).getint64(); // TODO: recheck we need geint32\64
+            count = CScriptNum(data, /* fRequireMinimal = */ true, CScriptNum::MAXIMUM_ELEMENT_SIZE_64_BIT).getint64(); // TODO: recheck we need geint32\64
         } catch (const scriptnum_error&) {
             return {};
         }

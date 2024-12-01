@@ -531,7 +531,7 @@ private:
 public:
 
     explicit
-    CScriptNum(const std::vector<uint8_t> &vch, bool fRequireMinimal, size_t maxIntegerSize = MAXIMUM_ELEMENT_SIZE_64_BIT)
+    CScriptNum(const std::vector<uint8_t> &vch, bool fRequireMinimal, size_t maxIntegerSize)
         : ScriptIntBase(fromBytes(vch, fRequireMinimal, maxIntegerSize))
     {}
 

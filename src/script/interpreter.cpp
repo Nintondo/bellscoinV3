@@ -97,6 +97,23 @@ bool static IsCompressedPubKey(const valtype &vchPubKey) {
     return true;
 }
 
+static bool IsOpcodeDisabled(opcodetype opcode, uint32_t flags) {
+    switch (opcode) {
+        case OP_INVERT:
+        case OP_2MUL:
+        case OP_2DIV:
+        case OP_LSHIFT:
+        case OP_RSHIFT:
+            // Disabled opcodes.
+            return true;
+        case OP_MUL:
+            return (flags & SCRIPT_64_BIT_INTEGERS) == 0;
+        default:
+            break;
+    }
+    return false;
+}
+
 /**
  * A canonical signature exists of: <30> <total len> <02> <len R> <R> <02> <len S> <S> <hashtype>
  * Where R and S are not negative (their first byte has its highest bit not set), and not
@@ -459,6 +476,11 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
                 return set_error(serror, SCRIPT_ERR_BAD_OPCODE);
             if (vchPushValue.size() > MAX_SCRIPT_ELEMENT_SIZE)
                 return set_error(serror, SCRIPT_ERR_PUSH_SIZE);
+
+            // Some opcodes are disabled.
+            if (IsOpcodeDisabled(opcode, flags)) {
+                return set_error(serror, ScriptError::DISABLED_OPCODE);
+            }
 
             if (sigversion == SigVersion::BASE || sigversion == SigVersion::WITNESS_V0) {
                 // Note how OP_RESERVED does not count towards the opcode limit.
@@ -899,7 +921,7 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
                     // (xn ... x2 x1 x0 n - ... x2 x1 x0 xn)
                     if (stack.size() < 2)
                         return set_error(serror, SCRIPT_ERR_INVALID_STACK_OPERATION);
-                    int64_t n = CScriptNum(stacktop(-1), fRequireMinimal).getint64();
+                    int64_t n = CScriptNum(stacktop(-1), fRequireMinimal, maxIntegerSize).getint64();
                     popstack(stack);
                     if (n < 0 || n >= (int)stack.size())
                         return set_error(serror, SCRIPT_ERR_INVALID_STACK_OPERATION);
@@ -1058,8 +1080,8 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
                     // (x1 x2 -- out)
                     if (stack.size() < 2)
                         return set_error(serror, SCRIPT_ERR_INVALID_STACK_OPERATION);
-                    CScriptNum bn1(stacktop(-2), fRequireMinimal);
-                    CScriptNum bn2(stacktop(-1), fRequireMinimal);
+                    CScriptNum bn1(stacktop(-2), fRequireMinimal, maxIntegerSize);
+                    CScriptNum bn2(stacktop(-1), fRequireMinimal, maxIntegerSize);
                     CScriptNum bn = CScriptNum::fromIntUnchecked(0);
                     switch (opcode) {
                     case OP_ADD: {
@@ -1111,7 +1133,7 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
                         if (CastToBool(stacktop(-1)))
                             popstack(stack);
                         else
-                            return set_error(serror, SCRIPT_ERR_NUMEQUALVERIFY);
+                            return set_error(serror, NUMEQUALVERIFY);
                     }
                 }
                 break;
@@ -1121,9 +1143,9 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
                     // (x min max -- out)
                     if (stack.size() < 3)
                         return set_error(serror, SCRIPT_ERR_INVALID_STACK_OPERATION);
-                    CScriptNum bn1(stacktop(-3), fRequireMinimal);
-                    CScriptNum bn2(stacktop(-2), fRequireMinimal);
-                    CScriptNum bn3(stacktop(-1), fRequireMinimal);
+                    CScriptNum bn1(stacktop(-3), fRequireMinimal, maxIntegerSize);
+                    CScriptNum bn2(stacktop(-2), fRequireMinimal, maxIntegerSize);
+                    CScriptNum bn3(stacktop(-1), fRequireMinimal, maxIntegerSize);
                     bool fValue = (bn2 <= bn1 && bn1 < bn3);
                     popstack(stack);
                     popstack(stack);
@@ -1207,7 +1229,7 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
                     if (stack.size() < 3) return set_error(serror, SCRIPT_ERR_INVALID_STACK_OPERATION);
 
                     const valtype& sig = stacktop(-3);
-                    const CScriptNum num(stacktop(-2), fRequireMinimal);
+                    const CScriptNum num(stacktop(-2), fRequireMinimal, maxIntegerSize);
                     const valtype& pubkey = stacktop(-1);
 
                     bool success = true;
@@ -1231,7 +1253,7 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
                     if ((int)stack.size() < i)
                         return set_error(serror, SCRIPT_ERR_INVALID_STACK_OPERATION);
 
-                    int64_t nKeysCount = CScriptNum(stacktop(-i), fRequireMinimal).getint64();
+                    int64_t nKeysCount = CScriptNum(stacktop(-i), fRequireMinimal, maxIntegerSize).getint64();
                     if (nKeysCount < 0 || nKeysCount > MAX_PUBKEYS_PER_MULTISIG)
                         return set_error(serror, SCRIPT_ERR_PUBKEY_COUNT);
                     nOpCount += nKeysCount;
@@ -1245,7 +1267,7 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
                     if ((int)stack.size() < i)
                         return set_error(serror, SCRIPT_ERR_INVALID_STACK_OPERATION);
 
-                    int64_t nSigsCount = CScriptNum(stacktop(-i), fRequireMinimal).getint64();
+                    int64_t nSigsCount = CScriptNum(stacktop(-i), fRequireMinimal, maxIntegerSize).getint64();
                     if (nSigsCount < 0 || nSigsCount > nKeysCount)
                         return set_error(serror, SCRIPT_ERR_SIG_COUNT);
                     int isig = ++i;
