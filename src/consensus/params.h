@@ -119,6 +119,8 @@ struct Params {
      * - fail if the default script verify flags are applied.
      */
     std::map<uint256, uint32_t> script_flag_exceptions;
+    /** Block height at which BIP16 becomes active */
+    int BIP16Height;
     /** Block height and hash at which BIP34 becomes active */
     int BIP34Height;
     uint256 BIP34Hash;
@@ -135,6 +137,10 @@ struct Params {
     /** Don't warn about unknown BIP 9 activations below this height.
      * This prevents us from warning about the CSV and segwit activations. */
     int MinBIP9WarningHeight;
+
+    /** Block height at which the May 15, 2022 rules became active (this is one less than the upgrade block itself) */
+    int upgrade8Height;
+
     /**
      * Minimum blocks including miner confirmation of the total of 2016 blocks in a retargeting period,
      * (nPowTargetTimespan / nPowTargetSpacing) which is also used for BIP9 deployments.

@@ -124,7 +124,7 @@ std::string ScriptToAsmStr(const CScript& script, const bool fAttemptSighashDeco
                     // the restrictions on the pubkey formats (see IsCompressedOrUncompressedPubKey) being incongruous with the
                     // checks in CheckSignatureEncoding.
                     if (CheckSignatureEncoding(vch, SCRIPT_VERIFY_STRICTENC, nullptr)) {
-                        const unsigned char chSigHashType = vch.back();
+                        const uint8_t chSigHashType = vch.back();
                         const auto it = mapSigHashTypes.find(chSigHashType);
                         if (it != mapSigHashTypes.end()) {
                             strSigHashDecode = "[" + it->second + "]";

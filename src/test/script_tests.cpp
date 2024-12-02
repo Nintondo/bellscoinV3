@@ -122,11 +122,21 @@ void DoTest(const CScript& scriptPubKey, const CScript& scriptSig, const CScript
         flags |= SCRIPT_VERIFY_P2SH;
         flags |= SCRIPT_VERIFY_WITNESS;
     }
+    
+    static int i = 0;
+    std::cout << ++i << std::endl;
+
     ScriptError err;
     const CTransaction txCredit{BuildCreditingTransaction(scriptPubKey, nValue)};
     CMutableTransaction tx = BuildSpendingTransaction(scriptSig, scriptWitness, txCredit);
     CMutableTransaction tx2 = tx;
-    BOOST_CHECK_MESSAGE(VerifyScript(scriptSig, scriptPubKey, &scriptWitness, flags, MutableTransactionSignatureChecker(&tx, 0, txCredit.vout[0].nValue, MissingDataBehavior::ASSERT_FAIL), &err) == expect, message);
+    if(i == 831)
+        std::cout << "Hey error" << std::endl;
+    BOOST_CHECK_MESSAGE(VerifyScript(scriptSig, scriptPubKey, &scriptWitness, flags, 
+        MutableTransactionSignatureChecker(&tx, 0, txCredit.vout[0].nValue, MissingDataBehavior::ASSERT_FAIL), &err) == expect, message);
+
+    if(err != scriptError) // 13221 13232 13245
+        std::cerr << "stop" << std::endl;
     BOOST_CHECK_MESSAGE(err == scriptError, FormatScriptError(err) + " where " + FormatScriptError((ScriptError_t)scriptError) + " expected: " + message);
 
     // Verify that removing flags from a passing test or adding flags to a failing test does not change the result.

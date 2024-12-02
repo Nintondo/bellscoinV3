@@ -174,6 +174,9 @@ public:
         consensus.nPowAllowMinDifficultyBlocksAfterHeight = std::nullopt;
         consensus.nPostBlossomPowTargetSpacing = Consensus::POW_TARGET_SPACING;
 
+        // protocol upgrade SCRIPT_64_BIT_INTEGERS SCRIPT_NATIVE_INTROSPECTION
+        consensus.upgrade8Height = 999'999'999;
+
         consensus.nPowMaxAdjustDown = 32; // 32% adjustment down
         consensus.nPowMaxAdjustUp = 16; // 16% adjustment up
 
@@ -331,6 +334,8 @@ public:
         consensus.nPowAveragingWindow = 17;
         consensus.nPowMaxAdjustDown = 32; // 32% adjustment down
         consensus.nPowMaxAdjustUp = 16; // 16% adjustment up
+
+        consensus.upgrade8Height = 999'999'999;
 
         // Deployment of Taproot (BIPs 340-342)
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT] = SetupDeployment{
@@ -504,6 +509,8 @@ public:
         consensus.nPostBlossomPowTargetSpacing = Consensus::POW_TARGET_SPACING;
         consensus.nPowAveragingWindow = 17;
 
+        consensus.upgrade8Height = 999'999'999;
+
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT] = SetupDeployment{
             .year = 2024,
             .number = 1,
@@ -625,6 +632,8 @@ public:
         consensus.nPostBlossomPowTargetSpacing = Consensus::POW_TARGET_SPACING;
         consensus.nPowMaxAdjustDown = 0; // Turn off adjustment down
         consensus.nPowMaxAdjustUp = 0; // Turn off adjustment up
+
+        consensus.upgrade8Height = 0;
 
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT] = SetupDeployment{
             .year = 2024,

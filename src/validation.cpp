@@ -18,6 +18,7 @@
 #include <consensus/tx_check.h>
 #include <consensus/tx_verify.h>
 #include <consensus/validation.h>
+#include <consensus/activation.hpp>
 #include <cuckoocache.h>
 #include <flatfile.h>
 #include <hash.h>
@@ -149,6 +150,9 @@ bool CheckInputScripts(const CTransaction& tx, TxValidationState& state,
                        ValidationCache& validation_cache,
                        std::vector<CScriptCheck>* pvChecks = nullptr)
                        EXCLUSIVE_LOCKS_REQUIRED(cs_main);
+
+static uint32_t GetNextBlockScriptFlags(const Consensus::Params &params,
+                                        const CBlockIndex *pindex);
 
 bool CheckFinalTxAtTip(const CBlockIndex& active_chain_tip, const CTransaction& tx)
 {
@@ -2603,6 +2607,38 @@ unsigned int GetBlockScriptFlags(const CBlockIndex& block_index, const Chainstat
     return flags;
 }
 
+// Returns the script flags which should be checked for the block after
+// the given block.
+static uint32_t GetNextBlockScriptFlags(const Consensus::Params &params, const CBlockIndex *pindex) {
+    uint32_t flags = SCRIPT_VERIFY_NONE;
+
+    // Start enforcing P2SH (BIP16)
+    if ((pindex->nHeight + 1) >= params.BIP16Height) {
+        flags |= SCRIPT_VERIFY_P2SH;
+    }
+
+    // Start enforcing the DERSIG (BIP66) rule.
+    if ((pindex->nHeight + 1) >= params.BIP66Height) {
+        flags |= SCRIPT_VERIFY_DERSIG;
+    }
+
+    // Start enforcing CHECKLOCKTIMEVERIFY (BIP65) rule.
+    if ((pindex->nHeight + 1) >= params.BIP65Height) {
+        flags |= SCRIPT_VERIFY_CHECKLOCKTIMEVERIFY;
+    }
+
+    // Start enforcing CSV (BIP68, BIP112 and BIP113) rule.
+    if ((pindex->nHeight + 1) >= params.CSVHeight) {
+        flags |= SCRIPT_VERIFY_CHECKSEQUENCEVERIFY;
+    }
+
+    if (IsUpgrade8Enabled(params, pindex)) {
+        flags |= SCRIPT_64_BIT_INTEGERS;
+        flags |= SCRIPT_NATIVE_INTROSPECTION;
+    }
+
+    return flags;
+}
 
 /** Apply the effects of this block (with given index) on the UTXO set represented by coins.
  *  Validity checks that depend on the UTXO set are also done; ConnectBlock()
@@ -2813,6 +2849,10 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
     // for as long as `control`.
     CCheckQueueControl<CScriptCheck> control(fScriptChecks && parallel_script_checks ? &m_chainman.GetCheckQueue() : nullptr);
     std::vector<PrecomputedTransactionData> txsdata(block.vtx.size());
+
+    const Consensus::Params &consensusParams = params.GetConsensus();
+    const uint32_t flags =
+        GetNextBlockScriptFlags(consensusParams, pindex->pprev);
 
     std::vector<int> prevheights;
     CAmount nFees = 0;
@@ -3334,6 +3374,9 @@ bool Chainstate::ConnectTip(BlockValidationState& state, CBlockIndex* pindexNew,
     AssertLockHeld(cs_main);
     if (m_mempool) AssertLockHeld(m_mempool->cs);
 
+    const CChainParams &params = config.GetChainParams();
+    const Consensus::Params &consensusParams = params.GetConsensus();
+
     assert(pindexNew->pprev == m_chain.Tip());
     // Read block from disk.
     const auto time_1{SteadyClock::now()};
@@ -3399,6 +3442,18 @@ bool Chainstate::ConnectTip(BlockValidationState& state, CBlockIndex* pindexNew,
         m_mempool->removeForBlock(blockConnecting.vtx, pindexNew->nHeight);
         disconnectpool.removeForBlock(blockConnecting.vtx);
     }
+
+    // If this block is activating a fork, we move all mempool transactions
+    // in front of disconnectpool for reprocessing in a future
+    // updateMempoolForReorg call
+    if (pindexNew->pprev != nullptr &&
+        GetNextBlockScriptFlags(consensusParams, pindexNew) !=
+            GetNextBlockScriptFlags(consensusParams, pindexNew->pprev)) {
+        LogPrint(BCLog::MEMPOOL,
+                 "Disconnecting mempool due to acceptance of upgrade block\n");
+        disconnectpool.importMempool(g_mempool);
+    }
+
     // Update m_chain & related variables.
     m_chain.SetTip(*pindexNew);
     UpdateTip(pindexNew);

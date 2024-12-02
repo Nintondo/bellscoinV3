@@ -108,8 +108,8 @@ bool CheckTxScripts(const CTransaction& tx, const std::map<COutPoint, CScript>& 
         }
     }
     if (!expect_valid) {
-        //BOOST_CHECK_MESSAGE(!tx_valid, strTest);
-        //BOOST_CHECK_MESSAGE((err != SCRIPT_ERR_OK), ScriptErrorString(err));
+        BOOST_CHECK_MESSAGE(!tx_valid, strTest);
+        BOOST_CHECK_MESSAGE((err != SCRIPT_ERR_OK), ScriptErrorString(err));
     }
     return (tx_valid == expect_valid);
 }

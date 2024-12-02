@@ -479,7 +479,7 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
 
             // Some opcodes are disabled.
             if (IsOpcodeDisabled(opcode, flags)) {
-                return set_error(serror, ScriptError::DISABLED_OPCODE);
+                return set_error(serror, ScriptError::SCRIPT_ERR_DISABLED_OPCODE);
             }
 
             if (sigversion == SigVersion::BASE || sigversion == SigVersion::WITNESS_V0) {

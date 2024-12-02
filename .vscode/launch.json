@@ -86,7 +86,7 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/src/test/test_bells",
-            "args": ["--run_test=peerman_tests/connections_desirable_service_flags"],
+            "args": ["--run_test=script_tests"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],
