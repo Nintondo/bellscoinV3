@@ -140,7 +140,8 @@ struct Params {
 
     /** Block height at which the May 15, 2022 rules became active (this is one less than the upgrade block itself) */
     int upgrade8Height;
-
+    /** Block height at which the graviton activation becomes active */
+    int gravitonHeight;
     /**
      * Minimum blocks including miner confirmation of the total of 2016 blocks in a retargeting period,
      * (nPowTargetTimespan / nPowTargetSpacing) which is also used for BIP9 deployments.

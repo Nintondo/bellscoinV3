@@ -2604,6 +2604,10 @@ unsigned int GetBlockScriptFlags(const CBlockIndex& block_index, const Chainstat
         flags |= SCRIPT_VERIFY_OP_CAT;
     }
 
+    if (IsUpgrade8Enabled(consensusparams, &block_index)) {
+        flags |= SCRIPT_VERIFY_64_BIT_INTEGERS;
+    }
+
     return flags;
 }
 
@@ -2632,9 +2636,12 @@ static uint32_t GetNextBlockScriptFlags(const Consensus::Params &params, const C
         flags |= SCRIPT_VERIFY_CHECKSEQUENCEVERIFY;
     }
 
+    if (IsGravitonEnabled(params, pindex)) {
+        flags |= SCRIPT_VERIFY_MINIMALDATA;
+    }
+
     if (IsUpgrade8Enabled(params, pindex)) {
-        flags |= SCRIPT_64_BIT_INTEGERS;
-        flags |= SCRIPT_NATIVE_INTROSPECTION;
+        flags |= SCRIPT_VERIFY_64_BIT_INTEGERS;
     }
 
     return flags;
@@ -2849,10 +2856,6 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
     // for as long as `control`.
     CCheckQueueControl<CScriptCheck> control(fScriptChecks && parallel_script_checks ? &m_chainman.GetCheckQueue() : nullptr);
     std::vector<PrecomputedTransactionData> txsdata(block.vtx.size());
-
-    const Consensus::Params &consensusParams = params.GetConsensus();
-    const uint32_t flags =
-        GetNextBlockScriptFlags(consensusParams, pindex->pprev);
 
     std::vector<int> prevheights;
     CAmount nFees = 0;
@@ -3374,9 +3377,6 @@ bool Chainstate::ConnectTip(BlockValidationState& state, CBlockIndex* pindexNew,
     AssertLockHeld(cs_main);
     if (m_mempool) AssertLockHeld(m_mempool->cs);
 
-    const CChainParams &params = config.GetChainParams();
-    const Consensus::Params &consensusParams = params.GetConsensus();
-
     assert(pindexNew->pprev == m_chain.Tip());
     // Read block from disk.
     const auto time_1{SteadyClock::now()};
@@ -3441,17 +3441,6 @@ bool Chainstate::ConnectTip(BlockValidationState& state, CBlockIndex* pindexNew,
     if (m_mempool) {
         m_mempool->removeForBlock(blockConnecting.vtx, pindexNew->nHeight);
         disconnectpool.removeForBlock(blockConnecting.vtx);
-    }
-
-    // If this block is activating a fork, we move all mempool transactions
-    // in front of disconnectpool for reprocessing in a future
-    // updateMempoolForReorg call
-    if (pindexNew->pprev != nullptr &&
-        GetNextBlockScriptFlags(consensusParams, pindexNew) !=
-            GetNextBlockScriptFlags(consensusParams, pindexNew->pprev)) {
-        LogPrint(BCLog::MEMPOOL,
-                 "Disconnecting mempool due to acceptance of upgrade block\n");
-        disconnectpool.importMempool(g_mempool);
     }
 
     // Update m_chain & related variables.

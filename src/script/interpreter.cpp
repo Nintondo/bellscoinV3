@@ -107,7 +107,7 @@ static bool IsOpcodeDisabled(opcodetype opcode, uint32_t flags) {
             // Disabled opcodes.
             return true;
         case OP_MUL:
-            return (flags & SCRIPT_64_BIT_INTEGERS) == 0;
+            return (flags & SCRIPT_VERIFY_64_BIT_INTEGERS) == 0;
         default:
             break;
     }
@@ -448,9 +448,7 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
     }
     int nOpCount = 0;
     bool const fRequireMinimal = (flags & SCRIPT_VERIFY_MINIMALDATA) != 0;
-    bool const nativeIntrospection = (flags & SCRIPT_NATIVE_INTROSPECTION) != 0;
-    bool const integers64Bit = (flags & SCRIPT_64_BIT_INTEGERS) != 0;
-    bool const nativeTokens = (flags & SCRIPT_ENABLE_TOKENS) != 0;
+    bool const integers64Bit = (flags & SCRIPT_VERIFY_64_BIT_INTEGERS) != 0;
     uint32_t opcode_pos = 0;
     execdata.m_codeseparator_pos = 0xFFFFFFFFUL;
     execdata.m_codeseparator_pos_init = true;
@@ -504,7 +502,6 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
                 opcode == OP_XOR ||
                 opcode == OP_2MUL ||
                 opcode == OP_2DIV ||
-                opcode == OP_MUL ||
                 opcode == OP_DIV ||
                 opcode == OP_MOD ||
                 opcode == OP_LSHIFT ||
@@ -1361,6 +1358,9 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
             if (stack.size() + altstack.size() > MAX_STACK_SIZE)
                 return set_error(serror, SCRIPT_ERR_STACK_SIZE);
         }
+    }
+    catch (const scriptnum_error &e) {
+        return set_error(serror, e.scriptError);
     }
     catch (...)
     {

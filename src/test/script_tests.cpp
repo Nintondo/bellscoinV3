@@ -124,19 +124,23 @@ void DoTest(const CScript& scriptPubKey, const CScript& scriptSig, const CScript
     }
     
     static int i = 0;
-    std::cout << ++i << std::endl;
-
+    ++i;
     ScriptError err;
     const CTransaction txCredit{BuildCreditingTransaction(scriptPubKey, nValue)};
     CMutableTransaction tx = BuildSpendingTransaction(scriptSig, scriptWitness, txCredit);
     CMutableTransaction tx2 = tx;
-    if(i == 831)
+    if(i >= 844 && i < 846)
+    {
+        std::cout << i << std::endl;
         std::cout << "Hey error" << std::endl;
+    }
     BOOST_CHECK_MESSAGE(VerifyScript(scriptSig, scriptPubKey, &scriptWitness, flags, 
         MutableTransactionSignatureChecker(&tx, 0, txCredit.vout[0].nValue, MissingDataBehavior::ASSERT_FAIL), &err) == expect, message);
 
     if(err != scriptError) // 13221 13232 13245
+    {
         std::cerr << "stop" << std::endl;
+    }
     BOOST_CHECK_MESSAGE(err == scriptError, FormatScriptError(err) + " where " + FormatScriptError((ScriptError_t)scriptError) + " expected: " + message);
 
     // Verify that removing flags from a passing test or adding flags to a failing test does not change the result.
@@ -1753,9 +1757,9 @@ BOOST_AUTO_TEST_CASE(formatscriptflags)
 {
     // quick check that FormatScriptFlags reports any unknown/unexpected bits
     BOOST_CHECK_EQUAL(FormatScriptFlags(SCRIPT_VERIFY_P2SH), "P2SH");
-    BOOST_CHECK_EQUAL(FormatScriptFlags(SCRIPT_VERIFY_P2SH | (1u<<31)), "P2SH,0x80000000");
-    BOOST_CHECK_EQUAL(FormatScriptFlags(SCRIPT_VERIFY_TAPROOT | (1u<<28)), "TAPROOT,0x10000000");
-    BOOST_CHECK_EQUAL(FormatScriptFlags(1u<<28), "0x10000000");
+    BOOST_CHECK_EQUAL(FormatScriptFlags(SCRIPT_VERIFY_P2SH | (1u<<29)), "P2SH,0x20000000");
+    BOOST_CHECK_EQUAL(FormatScriptFlags(SCRIPT_VERIFY_TAPROOT | (1u<<29)), "TAPROOT,0x20000000");
+    BOOST_CHECK_EQUAL(FormatScriptFlags(1u<<29), "0x20000000");
 }
 
 void DoTapscriptTest(std::vector<unsigned char> witVerifyScript, std::vector<std::vector<unsigned char>> witData, const std::string& message, int scriptError)

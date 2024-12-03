@@ -574,7 +574,7 @@
 
 ["Equivalency of different numeric encodings"],
 
-["0x02 0x8000", "128 NUMEQUAL", "", "OK", "0x8000 equals 128"],
+["0x02 0x8000", "128 NUMEQUAL", "", "OK" , "0x8000 equals 128"],
 ["0x01 0x00", "0 NUMEQUAL", "", "OK", "0x00 numequals 0"],
 ["0x01 0x80", "0 NUMEQUAL", "", "OK", "0x80 (negative zero) numequals 0"],
 ["0x02 0x0080", "0 NUMEQUAL", "", "OK", "0x0080 numequals 0"],

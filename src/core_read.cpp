@@ -76,11 +76,9 @@ CScript ParseScript(const std::string& s)
             // Number
             const auto num{ToIntegral<int64_t>(w)};
 
-            // limit the range of numbers ParseScript accepts in decimal
-            // since numbers outside -0xFFFFFFFF...0xFFFFFFFF are illegal in scripts
-            if (!num.has_value() || num > int64_t{0xffffffff} || num < -1 * int64_t{0xffffffff}) {
-                throw std::runtime_error("script parse error: decimal numeric value only allowed in the "
-                                         "range -0xFFFFFFFF...0xFFFFFFFF");
+            auto res = ScriptInt::fromInt(num.value());
+            if (!res) {
+                throw std::runtime_error("-9223372036854775808 is a forbidden value");
             }
 
             result << num.value();

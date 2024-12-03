@@ -80,6 +80,7 @@ const std::map<std::string, uint32_t> g_verify_flag_names{
     FLAG_NAME(ANYPREVOUT),
     FLAG_NAME(DISCOURAGE_ANYPREVOUT),
     FLAG_NAME(OP_CAT),
+    FLAG_NAME(64_BIT_INTEGERS),
     FLAG_NAME(DISCOURAGE_OP_CAT),
 };
 #undef FLAG_NAME
