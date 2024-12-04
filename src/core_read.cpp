@@ -74,14 +74,15 @@ CScript ParseScript(const std::string& s)
                    (w.front() == '-' && w.size() > 1 && std::all_of(w.begin() + 1, w.end(), ::IsDigit)))
         {
             // Number
-            const auto num{ToIntegral<int64_t>(w)};
+            std::optional<int64_t> num{ToIntegral<int64_t>(w)};
+            if(!num.has_value())
+                throw std::runtime_error("ParseScript num hasn't value");
 
             auto res = ScriptInt::fromInt(num.value());
             if (!res) {
                 throw std::runtime_error("-9223372036854775808 is a forbidden value");
             }
-
-            result << num.value();
+            result << *res;
         } else if (w.substr(0, 2) == "0x" && w.size() > 2 && IsHex(std::string(w.begin() + 2, w.end()))) {
             // Raw hex data, inserted NOT pushed onto stack:
             std::vector<unsigned char> raw = ParseHex(std::string(w.begin() + 2, w.end()));
