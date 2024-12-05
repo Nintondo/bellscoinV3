@@ -13,7 +13,6 @@
 #include <checkqueue.h>
 #include <clientversion.h>
 #include <consensus/amount.h>
-#include <consensus/consensus.h>
 #include <consensus/merkle.h>
 #include <consensus/tx_check.h>
 #include <consensus/tx_verify.h>
@@ -150,9 +149,6 @@ bool CheckInputScripts(const CTransaction& tx, TxValidationState& state,
                        ValidationCache& validation_cache,
                        std::vector<CScriptCheck>* pvChecks = nullptr)
                        EXCLUSIVE_LOCKS_REQUIRED(cs_main);
-
-static uint32_t GetNextBlockScriptFlags(const Consensus::Params &params,
-                                        const CBlockIndex *pindex);
 
 bool CheckFinalTxAtTip(const CBlockIndex& active_chain_tip, const CTransaction& tx)
 {
@@ -2605,42 +2601,6 @@ unsigned int GetBlockScriptFlags(const CBlockIndex& block_index, const Chainstat
     }
 
     if (IsUpgrade8Enabled(consensusparams, &block_index)) {
-        flags |= SCRIPT_VERIFY_64_BIT_INTEGERS;
-    }
-
-    return flags;
-}
-
-// Returns the script flags which should be checked for the block after
-// the given block.
-static uint32_t GetNextBlockScriptFlags(const Consensus::Params &params, const CBlockIndex *pindex) {
-    uint32_t flags = SCRIPT_VERIFY_NONE;
-
-    // Start enforcing P2SH (BIP16)
-    if ((pindex->nHeight + 1) >= params.BIP16Height) {
-        flags |= SCRIPT_VERIFY_P2SH;
-    }
-
-    // Start enforcing the DERSIG (BIP66) rule.
-    if ((pindex->nHeight + 1) >= params.BIP66Height) {
-        flags |= SCRIPT_VERIFY_DERSIG;
-    }
-
-    // Start enforcing CHECKLOCKTIMEVERIFY (BIP65) rule.
-    if ((pindex->nHeight + 1) >= params.BIP65Height) {
-        flags |= SCRIPT_VERIFY_CHECKLOCKTIMEVERIFY;
-    }
-
-    // Start enforcing CSV (BIP68, BIP112 and BIP113) rule.
-    if ((pindex->nHeight + 1) >= params.CSVHeight) {
-        flags |= SCRIPT_VERIFY_CHECKSEQUENCEVERIFY;
-    }
-
-    if (IsGravitonEnabled(params, pindex)) {
-        flags |= SCRIPT_VERIFY_MINIMALDATA;
-    }
-
-    if (IsUpgrade8Enabled(params, pindex)) {
         flags |= SCRIPT_VERIFY_64_BIT_INTEGERS;
     }
 

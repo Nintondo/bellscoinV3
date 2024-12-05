@@ -152,6 +152,7 @@ BITCOIN_CORE_H = \
   common/system.h \
   compressor.h \
   consensus/consensus.h \
+  consensus/activation.hpp \
   consensus/tx_check.h \
   consensus/tx_verify.h \
   core_io.h \

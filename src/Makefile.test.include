@@ -65,6 +65,7 @@ endif
 # test_bitcoin binary #
 BITCOIN_TESTS =\
   test/addrman_tests.cpp \
+  test/activation_tests.cpp \
   test/allocator_tests.cpp \
   test/amount_tests.cpp \
   test/argsman_tests.cpp \
