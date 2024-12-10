@@ -269,13 +269,8 @@ DisabledOpcodeTemplates = [getDisabledOpcodeTemplate(opcode) for opcode in [
     OP_LEFT,
     OP_RIGHT,
     OP_INVERT,
-    OP_AND,
-    OP_OR,
-    OP_XOR,
     OP_2MUL,
     OP_2DIV,
-    OP_DIV,
-    OP_MOD,
     OP_LSHIFT,
     OP_RSHIFT]]
 

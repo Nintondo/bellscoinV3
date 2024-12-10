@@ -94,6 +94,8 @@ static ScriptErrorDesc script_errors[]={
     {SCRIPT_ERR_OP_CODESEPARATOR, "OP_CODESEPARATOR"},
     {SCRIPT_ERR_SIG_FINDANDDELETE, "SIG_FINDANDDELETE"},
     {SCRIPT_ERR_DISCOURAGE_OP_CAT, "DISCOURAGE_OP_CAT"},
+    {MOD_BY_ZERO, "MOD_BY_ZERO"},
+    {DIV_BY_ZERO, "DIV_BY_ZERO"},
 };
 
 static std::string FormatScriptError(ScriptError_t err)

@@ -53,6 +53,8 @@ std::string ScriptErrorString(const ScriptError serror)
             return "Given operand is not a number within the valid range [-2^31 + 1, 2^31 - 1]";
         case INVALID_NUMBER_RANGE_64_BIT:
             return "Given operand is not a number within the valid range [-2^63 + 1, 2^63 - 1]";
+        case MOD_BY_ZERO:
+            return "Modulo by zero error";
         case SCRIPT_ERR_UNBALANCED_CONDITIONAL:
             return "Invalid OP_IF construction";
         case SCRIPT_ERR_NEGATIVE_LOCKTIME:

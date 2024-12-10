@@ -497,13 +497,8 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
                 opcode == OP_LEFT ||
                 opcode == OP_RIGHT ||
                 opcode == OP_INVERT ||
-                opcode == OP_AND ||
-                opcode == OP_OR ||
-                opcode == OP_XOR ||
                 opcode == OP_2MUL ||
                 opcode == OP_2DIV ||
-                opcode == OP_DIV ||
-                opcode == OP_MOD ||
                 opcode == OP_LSHIFT ||
                 opcode == OP_RSHIFT)
                 return set_error(serror, SCRIPT_ERR_DISABLED_OPCODE); // Disabled opcodes (CVE-2010-5137).
@@ -970,7 +965,45 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
                     stack.push_back(bn.getvch());
                 }
                 break;
+                case OP_AND:
+                case OP_OR:
+                case OP_XOR: {
+                    // (x1 x2 - out)
+                    if (stack.size() < 2) {
+                        return set_error(serror, ScriptError::SCRIPT_ERR_INVALID_STACK_OPERATION);
+                    }
+                    valtype &vch1 = stacktop(-2);
+                    valtype &vch2 = stacktop(-1);
 
+                    // Inputs must be the same size
+                    if (vch1.size() != vch2.size()) {
+                        return set_error(serror, ScriptError::INVALID_OPERAND_SIZE);
+                    }
+
+                    // To avoid allocating, we modify vch1 in place.
+                    switch (opcode) {
+                        case OP_AND:
+                            for (size_t i = 0; i < vch1.size(); ++i) {
+                                vch1[i] &= vch2[i];
+                            }
+                            break;
+                        case OP_OR:
+                            for (size_t i = 0; i < vch1.size(); ++i) {
+                                vch1[i] |= vch2[i];
+                            }
+                            break;
+                        case OP_XOR:
+                            for (size_t i = 0; i < vch1.size(); ++i) {
+                                vch1[i] ^= vch2[i];
+                            }
+                            break;
+                        default:
+                            break;
+                    }
+
+                    // And pop vch2.
+                    popstack(stack);
+                } break;
 
                 //
                 // Bitwise logic
@@ -1062,6 +1095,8 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
                 case OP_ADD:
                 case OP_SUB:
                 case OP_MUL:
+                case OP_DIV:
+                case OP_MOD:
                 case OP_BOOLAND:
                 case OP_BOOLOR:
                 case OP_NUMEQUAL:
@@ -1107,6 +1142,22 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
                         bn = *res;
                         break;
                     }
+
+                    case OP_DIV:
+                        // denominator must not be 0
+                        if (bn2 == 0) {
+                            return set_error(serror, ScriptError::DIV_BY_ZERO);
+                        }
+                        bn = bn1 / bn2;
+                        break;
+
+                    case OP_MOD:
+                        // divisor must not be 0
+                        if (bn2 == 0) {
+                            return set_error(serror, ScriptError::MOD_BY_ZERO);
+                        }
+                        bn = bn1 % bn2;
+                        break;
 
                     case OP_BOOLAND:             bn = CScriptNum::fromIntUnchecked(bn1 != bnZero && bn2 != bnZero); break;
                     case OP_BOOLOR:              bn = CScriptNum::fromIntUnchecked(bn1 != bnZero || bn2 != bnZero); break;
