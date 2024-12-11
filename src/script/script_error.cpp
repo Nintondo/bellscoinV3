@@ -23,7 +23,7 @@ std::string ScriptErrorString(const ScriptError serror)
             return "Script failed an OP_CHECKMULTISIGVERIFY operation";
         case SCRIPT_ERR_CHECKSIGVERIFY:
             return "Script failed an OP_CHECKSIGVERIFY operation";
-        case SCRIPT_ERR_NUMEQUALVERIFY:
+        case NUMEQUALVERIFY:
             return "Script failed an OP_NUMEQUALVERIFY operation";
         case SCRIPT_ERR_TEMPLATE_MISMATCH:
             return "Script failed an OP_CHECKTEMPLATEVERIFY operation";
@@ -39,6 +39,8 @@ std::string ScriptErrorString(const ScriptError serror)
             return "Signature count negative or greater than pubkey count";
         case SCRIPT_ERR_PUBKEY_COUNT:
             return "Pubkey count negative or limit exceeded";
+        case INVALID_OPERAND_SIZE:
+            return "Invalid operand size";
         case SCRIPT_ERR_BAD_OPCODE:
             return "Opcode missing or not understood";
         case SCRIPT_ERR_DISABLED_OPCODE:
@@ -49,6 +51,12 @@ std::string ScriptErrorString(const ScriptError serror)
             return "Operation not valid with the current altstack size";
         case SCRIPT_ERR_OP_RETURN:
             return "OP_RETURN was encountered";
+        case INVALID_NUMBER_RANGE:
+            return "Given operand is not a number within the valid range [-2^31 + 1, 2^31 - 1]";
+        case INVALID_NUMBER_RANGE_64_BIT:
+            return "Given operand is not a number within the valid range [-2^63 + 1, 2^63 - 1]";
+        case MOD_BY_ZERO:
+            return "Modulo by zero error";
         case SCRIPT_ERR_UNBALANCED_CONDITIONAL:
             return "Invalid OP_IF construction";
         case SCRIPT_ERR_NEGATIVE_LOCKTIME:

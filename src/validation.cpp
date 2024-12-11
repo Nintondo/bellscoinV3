@@ -13,11 +13,11 @@
 #include <checkqueue.h>
 #include <clientversion.h>
 #include <consensus/amount.h>
-#include <consensus/consensus.h>
 #include <consensus/merkle.h>
 #include <consensus/tx_check.h>
 #include <consensus/tx_verify.h>
 #include <consensus/validation.h>
+#include <consensus/activation.hpp>
 #include <cuckoocache.h>
 #include <flatfile.h>
 #include <hash.h>
@@ -2600,9 +2600,12 @@ unsigned int GetBlockScriptFlags(const CBlockIndex& block_index, const Chainstat
         flags |= SCRIPT_VERIFY_OP_CAT;
     }
 
+    if (IsUpgrade8Enabled(consensusparams, &block_index)) {
+        flags |= SCRIPT_VERIFY_64_BIT_INTEGERS;
+    }
+
     return flags;
 }
-
 
 /** Apply the effects of this block (with given index) on the UTXO set represented by coins.
  *  Validity checks that depend on the UTXO set are also done; ConnectBlock()
@@ -3399,6 +3402,7 @@ bool Chainstate::ConnectTip(BlockValidationState& state, CBlockIndex* pindexNew,
         m_mempool->removeForBlock(blockConnecting.vtx, pindexNew->nHeight);
         disconnectpool.removeForBlock(blockConnecting.vtx);
     }
+
     // Update m_chain & related variables.
     m_chain.SetTip(*pindexNew);
     UpdateTip(pindexNew);

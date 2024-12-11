@@ -44,7 +44,6 @@ from test_framework.script import (
     OP_LEFT,
     OP_LSHIFT,
     OP_MOD,
-    OP_MUL,
     OP_OR,
     OP_RETURN,
     OP_RIGHT,
@@ -270,14 +269,8 @@ DisabledOpcodeTemplates = [getDisabledOpcodeTemplate(opcode) for opcode in [
     OP_LEFT,
     OP_RIGHT,
     OP_INVERT,
-    OP_AND,
-    OP_OR,
-    OP_XOR,
     OP_2MUL,
     OP_2DIV,
-    OP_MUL,
-    OP_DIV,
-    OP_MOD,
     OP_LSHIFT,
     OP_RSHIFT]]
 

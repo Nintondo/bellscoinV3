@@ -65,6 +65,7 @@ endif
 # test_bitcoin binary #
 BITCOIN_TESTS =\
   test/addrman_tests.cpp \
+  test/activation_tests.cpp \
   test/allocator_tests.cpp \
   test/amount_tests.cpp \
   test/argsman_tests.cpp \
@@ -115,6 +116,7 @@ BITCOIN_TESTS =\
   test/merkle_tests.cpp \
   test/merkleblock_tests.cpp \
   test/miner_tests.cpp \
+  test/monolith_opcodes_tests.cpp \
   test/miniminer_tests.cpp \
   test/miniscript_tests.cpp \
   test/minisketch_tests.cpp \
@@ -386,7 +388,6 @@ test_fuzz_fuzz_SOURCES = \
  test/fuzz/script_parsing.cpp \
  test/fuzz/script_sigcache.cpp \
  test/fuzz/script_sign.cpp \
- test/fuzz/scriptnum_ops.cpp \
  test/fuzz/secp256k1_ec_seckey_import_export_der.cpp \
  test/fuzz/secp256k1_ecdsa_signature_parse_der_lax.cpp \
  test/fuzz/signature_checker.cpp \

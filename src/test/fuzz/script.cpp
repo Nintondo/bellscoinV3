@@ -140,7 +140,7 @@ FUZZ_TARGET(script, .init = initialize_script)
         CScript append_script{bytes.begin(), bytes.end()};
         append_script << fuzzed_data_provider.ConsumeIntegral<int64_t>();
         append_script << ConsumeOpcodeType(fuzzed_data_provider);
-        append_script << CScriptNum{fuzzed_data_provider.ConsumeIntegral<int64_t>()};
+        append_script << CScriptNum{CScriptNum::fromIntUnchecked(fuzzed_data_provider.ConsumeIntegral<int64_t>())};
         append_script << ConsumeRandomLengthByteVector(fuzzed_data_provider);
     }
 

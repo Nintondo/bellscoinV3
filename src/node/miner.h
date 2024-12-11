@@ -10,6 +10,7 @@
 #include <policy/policy.h>
 #include <primitives/block.h>
 #include <txmempool.h>
+#include <sync.h>
 
 #include <memory>
 #include <optional>
@@ -27,6 +28,9 @@ class CChainParams;
 class CScript;
 class Chainstate;
 class ChainstateManager;
+
+extern CScript COINBASE_FLAGS;
+extern GlobalMutex g_coinbaseFlags_mutex;
 
 namespace Consensus { struct Params; };
 

@@ -43,7 +43,7 @@ static CBlock CreateGenesisBlock(const char* pszTimestamp, const CScript& genesi
     txNew.nVersion = 1;
     txNew.vin.resize(1);
     txNew.vout.resize(1);
-    txNew.vin[0].scriptSig = CScript() << 486604799 << CScriptNum(4) << std::vector<unsigned char>((const unsigned char*)pszTimestamp, (const unsigned char*)pszTimestamp + strlen(pszTimestamp));
+    txNew.vin[0].scriptSig = CScript() << 486604799 << CScriptNum::fromIntUnchecked(4) << std::vector<unsigned char>((const unsigned char*)pszTimestamp, (const unsigned char*)pszTimestamp + strlen(pszTimestamp));
     txNew.vout[0].nValue = genesisReward;
     txNew.vout[0].scriptPubKey = genesisOutputScript;
 
@@ -173,6 +173,11 @@ public:
         consensus.nBlockAfterAuxpowRewardThreshold = 1000;
         consensus.nPowAllowMinDifficultyBlocksAfterHeight = std::nullopt;
         consensus.nPostBlossomPowTargetSpacing = Consensus::POW_TARGET_SPACING;
+
+        // protocol upgrade SCRIPT_VERIFY_64_BIT_INTEGERS 
+        consensus.upgrade8Height = 999'999'999;
+        // protocol upgrade SCRIPT_VERIFY_MINIMALDATA
+        consensus.gravitonHeight = 999'999'999;
 
         consensus.nPowMaxAdjustDown = 32; // 32% adjustment down
         consensus.nPowMaxAdjustUp = 16; // 16% adjustment up
@@ -331,6 +336,9 @@ public:
         consensus.nPowAveragingWindow = 17;
         consensus.nPowMaxAdjustDown = 32; // 32% adjustment down
         consensus.nPowMaxAdjustUp = 16; // 16% adjustment up
+
+        consensus.upgrade8Height = 999'999'999;
+        consensus.gravitonHeight = 999'999'999;
 
         // Deployment of Taproot (BIPs 340-342)
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT] = SetupDeployment{
@@ -504,6 +512,9 @@ public:
         consensus.nPostBlossomPowTargetSpacing = Consensus::POW_TARGET_SPACING;
         consensus.nPowAveragingWindow = 17;
 
+        consensus.upgrade8Height = 999'999'999;
+        consensus.gravitonHeight = 999'999'999;
+
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT] = SetupDeployment{
             .year = 2024,
             .number = 1,
@@ -625,6 +636,9 @@ public:
         consensus.nPostBlossomPowTargetSpacing = Consensus::POW_TARGET_SPACING;
         consensus.nPowMaxAdjustDown = 0; // Turn off adjustment down
         consensus.nPowMaxAdjustUp = 0; // Turn off adjustment up
+
+        consensus.upgrade8Height = 0;
+        consensus.gravitonHeight = 0;
 
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT] = SetupDeployment{
             .year = 2024,
