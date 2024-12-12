@@ -50,16 +50,16 @@ constexpr int MISSING_PRIVKEYS = 128; // Not all private keys are available, so 
 constexpr int SIGNABLE_FAILS = 256; // We can sign with this descriptor, but actually trying to sign will fail
 
 /** Compare two descriptors. If only one of them has a checksum, the checksum is ignored. */
-bool EqualDescriptor(std::string a, std::string b)
-{
-    bool a_check = (a.size() > 9 && a[a.size() - 9] == '#');
-    bool b_check = (b.size() > 9 && b[b.size() - 9] == '#');
-    if (a_check != b_check) {
-        if (a_check) a = a.substr(0, a.size() - 9);
-        if (b_check) b = b.substr(0, b.size() - 9);
-    }
-    return a == b;
-}
+// bool EqualDescriptor(std::string a, std::string b)
+// {
+//     bool a_check = (a.size() > 9 && a[a.size() - 9] == '#');
+//     bool b_check = (b.size() > 9 && b[b.size() - 9] == '#');
+//     if (a_check != b_check) {
+//         if (a_check) a = a.substr(0, a.size() - 9);
+//         if (b_check) b = b.substr(0, b.size() - 9);
+//     }
+//     return a == b;
+// }
 
 std::string UseHInsteadOfApostrophe(const std::string& desc)
 {
@@ -80,54 +80,54 @@ std::string UseHInsteadOfApostrophe(const std::string& desc)
 }
 
 // Count the number of times the string "xpub" appears in a descriptor string
-static size_t CountXpubs(const std::string& desc)
-{
-    size_t count = 0;
-    size_t p = desc.find("xpub", 0);
-    while (p != std::string::npos) {
-        count++;
-        p = desc.find("xpub", p + 1);
-    }
-    return count;
-}
+// static size_t CountXpubs(const std::string& desc)
+// {
+//     size_t count = 0;
+//     size_t p = desc.find("xpub", 0);
+//     while (p != std::string::npos) {
+//         count++;
+//         p = desc.find("xpub", p + 1);
+//     }
+//     return count;
+// }
 
 const std::set<std::vector<uint32_t>> ONLY_EMPTY{{}};
 
-std::set<CPubKey> GetKeyData(const FlatSigningProvider& provider, int flags) {
-    std::set<CPubKey> ret;
-    for (const auto& [_, pubkey] : provider.pubkeys) {
-        if (flags & XONLY_KEYS) {
-            unsigned char bytes[33];
-            BOOST_CHECK_EQUAL(pubkey.size(), 33);
-            std::copy(pubkey.begin(), pubkey.end(), bytes);
-            bytes[0] = 0x02;
-            CPubKey norm_pubkey{bytes};
-            ret.insert(norm_pubkey);
-        } else {
-            ret.insert(pubkey);
-        }
-    }
-    return ret;
-}
+// std::set<CPubKey> GetKeyData(const FlatSigningProvider& provider, int flags) {
+//     std::set<CPubKey> ret;
+//     for (const auto& [_, pubkey] : provider.pubkeys) {
+//         if (flags & XONLY_KEYS) {
+//             unsigned char bytes[33];
+//             BOOST_CHECK_EQUAL(pubkey.size(), 33);
+//             std::copy(pubkey.begin(), pubkey.end(), bytes);
+//             bytes[0] = 0x02;
+//             CPubKey norm_pubkey{bytes};
+//             ret.insert(norm_pubkey);
+//         } else {
+//             ret.insert(pubkey);
+//         }
+//     }
+//     return ret;
+// }
 
-std::set<std::pair<CPubKey, KeyOriginInfo>> GetKeyOriginData(const FlatSigningProvider& provider, int flags) {
-    std::set<std::pair<CPubKey, KeyOriginInfo>> ret;
-    for (const auto& [_, data] : provider.origins) {
-        if (flags & XONLY_KEYS) {
-            unsigned char bytes[33];
-            BOOST_CHECK_EQUAL(data.first.size(), 33);
-            std::copy(data.first.begin(), data.first.end(), bytes);
-            bytes[0] = 0x02;
-            CPubKey norm_pubkey{bytes};
-            KeyOriginInfo norm_origin = data.second;
-            std::fill(std::begin(norm_origin.fingerprint), std::end(norm_origin.fingerprint), 0); // fingerprints don't necessarily match.
-            ret.emplace(norm_pubkey, norm_origin);
-        } else {
-            ret.insert(data);
-        }
-    }
-    return ret;
-}
+// std::set<std::pair<CPubKey, KeyOriginInfo>> GetKeyOriginData(const FlatSigningProvider& provider, int flags) {
+//     std::set<std::pair<CPubKey, KeyOriginInfo>> ret;
+//     for (const auto& [_, data] : provider.origins) {
+//         if (flags & XONLY_KEYS) {
+//             unsigned char bytes[33];
+//             BOOST_CHECK_EQUAL(data.first.size(), 33);
+//             std::copy(data.first.begin(), data.first.end(), bytes);
+//             bytes[0] = 0x02;
+//             CPubKey norm_pubkey{bytes};
+//             KeyOriginInfo norm_origin = data.second;
+//             std::fill(std::begin(norm_origin.fingerprint), std::end(norm_origin.fingerprint), 0); // fingerprints don't necessarily match.
+//             ret.emplace(norm_pubkey, norm_origin);
+//         } else {
+//             ret.insert(data);
+//         }
+//     }
+//     return ret;
+// }
 
 void DoCheck(std::string prv, std::string pub, const std::string& norm_pub, int flags,
              const std::vector<std::vector<std::string>>& scripts, const std::optional<OutputType>& type, std::optional<uint256> op_desc_id = std::nullopt,

@@ -458,10 +458,6 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
         CScriptNum::MAXIMUM_ELEMENT_SIZE_64_BIT :
         CScriptNum::MAXIMUM_ELEMENT_SIZE_32_BIT;
 
-    ScriptError const invalidNumberRangeError = integers64Bit ?
-        ScriptError::INVALID_NUMBER_RANGE_64_BIT :
-        ScriptError::INVALID_NUMBER_RANGE;
-
     try
     {
         for (; pc < pend; ++opcode_pos) {

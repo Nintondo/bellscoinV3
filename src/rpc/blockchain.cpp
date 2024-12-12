@@ -639,28 +639,6 @@ static CBlock GetBlockChecked(BlockManager& blockman, const CBlockIndex* blockin
     return block;
 }
 
-static std::vector<uint8_t> GetRawBlockChecked(BlockManager& blockman, const CBlockIndex* blockindex)
-{
-    std::vector<uint8_t> data{};
-    FlatFilePos pos{};
-    {
-        LOCK(cs_main);
-        if (blockman.IsBlockPruned(blockindex)) {
-            throw JSONRPCError(RPC_MISC_ERROR, "Block not available (pruned data)");
-        }
-        pos = blockindex->GetBlockPos();
-    }
-
-    if (!blockman.ReadRawBlockFromDisk(data, pos)) {
-        // Block not found on disk. This could be because we have the block
-        // header in our index but not yet have the block or did not accept the
-        // block. Or if the block was pruned right after we released the lock above.
-        throw JSONRPCError(RPC_MISC_ERROR, "Block not found on disk");
-    }
-
-    return data;
-}
-
 static CBlockUndo GetUndoChecked(BlockManager& blockman, const CBlockIndex* blockindex)
 {
     CBlockUndo blockUndo;

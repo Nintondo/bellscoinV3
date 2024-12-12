@@ -116,7 +116,7 @@ unsigned int GetNextWorkRequiredNew(const CBlockIndex* pindexLast, const CBlockH
         // Comparing to pindexLast->nHeight with >= because this function
         // returns the work required for the block after pindexLast.
         if (params.nPowAllowMinDifficultyBlocksAfterHeight != std::nullopt &&
-            pindexLast->nHeight >= params.nPowAllowMinDifficultyBlocksAfterHeight.value())
+            (uint32_t)pindexLast->nHeight >= params.nPowAllowMinDifficultyBlocksAfterHeight.value())
         {
             // Special difficulty rule for testnet:
             // If the new block's timestamp is more than 6 * block interval minutes

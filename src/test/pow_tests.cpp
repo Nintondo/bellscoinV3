@@ -106,7 +106,6 @@ BOOST_AUTO_TEST_CASE(MinDifficultyRules) {
     params.nPowAllowMinDifficultyBlocksAfterHeight = 299187;
     params.nNewPowDiffHeight = 0;
     size_t lastBlk = 2*params.nPowAveragingWindow;
-    size_t firstBlk = lastBlk - params.nPowAveragingWindow;
 
     // Start with blocks evenly-spaced and equal difficulty
     std::vector<CBlockIndex> blocks(lastBlk+1);

@@ -14,16 +14,6 @@
 
 BOOST_FIXTURE_TEST_SUITE(activation_tests, BasicTestingSetup)
 
-static void SetMTP(std::array<CBlockIndex, 12> &blocks, int64_t mtp) {
-    size_t len = blocks.size();
-
-    for (size_t i = 0; i < len; ++i) {
-        blocks[i].nTime = mtp + (i - (len / 2));
-    }
-
-    BOOST_CHECK_EQUAL(blocks.back().GetMedianTimePast(), mtp);
-}
-
 BOOST_AUTO_TEST_CASE(isupgrade8enabled) {
     const Consensus::Params &consensus = GlobParams().GetConsensus();
     BOOST_CHECK(!IsUpgrade8Enabled(consensus, nullptr));
