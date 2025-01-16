@@ -38,7 +38,6 @@ namespace Consensus {
 struct Params;
 }
 
-extern int RPCSerializationFlags();
 static std::multimap<std::string, CZMQAbstractPublishNotifier*> mapPublishNotifiers;
 
 static const char *MSG_HASHBLOCK = "hashblock";

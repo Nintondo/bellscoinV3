@@ -122,7 +122,6 @@ std::condition_variable g_best_block_cv;
 uint256 g_best_block;
 
 std::atomic_bool fReindexGeth(false);
-unsigned int fRPCSerialVersion;
 const CBlockIndex* Chainstate::FindForkInGlobalIndex(const CBlockLocator& locator) const
 {
     AssertLockHeld(cs_main);
@@ -6483,14 +6482,6 @@ ChainstateManager::~ChainstateManager()
     LOCK(::cs_main);
 
     m_versionbitscache.Clear();
-}
-
-int RPCSerializationFlags()
-{
-    int flag = 0;
-    if (fRPCSerialVersion == 0)
-        flag |= SERIALIZE_TRANSACTION_NO_WITNESS;
-    return flag;
 }
 
 bool ChainstateManager::DetectSnapshotChainstate()

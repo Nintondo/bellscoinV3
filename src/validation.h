@@ -1325,8 +1325,6 @@ public:
     ~ChainstateManager();
 };
 
-int RPCSerializationFlags();
-
 /** Deployment* info via ChainstateManager */
 template<typename DEP>
 bool DeploymentActiveAfter(const CBlockIndex* pindexPrev, const ChainstateManager& chainman, DEP dep)
