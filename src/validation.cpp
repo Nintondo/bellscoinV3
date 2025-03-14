@@ -2602,6 +2602,9 @@ unsigned int GetBlockScriptFlags(const CBlockIndex& block_index, const Chainstat
     if (IsUpgrade8Enabled(consensusparams, &block_index)) {
         flags |= SCRIPT_VERIFY_64_BIT_INTEGERS;
     }
+    if (IsGravitonEnabled(consensusparams, &block_index)) {
+        flags |= SCRIPT_VERIFY_MINIMALDATA;
+    }
 
     return flags;
 }
