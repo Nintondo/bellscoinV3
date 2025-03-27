@@ -15,17 +15,3 @@ bool IsUpgrade8Enabled(const Consensus::Params &params, const CBlockIndex *pinde
 
     return pindexPrev->nHeight >= params.upgrade8Height;
 }
-
-static bool IsGravitonEnabled(const Consensus::Params &params,
-                              int32_t nHeight) {
-    return nHeight >= params.gravitonHeight;
-}
-
-bool IsGravitonEnabled(const Consensus::Params &params,
-                       const CBlockIndex *pindexPrev) {
-    if (pindexPrev == nullptr) {
-        return false;
-    }
-
-    return IsGravitonEnabled(params, pindexPrev->nHeight);
-}

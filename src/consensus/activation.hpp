@@ -15,4 +15,3 @@ struct Params;
 
 /** Check if protocol upgrade has activated. */
 bool IsUpgrade8Enabled(const Consensus::Params &params, const CBlockIndex *pindexPrev);
-bool IsGravitonEnabled(const Consensus::Params &params, const CBlockIndex *pindexPrev);

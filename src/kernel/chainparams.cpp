@@ -157,6 +157,7 @@ public:
         consensus.BIP66Height = 40240;
         consensus.CSVHeight = 40240;
         consensus.SegwitHeight = 144000; // segwit activation height
+        consensus.TaprootHeight = 191520; // taproot activation height
         consensus.MinBIP9WarningHeight = 144000; // segwit activation height + miner confirmation window
         consensus.nNewPowDiffHeight = 144000;
         consensus.powLimit = uint256S("0x00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"); //0x00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
@@ -175,9 +176,8 @@ public:
         consensus.nPostBlossomPowTargetSpacing = Consensus::POW_TARGET_SPACING;
 
         // protocol upgrade SCRIPT_VERIFY_64_BIT_INTEGERS 
-        consensus.upgrade8Height = 999'999'999;
-        // protocol upgrade SCRIPT_VERIFY_MINIMALDATA
-        consensus.gravitonHeight = 999'999'999;
+        consensus.upgrade8Height = 500000;
+
 
         consensus.nPowMaxAdjustDown = 32; // 32% adjustment down
         consensus.nPowMaxAdjustUp = 16; // 16% adjustment up
@@ -201,34 +201,21 @@ public:
             .year = 2025,
             .number = 1,
             .revision = 0,
-            .start = 1735689600,   // 2025-01-01 00:00:00
-            .timeout = 1751318400, // 2025-08-01 00:00:00 (пример окончания через 7 месяцев)
+            .start = 1741122000,   // 2025-03-05 00:00:00
+            .timeout = 1772658000, // 2026-03-05 00:00:00
             .activate = 4,
             .abandon = -2,
             .always = false,
             .never = false
         };
 
-        // Deployment of Taproot (BIPs 340-342)
-        consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT] = SetupDeployment{
-            .year = 2024,
-            .number = 2,
-            .revision = 0,
-            .start = 1718409600,   // 2024-06-15 00:00:00
-            .timeout = 1735084800, // 2024-12-25 18:00:00
-            .activate = 2,
-            .abandon = -2,
-            .always = false,
-            .never = false
-        };
-
         consensus.vDeployments[Consensus::DEPLOYMENT_OP_CAT] = SetupDeployment{
-            .year = 2024,
+            .year = 2025,
             .number = 3,
             .revision = 0,
-            .start = 1703990400,   // 2024-12-31 00:00:00 (Unix timestamp)
-            .timeout = 1711843200, // 2025-03-31 00:00:00 (Unix timestamp)
-            .activate = 3,         // Бит для активации (можно выбрать любое свободное значение)
+            .start = 1741122000,   // 2025-03-05 00:00:00
+            .timeout = 1772658000, // 2026-03-05 00:00:00
+            .activate = 3,
             .abandon = -2,
             .always = false,
             .never = false
@@ -261,7 +248,6 @@ public:
         // This is fine at runtime as we'll fall back to using them as an addrfetch if they don't support the
         // service bits we want, but we should get them updated to support all service bits wanted by any
         // release ASAP to avoid it where possible.
-        //vSeeds.emplace_back("seeder.belscan.io.");
         vSeeds.emplace_back("bdnsseeder.quark.blue.");
 
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,25);
@@ -285,7 +271,14 @@ public:
                 {20000, uint256S("0xe705ee3c0097e6466155f8eea44a813f4f3e0774f1336ab20da1e7076dcc36d9")},
                 {30000, uint256S("0x22b2474f45c8d29f31e9caeb6bcccc68f583e2d40afb782e10ad19b63ff47f84")},
                 {40000, uint256S("0x50c259c50c5c2ab235f2ceb45da49f7c046f0411667c00d81cb8165f2b843ea1")},
-
+                {50000, uint256S("0x2136303371cbd258bad2099dc8336fead30a4fabe48738ebaea3ca9f66259580")},
+                {100000, uint256S("0xa68c0093873f2b4f056be2c09afb021f15209a272f7c15a60d06aa680138cc6f")},
+                {150000, uint256S("0xc9b633488a9605a3f4fb0e9446b91087720223e48be82ee182d6e4a02a8bdbbb")},
+                {200000, uint256S("0x08ec87a4d262a48170cae397bc60dcc493ca24de1dd7773fb4b5f5f82197c5fd")},
+                {250000, uint256S("0x6ddb13850ae6b0f45b4eac4bb628ec6781402d0c6b54e5be2e45c81e1854cff1")},
+                {300000, uint256S("0x10d74ee0071ded725305a6eb4d4f37ebc6b6ecedd47d125d9f99495816944df9")},
+                {350000, uint256S("0xa23717b53d902d8ffe998a1f86d8203a76c502ec06de565e957407213f0d128d")},
+                {400000, uint256S("0xd9ade3b52896a9e68080f62bddd5f6365c1dcb1dbf041e4b699415811f53a43b")},
             }
         };
 
@@ -295,9 +288,9 @@ public:
 
         chainTxData = ChainTxData{
             // Data from RPC: getchaintxstats 4096 00000000000000000001a0a448d6cf2546b06801389cc030b2b18c6491266815
-            // .nTime    = 1692502494,
-            // .nTxCount = 881818374,
-            // .dTxRate  = 5.521964628130412,
+            .nTime    = 1741097476,
+            .tx_count = 798547107,
+            .dTxRate  = 20.3725986080964,
         };
     }
 };
@@ -318,6 +311,7 @@ public:
         consensus.BIP66Height = 1; // 000000002104c8c45e99a8853285a3b592602a3ccde2b832481da85e9e4ba182
         consensus.CSVHeight = 1; // 00000000025e930139bac5c6c31a403776da130831ab85be56578f3fa75369bb
         consensus.SegwitHeight = 20; // 00000000002b980fcd729daaa248fd9316a5200e9b367f4ff2c42453e84201ca
+        consensus.TaprootHeight = 720;
         consensus.MinBIP9WarningHeight = 20; // segwit activation height + miner confirmation window
         consensus.nAuxpowStartHeight = 15;
         consensus.nBlockAfterAuxpowRewardThreshold = 5;
@@ -337,19 +331,7 @@ public:
         consensus.nPowMaxAdjustDown = 32; // 32% adjustment down
         consensus.nPowMaxAdjustUp = 16; // 16% adjustment up
 
-        consensus.upgrade8Height = 999'999'999;
-        consensus.gravitonHeight = 999'999'999;
-
-        // Deployment of Taproot (BIPs 340-342)
-        consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT] = SetupDeployment{
-            .year = 2024,
-            .number = 1,
-            .revision = 0,
-            .start = 1718409600,
-            .timeout = 1735084800,
-            .activate = 2,
-            .abandon = -2
-        };
+        consensus.upgrade8Height = 300000;
 
         // Deployment of CheckTemplateVerify
         consensus.vDeployments[Consensus::DEPLOYMENT_CHECKTEMPLATEVERIFY] = SetupDeployment{
@@ -496,6 +478,7 @@ public:
         consensus.BIP66Height = 1;
         consensus.CSVHeight = 1;
         consensus.SegwitHeight = 1;
+        consensus.TaprootHeight = 1;
         consensus.nAuxpowChainId = 16;
         consensus.nPowTargetTimespan = 14 * 24 * 60 * 60; // two weeks
         consensus.nPowTargetSpacing = 10 * 60;
@@ -512,20 +495,7 @@ public:
         consensus.nPostBlossomPowTargetSpacing = Consensus::POW_TARGET_SPACING;
         consensus.nPowAveragingWindow = 17;
 
-        consensus.upgrade8Height = 999'999'999;
-        consensus.gravitonHeight = 999'999'999;
-
-        consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT] = SetupDeployment{
-            .year = 2024,
-            .number = 1,
-            .revision = 0,
-            .start = Consensus::HereticalDeployment::ALWAYS_ACTIVE,
-            .timeout = Consensus::HereticalDeployment::NO_TIMEOUT,
-            .activate = 2,
-            .abandon = -2,
-            .always = true,
-            .never = false
-        };
+        consensus.upgrade8Height = 100;
 
         consensus.vDeployments[Consensus::DEPLOYMENT_CHECKTEMPLATEVERIFY] = SetupDeployment{
             .start = 1654041600, // 2022-06-01
@@ -619,6 +589,7 @@ public:
         consensus.BIP66Height = 1;  // Always active unless overridden
         consensus.CSVHeight = 1;    // Always active unless overridden
         consensus.SegwitHeight = 0; // Always active unless overridden
+        consensus.TaprootHeight = 0; // Always active unless overridden
         consensus.MinBIP9WarningHeight = 0;
         consensus.nNewPowDiffHeight = 0;
         consensus.powLimit = uint256S("0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f"); // if this is any larger, the for loop in GetNextWorkRequired can overflow bnTot
@@ -638,19 +609,6 @@ public:
         consensus.nPowMaxAdjustUp = 0; // Turn off adjustment up
 
         consensus.upgrade8Height = 0;
-        consensus.gravitonHeight = 0;
-
-        consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT] = SetupDeployment{
-            .year = 2024,
-            .number = 1,
-            .revision = 0,
-            .start = Consensus::HereticalDeployment::ALWAYS_ACTIVE,
-            .timeout = Consensus::HereticalDeployment::NO_TIMEOUT,
-            .activate = 2,
-            .abandon = -2,
-            .always = true,
-            .never = false
-        };
 
         consensus.vDeployments[Consensus::DEPLOYMENT_CHECKTEMPLATEVERIFY] = SetupDeployment{
             .activate = 0x60007700, 
