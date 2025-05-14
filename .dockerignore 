@@ -1,0 +1,4 @@
+.devcontainer/
+.git/
+.github/
+.vscode
