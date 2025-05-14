@@ -27,7 +27,7 @@ jobs:
         file: ./Dockerfile
         push: true
         tags: |
-          ${{ secrets.CI_REGISTRY }}/${{ secrets.CI_REGISTRY_REPO }}/bellscoinV3:${{ vars.VERSION_BELLSCOIN }}
-          ${{ secrets.CI_REGISTRY }}/${{ secrets.CI_REGISTRY_REPO }}/bellscoinV3:latest
+          ${{ secrets.CI_REGISTRY }}/${{ secrets.CI_REGISTRY_REPO }}/bellscoin-v3:${{ vars.VERSION_BELLSCOIN }}
+          ${{ secrets.CI_REGISTRY }}/${{ secrets.CI_REGISTRY_REPO }}/bellscoin-v3:latest
         build-args: |
           VERSION_BELLSCOIN=${{ vars.VERSION_BELLSCOIN }}
