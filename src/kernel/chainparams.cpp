@@ -103,41 +103,6 @@ static CBlock CreateGenesisBlock(uint32_t nTime, uint32_t nNonce, uint32_t nBits
 
 const arith_uint256 maxUint = UintToArith256(uint256S("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"));
 
-template<size_t N>
-static void RenounceDeployments(const CChainParams::RenounceParameters& renounce, Consensus::HereticalDeployment (&vDeployments)[N])
-{
-    for (Consensus::BuriedDeployment dep : renounce) {
-        vDeployments[dep].nStartTime = Consensus::HereticalDeployment::NEVER_ACTIVE;
-        vDeployments[dep].nTimeout = Consensus::HereticalDeployment::NO_TIMEOUT;
-    }
-}
-
-namespace {
-struct SetupDeployment
-{
-    uint32_t year = 0, number = 0, revision = 0; // see https://github.com/bitcoin-inquisition/binana
-    int64_t start = 0;
-    int64_t timeout = 0;
-    int32_t activate = -1;
-    int32_t abandon = -1;
-    bool always = false;
-    bool never = false;
-
-    int32_t binana_id() const {
-        return static_cast<int32_t>( ((year % 32) << 22) | ((number % 16384) << 8) | (revision % 256) );
-    }
-
-    operator Consensus::HereticalDeployment () const
-    {
-        return Consensus::HereticalDeployment{
-            .signal_activate = (activate >= 0 ? activate : (VERSIONBITS_TOP_ACTIVE | binana_id())),
-            .signal_abandon = (abandon >= 0 ? abandon : (VERSIONBITS_TOP_ABANDON | binana_id())),
-            .nStartTime = (always ? Consensus::HereticalDeployment::ALWAYS_ACTIVE : never ? Consensus::HereticalDeployment::NEVER_ACTIVE : start),
-            .nTimeout = (always || never ? Consensus::HereticalDeployment::NO_TIMEOUT : timeout),
-        };
-    }
-};
-}
 
 /**
  * Main network on which people trade goods and services.
@@ -157,8 +122,7 @@ public:
         consensus.BIP66Height = 40240;
         consensus.CSVHeight = 40240;
         consensus.SegwitHeight = 144000; // segwit activation height
-        consensus.TaprootHeight = 191520; // taproot activation height
-        consensus.MinBIP9WarningHeight = 144000; // segwit activation height + miner confirmation window
+        consensus.MinBIP9WarningHeight = 191520; // taproot activation height + miner confirmation window
         consensus.nNewPowDiffHeight = 144000;
         consensus.powLimit = uint256S("0x00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"); //0x00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
         consensus.nPowAveragingWindow = 17;
@@ -184,42 +148,18 @@ public:
 
         consensus.nRuleChangeActivationThreshold = 9576; // 95% of 10,080
         consensus.nMinerConfirmationWindow = 10080; // 60 * 24 * 7 = 10,080 blocks, or one week
-        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY] = SetupDeployment{
-            .year = 2024,
-            .number = 1,
-            .revision = 0,
-            .start = Consensus::HereticalDeployment::NEVER_ACTIVE,
-            .timeout = Consensus::HereticalDeployment::NO_TIMEOUT,
-            .activate = 28,
-            .abandon = -2,
-            .always = false,
-            .never = true
-        };
 
-        // Deployment of CheckTemplateVerify
-        consensus.vDeployments[Consensus::DEPLOYMENT_CHECKTEMPLATEVERIFY] = SetupDeployment{
-            .year = 2025,
-            .number = 1,
-            .revision = 0,
-            .start = 1741122000,   // 2025-03-05 00:00:00
-            .timeout = 1772658000, // 2026-03-05 00:00:00
-            .activate = 4,
-            .abandon = -2,
-            .always = false,
-            .never = false
-        };
+        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].bit = 28;
+        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nStartTime = Consensus::BIP9Deployment::NEVER_ACTIVE;
+        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
+        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].min_activation_height = 0; // No activation delay
 
-        consensus.vDeployments[Consensus::DEPLOYMENT_OP_CAT] = SetupDeployment{
-            .year = 2025,
-            .number = 3,
-            .revision = 0,
-            .start = 1741122000,   // 2025-03-05 00:00:00
-            .timeout = 1772658000, // 2026-03-05 00:00:00
-            .activate = 3,
-            .abandon = -2,
-            .always = false,
-            .never = false
-        };
+        // Deployment of OP_CAT/CHECK_TEMPLATE_VERIFY/64_BIT_INTEGERS
+        consensus.vDeployments[Consensus::DEPLOYMENT_OP_CAT].bit = 2;
+        consensus.vDeployments[Consensus::DEPLOYMENT_OP_CAT].nStartTime = 1749945600; // 2025-06-15 00:00:00
+        consensus.vDeployments[Consensus::DEPLOYMENT_OP_CAT].nTimeout = 1772658000; // 2026-06-15 00:00:00
+        consensus.vDeployments[Consensus::DEPLOYMENT_OP_CAT].min_activation_height = 550000;
+
 
         consensus.nMinimumChainWork = uint256S("0x0000000000000000000000000000000000000000000000000000000000100010");
         consensus.defaultAssumeValid = uint256S("0x50c259c50c5c2ab235f2ceb45da49f7c046f0411667c00d81cb8165f2b843ea1"); // 40000
@@ -311,8 +251,7 @@ public:
         consensus.BIP66Height = 1; // 000000002104c8c45e99a8853285a3b592602a3ccde2b832481da85e9e4ba182
         consensus.CSVHeight = 1; // 00000000025e930139bac5c6c31a403776da130831ab85be56578f3fa75369bb
         consensus.SegwitHeight = 20; // 00000000002b980fcd729daaa248fd9316a5200e9b367f4ff2c42453e84201ca
-        consensus.TaprootHeight = 720;
-        consensus.MinBIP9WarningHeight = 20; // segwit activation height + miner confirmation window
+        consensus.MinBIP9WarningHeight = 720; // taproot activation height + miner confirmation window
         consensus.nAuxpowStartHeight = 15;
         consensus.nBlockAfterAuxpowRewardThreshold = 5;
         consensus.nNewPowDiffHeight = 20;
@@ -333,35 +272,17 @@ public:
 
         consensus.upgrade8Height = 300000;
 
-        // Deployment of CheckTemplateVerify
-        consensus.vDeployments[Consensus::DEPLOYMENT_CHECKTEMPLATEVERIFY] = SetupDeployment{
-            .year = 2024,
-            .number = 1,
-            .revision = 0,
-            .start = 1718409600,
-            .timeout = 1735084800,
-            .activate = 4,
-            .abandon = -2,
-            .always = false,
-            .never = false
-        };
+        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].bit = 28;
+        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nStartTime = Consensus::BIP9Deployment::NEVER_ACTIVE;
+        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
+        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].min_activation_height = 0; // No activation delay
 
-        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY] = SetupDeployment{
-            .year = 2024,
-            .number = 2,
-            .revision = 0,
-            .start = 0,
-            .timeout = Consensus::HereticalDeployment::NO_TIMEOUT,
-            .activate = 16,
-            .abandon = -2,
-            .always = false,
-            .never = false
-        };
-        consensus.vDeployments[Consensus::DEPLOYMENT_OP_CAT] = SetupDeployment{
-            .activate = 0x62000100, 
-            .abandon = 0x42000100, 
-            .never = true
-        };
+        // Deployment of OP_CAT/CHECK_TEMPLATE_VERIFY/64_BIT_INTEGERS
+        consensus.vDeployments[Consensus::DEPLOYMENT_OP_CAT].bit = 2;
+        consensus.vDeployments[Consensus::DEPLOYMENT_OP_CAT].nStartTime = 1747267200; // 2025-05-15 00:00:00
+        consensus.vDeployments[Consensus::DEPLOYMENT_OP_CAT].nTimeout = 1772658000; // 2026-06-15 00:00:00
+        consensus.vDeployments[Consensus::DEPLOYMENT_OP_CAT].min_activation_height = 360000;
+
 
         consensus.nMinimumChainWork = uint256S("0000000000000000000000000000000000000000000000000000000000100010");
         consensus.defaultAssumeValid = uint256S("0xe5be24df57c43a82d15c2f06bda961296948f8f8eb48501bed1efb929afe0698"); // genesis
@@ -478,7 +399,6 @@ public:
         consensus.BIP66Height = 1;
         consensus.CSVHeight = 1;
         consensus.SegwitHeight = 1;
-        consensus.TaprootHeight = 1;
         consensus.nAuxpowChainId = 16;
         consensus.nPowTargetTimespan = 14 * 24 * 60 * 60; // two weeks
         consensus.nPowTargetSpacing = 10 * 60;
@@ -487,7 +407,7 @@ public:
         consensus.fPowNoRetargeting = false;
         consensus.nRuleChangeActivationThreshold = 1815; // 90% of 2016
         consensus.nMinerConfirmationWindow = 2016; // nPowTargetTimespan / nPowTargetSpacing
-        consensus.MinBIP9WarningHeight = 0;
+        consensus.MinBIP9WarningHeight = 1;
         consensus.fStrictChainId = true;
         consensus.nNewPowDiffHeight = 999999999;
         consensus.powLimit = uint256S("00000377ae000000000000000000000000000000000000000000000000000000");
@@ -497,34 +417,16 @@ public:
 
         consensus.upgrade8Height = 100;
 
-        consensus.vDeployments[Consensus::DEPLOYMENT_CHECKTEMPLATEVERIFY] = SetupDeployment{
-            .start = 1654041600, // 2022-06-01
-            .timeout = 1969660800, // 2032-06-01
-            .activate = 0x60007700,
-            .abandon = 0x40007700,
-        };
+        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].bit = 28;
+        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nStartTime = Consensus::BIP9Deployment::NEVER_ACTIVE;
+        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
+        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].min_activation_height = 0; // No activation delay
 
-        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY] = SetupDeployment{
-            .year = 2024,
-            .number = 2,
-            .revision = 0,
-            .start = 0,
-            .timeout = Consensus::HereticalDeployment::NO_TIMEOUT,
-            .activate = 16,
-            .abandon = -2,
-            .always = false,
-            .never = false
-        };
-
-        consensus.vDeployments[Consensus::DEPLOYMENT_OP_CAT] = SetupDeployment{
-            .year = 2024,
-            .number = 1,
-            .revision = 0,
-            .start = 1704085200, // 2024-01-01
-            .timeout = 2019704400, // 2034-01-01
-            .activate = 0x62000100,
-            .abandon = 0x42000100,
-        };
+        // Deployment of OP_CAT/CHECK_TEMPLATE_VERIFY/64_BIT_INTEGERS
+        consensus.vDeployments[Consensus::DEPLOYMENT_OP_CAT].bit = 2;
+        consensus.vDeployments[Consensus::DEPLOYMENT_OP_CAT].nStartTime = 1747267200; // 2025-05-15 00:00:00
+        consensus.vDeployments[Consensus::DEPLOYMENT_OP_CAT].nTimeout = 1772658000; // 2026-06-15 00:00:00
+        consensus.vDeployments[Consensus::DEPLOYMENT_OP_CAT].min_activation_height = 360000;
 
         // message start is defined as the first 4 bytes of the sha256d of the block script
         HashWriter h{};
@@ -588,9 +490,8 @@ public:
         consensus.BIP65Height = 1;  // Always active unless overridden
         consensus.BIP66Height = 1;  // Always active unless overridden
         consensus.CSVHeight = 1;    // Always active unless overridden
-        consensus.SegwitHeight = 0; // Always active unless overridden
-        consensus.TaprootHeight = 0; // Always active unless overridden
-        consensus.MinBIP9WarningHeight = 0;
+        consensus.SegwitHeight = 1; // Always active unless overridden
+        consensus.MinBIP9WarningHeight = 1;
         consensus.nNewPowDiffHeight = 0;
         consensus.powLimit = uint256S("0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f"); // if this is any larger, the for loop in GetNextWorkRequired can overflow bnTot
         consensus.nPowAveragingWindow = 17;
@@ -610,29 +511,17 @@ public:
 
         consensus.upgrade8Height = 0;
 
-        consensus.vDeployments[Consensus::DEPLOYMENT_CHECKTEMPLATEVERIFY] = SetupDeployment{
-            .activate = 0x60007700, 
-            .abandon = 0x40007700, 
-            .always = true
-        };
+        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].bit = 28;
+        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nStartTime = Consensus::BIP9Deployment::NEVER_ACTIVE;
+        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
+        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].min_activation_height = 0; // No activation delay
 
-        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY] = SetupDeployment{
-            .year = 2024,
-            .number = 2,
-            .revision = 0,
-            .start = 0,
-            .timeout = Consensus::HereticalDeployment::NO_TIMEOUT,
-            .activate = 16,
-            .abandon = -2,
-            .always = false,
-            .never = false
-        };
-        consensus.vDeployments[Consensus::DEPLOYMENT_OP_CAT] = SetupDeployment{
-            .activate = 0x62000100, 
-            .abandon = 0x42000100, 
-            .always = true
-        };
-
+        // Deployment of OP_CAT/CHECK_TEMPLATE_VERIFY/64_BIT_INTEGERS
+        consensus.vDeployments[Consensus::DEPLOYMENT_OP_CAT].bit = 2;
+        consensus.vDeployments[Consensus::DEPLOYMENT_OP_CAT].nStartTime = Consensus::BIP9Deployment::ALWAYS_ACTIVE;
+        consensus.vDeployments[Consensus::DEPLOYMENT_OP_CAT].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
+        consensus.vDeployments[Consensus::DEPLOYMENT_OP_CAT].min_activation_height = 0;
+        
         consensus.nMinimumChainWork = uint256S("0x00");
         consensus.defaultAssumeValid = uint256S("0x00");
         consensus.nAuxpowStartHeight = 0;

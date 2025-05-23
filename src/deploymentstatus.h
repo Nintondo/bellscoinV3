@@ -20,8 +20,7 @@ inline bool DeploymentActiveAfter(const CBlockIndex* pindexPrev, const Consensus
 inline bool DeploymentActiveAfter(const CBlockIndex* pindexPrev, const Consensus::Params& params, Consensus::DeploymentPos dep, VersionBitsCache& versionbitscache)
 {
     assert(Consensus::ValidDeployment(dep));
-    const auto state = versionbitscache.State(pindexPrev, params, dep);
-    return state == ThresholdState::ACTIVE || state == ThresholdState::DEACTIVATING;
+    return ThresholdState::ACTIVE == versionbitscache.State(pindexPrev, params, dep);
 }
 
 /** Determine if a deployment is active for this block */
@@ -47,7 +46,7 @@ inline bool DeploymentEnabled(const Consensus::Params& params, Consensus::Buried
 inline bool DeploymentEnabled(const Consensus::Params& params, Consensus::DeploymentPos dep)
 {
     assert(Consensus::ValidDeployment(dep));
-    return params.vDeployments[dep].nStartTime != Consensus::HereticalDeployment::NEVER_ACTIVE;
+    return params.vDeployments[dep].nStartTime != Consensus::BIP9Deployment::NEVER_ACTIVE;
 }
 
 #endif // BITCOIN_DEPLOYMENTSTATUS_H

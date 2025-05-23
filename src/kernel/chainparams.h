@@ -152,6 +152,7 @@ public:
     struct VersionBitsParameters {
         int64_t start_time;
         int64_t timeout;
+        int min_activation_height;
     };
 
     /**

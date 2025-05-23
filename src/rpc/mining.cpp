@@ -890,7 +890,10 @@ static RPCHelpMan getblocktemplate()
 
     UniValue aRules(UniValue::VARR);
     aRules.push_back("csv");
-    if (!fPreSegWit) aRules.push_back("!segwit");
+    if (!fPreSegWit) {
+        aRules.push_back("!segwit");
+        aRules.push_back("taproot");
+    }
     if (consensusParams.signet_blocks) {
         // indicate to miner that they must understand signet rules
         // when attempting to mine with this template
@@ -903,13 +906,25 @@ static RPCHelpMan getblocktemplate()
         ThresholdState state = chainman.m_versionbitscache.State(pindexPrev, consensusParams, pos);
         switch (state) {
             case ThresholdState::DEFINED:
-            case ThresholdState::STARTED:
-            case ThresholdState::ABANDONED:
-            case ThresholdState::LOCKED_IN:
+            case ThresholdState::FAILED:
                 // Not exposed to GBT at all
                 break;
+            case ThresholdState::LOCKED_IN:
+                // Ensure bit is set in block version
+                pblock->nVersion |= chainman.m_versionbitscache.Mask(consensusParams, pos);
+                [[fallthrough]];
+            case ThresholdState::STARTED:
+            {
+                const struct VBDeploymentInfo& vbinfo = VersionBitsDeploymentInfo[pos];
+                vbavailable.pushKV(gbt_vb_name(pos), consensusParams.vDeployments[pos].bit);
+                if (setClientRules.find(vbinfo.name) == setClientRules.end()) {
+                    if (!vbinfo.gbt_force) {
+                        // If the client doesn't support this, don't indicate it in the [default] version
+                        pblock->nVersion &= ~chainman.m_versionbitscache.Mask(consensusParams, pos);
+                    }
+                }
+            }
             case ThresholdState::ACTIVE:
-            case ThresholdState::DEACTIVATING:
             {
                 // Add to rules only
                 const struct VBDeploymentInfo& vbinfo = VersionBitsDeploymentInfo[pos];

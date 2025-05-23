@@ -27,10 +27,9 @@ enum BuriedDeployment : int16_t {
     DEPLOYMENT_DERSIG,
     DEPLOYMENT_CSV,
     DEPLOYMENT_SEGWIT,
-    DEPLOYMENT_TAPROOT, // Deployment of Schnorr/Taproot (BIPs 340-342)    
 };
 
-constexpr bool ValidDeployment(BuriedDeployment dep) { return dep <= DEPLOYMENT_TAPROOT; }
+constexpr bool ValidDeployment(BuriedDeployment dep) { return dep <= DEPLOYMENT_SEGWIT; }
 
 enum DeploymentPos : uint16_t {
     DEPLOYMENT_TESTDUMMY,
@@ -43,35 +42,6 @@ enum DeploymentPos : uint16_t {
 constexpr bool ValidDeployment(DeploymentPos dep) { return dep < MAX_VERSION_BITS_DEPLOYMENTS; }
 
 /**
- * Struct for each individual consensus rule change
- */
-struct HereticalDeployment
-{
-    /** nVersion values used to signal activation */
-    int32_t signal_activate = -1;
-    /** nVersion values used to signal abandonment */
-    int32_t signal_abandon = -2;
-    /** Start MedianTime for version bits miner confirmation. Can be a date in the past */
-    int64_t nStartTime{NEVER_ACTIVE};
-    /** Timeout/expiry MedianTime for the deployment attempt. */
-    int64_t nTimeout{NEVER_ACTIVE};
-
-    /** Constant for nTimeout very far in the future. */
-    static constexpr int64_t NO_TIMEOUT = std::numeric_limits<int64_t>::max();
-
-    /** Special value for nStartTime indicating that the deployment is always active.
-     *  This is useful for testing, as it means tests don't need to deal with the activation
-     *  process (which takes at least 3 BIP9 intervals). Only tests that specifically test the
-     *  behaviour during activation cannot use this. */
-    static constexpr int64_t ALWAYS_ACTIVE = -1;
-
-    /** Special value for nStartTime indicating that the deployment is never active.
-     *  This is useful for integrating the code changes for a new feature
-     *  prior to deploying it on some or all networks. */
-    static constexpr int64_t NEVER_ACTIVE = -2;
-};
-
-/**
  * Struct for each individual consensus rule change using BIP9.
  */
 struct BIP9Deployment {
@@ -81,11 +51,13 @@ struct BIP9Deployment {
     int64_t nStartTime{NEVER_ACTIVE};
     /** Timeout/expiry MedianTime for the deployment attempt. */
     int64_t nTimeout{NEVER_ACTIVE};
-    /** If lock in occurs, delay activation until at least this block
-     *  height.  Note that activation will only occur on a retarget
-     *  boundary.
-     */
-    int min_activation_height{0};
+
+
+     /** If lock in occurs, delay activation until at least this block
+      *  height.  Note that activation will only occur on a retarget
+      *  boundary.
+      */
+     int min_activation_height{0};
 
     /** Constant for nTimeout very far in the future. */
     static constexpr int64_t NO_TIMEOUT = std::numeric_limits<int64_t>::max();
@@ -102,10 +74,10 @@ struct BIP9Deployment {
     static constexpr int64_t NEVER_ACTIVE = -2;
 };
 
+
 /**
  * Parameters that influence chain consensus.
  */
-
 
 static const unsigned int POW_TARGET_SPACING = 60;
 
@@ -118,7 +90,7 @@ struct Params {
      * - buried in the chain, and
      * - fail if the default script verify flags are applied.
      */
-    std::map<uint256, uint32_t> script_flag_exceptions;
+    ::std::map<uint256, uint32_t> script_flag_exceptions;
     /** Block height at which BIP16 becomes active */
     int BIP16Height;
     /** Block height and hash at which BIP34 becomes active */
@@ -135,12 +107,9 @@ struct Params {
      * BIP 16 exception blocks. */
     int SegwitHeight;
     /** Don't warn about unknown BIP 9 activations below this height.
-     * This prevents us from warning about the CSV and segwit activations. */
+     * This prevents us from warning about the CSV and segwit and taproot activations. */
     int MinBIP9WarningHeight;
 
-    /** Block height at which Taproot (BIPs 340-342) becomes active */
-    int TaprootHeight;
-    
 
     /** Block height at which 64bit rules became active (this is one less than the upgrade block itself) */
     int upgrade8Height;
@@ -151,7 +120,7 @@ struct Params {
      */
     uint32_t nRuleChangeActivationThreshold;
     uint32_t nMinerConfirmationWindow;
-    HereticalDeployment vDeployments[MAX_VERSION_BITS_DEPLOYMENTS];
+    BIP9Deployment vDeployments[MAX_VERSION_BITS_DEPLOYMENTS];
     /** Proof of work parameters */
     int nNewPowDiffHeight;
     uint256 powLimit;
@@ -219,8 +188,6 @@ struct Params {
             return CSVHeight;
         case DEPLOYMENT_SEGWIT:
             return SegwitHeight;
-        case DEPLOYMENT_TAPROOT:
-            return TaprootHeight;            
         } // no default case, so the compiler can warn about missing cases
         return std::numeric_limits<int>::max();
     }

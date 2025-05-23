@@ -69,8 +69,8 @@ void ReadRegTestArgs(const ArgsManager& args, CChainParams::RegTestOptions& opti
 
     for (const std::string& strDeployment : args.GetArgs("-vbparams")) {
         std::vector<std::string> vDeploymentParams = SplitString(strDeployment, ':');
-        if (vDeploymentParams.size() != 3) {
-            throw std::runtime_error("Version bits parameters malformed, expecting deployment:start:end");
+        if (vDeploymentParams.size() < 3 || 4 < vDeploymentParams.size()) {
+            throw std::runtime_error("Version bits parameters malformed, expecting deployment:start:end[:min_activation_height]");
         }
         CChainParams::VersionBitsParameters vbparams{};
         if (!ParseInt64(vDeploymentParams[1], &vbparams.start_time)) {
@@ -78,6 +78,14 @@ void ReadRegTestArgs(const ArgsManager& args, CChainParams::RegTestOptions& opti
         }
         if (!ParseInt64(vDeploymentParams[2], &vbparams.timeout)) {
             throw std::runtime_error(strprintf("Invalid nTimeout (%s)", vDeploymentParams[2]));
+        }
+        
+        if (vDeploymentParams.size() >= 4) {
+            if (!ParseInt32(vDeploymentParams[3], &vbparams.min_activation_height)) {
+                throw std::runtime_error(strprintf("Invalid min_activation_height (%s)", vDeploymentParams[3]));
+            }
+        } else {
+            vbparams.min_activation_height = 0;
         }
 
         bool found = false;
