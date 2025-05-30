@@ -17,7 +17,6 @@
 #include <consensus/tx_check.h>
 #include <consensus/tx_verify.h>
 #include <consensus/validation.h>
-#include <consensus/activation.hpp>
 #include <cuckoocache.h>
 #include <flatfile.h>
 #include <hash.h>
@@ -1254,9 +1253,7 @@ bool MemPoolAccept::PolicyScriptChecks(const ATMPArgs& args, Workspace& ws)
 
     const unsigned int scriptVerifyFlags = STANDARD_SCRIPT_VERIFY_FLAGS |
         DepDiscourageFlags(m_active_chainstate.m_chain.Tip(), m_active_chainstate.m_chainman, {
-            { Consensus::DEPLOYMENT_CHECKTEMPLATEVERIFY, SCRIPT_VERIFY_DISCOURAGE_CHECK_TEMPLATE_VERIFY_HASH },
-            { Consensus::DEPLOYMENT_ANYPREVOUT, SCRIPT_VERIFY_DISCOURAGE_ANYPREVOUT },
-            { Consensus::DEPLOYMENT_OP_CAT, SCRIPT_VERIFY_DISCOURAGE_OP_CAT },
+            { Consensus::DEPLOYMENT_OP_CAT, SCRIPT_VERIFY_DISCOURAGE_OP_CAT | SCRIPT_VERIFY_DISCOURAGE_CHECK_TEMPLATE_VERIFY_HASH },
     });
 
     // Check input scripts and signatures.
@@ -2585,22 +2582,11 @@ unsigned int GetBlockScriptFlags(const CBlockIndex& block_index, const Chainstat
         flags |= SCRIPT_VERIFY_NULLDUMMY;
     }
 
-    // Enforce CheckTemplateVerify (BIP119)
-    if (DeploymentActiveAt(block_index, chainman, Consensus::DEPLOYMENT_CHECKTEMPLATEVERIFY)) {
-        flags |= SCRIPT_VERIFY_DEFAULT_CHECK_TEMPLATE_VERIFY_HASH;
-    }
-
-    // Enforce ANYPREVOUT (BIP118)
-    if ((flags & SCRIPT_VERIFY_TAPROOT) && DeploymentActiveAt(block_index, chainman, Consensus::DEPLOYMENT_ANYPREVOUT)) {
-        flags |= SCRIPT_VERIFY_ANYPREVOUT;
-    }
     
     // Enforce OP_CAT
     if (DeploymentActiveAt(block_index, chainman, Consensus::DEPLOYMENT_OP_CAT)) {
+        flags |= SCRIPT_VERIFY_DEFAULT_CHECK_TEMPLATE_VERIFY_HASH;
         flags |= SCRIPT_VERIFY_OP_CAT;
-    }
-
-    if (IsUpgrade8Enabled(consensusparams, &block_index)) {
         flags |= SCRIPT_VERIFY_64_BIT_INTEGERS;
     }
 

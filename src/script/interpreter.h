@@ -151,21 +151,15 @@ enum : uint32_t {
 
     // discourage OP_CHECKTEMPLATEVERIFY
     SCRIPT_VERIFY_DISCOURAGE_CHECK_TEMPLATE_VERIFY_HASH = (1U << 23),
-
-    // Validating ANYPREVOUT public keys
-    SCRIPT_VERIFY_ANYPREVOUT = (1U << 24),
-
-    // Making ANYPREVOUT public key versions (in BIP 342 scripts) non-standard
-    SCRIPT_VERIFY_DISCOURAGE_ANYPREVOUT = (1U << 25),
     
     // Support OP_CAT in tapscript
-    SCRIPT_VERIFY_OP_CAT = (1U << 26),
-    SCRIPT_VERIFY_DISCOURAGE_OP_CAT = (1U << 27),
+    SCRIPT_VERIFY_OP_CAT = (1U << 24),
+    SCRIPT_VERIFY_DISCOURAGE_OP_CAT = (1U << 25),
 
     // Flag that allows us to determine if the script interpreter should allow
     // 64-bit integer arithmetic and the return of OP_MUL or use the previous
     // semantics.
-    SCRIPT_VERIFY_64_BIT_INTEGERS = (1U << 28),
+    SCRIPT_VERIFY_64_BIT_INTEGERS = (1U << 26),
 
     // Constants to point to the highest flag in use. Add new flags above this line.
     //

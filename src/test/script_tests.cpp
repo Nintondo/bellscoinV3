@@ -133,11 +133,11 @@ void DoTest(const CScript& scriptPubKey, const CScript& scriptSig, const CScript
     const CTransaction txCredit{BuildCreditingTransaction(scriptPubKey, nValue)};
     CMutableTransaction tx = BuildSpendingTransaction(scriptSig, scriptWitness, txCredit);
     CMutableTransaction tx2 = tx;
-    if(i >= 845 && i < 846)
-    {
-        std::cout << i << std::endl;
-        std::cout << "Hey error" << std::endl;
-    }
+    // if(i >= 845 && i < 846)
+    // {
+    //     std::cout << i << std::endl;
+    //     std::cout << "Hey error" << std::endl;
+    // }
     BOOST_CHECK_MESSAGE(VerifyScript(scriptSig, scriptPubKey, &scriptWitness, flags, 
         MutableTransactionSignatureChecker(&tx, 0, txCredit.vout[0].nValue, MissingDataBehavior::ASSERT_FAIL), &err) == expect, message);
 
@@ -1572,14 +1572,12 @@ static std::vector<unsigned int> AllConsensusFlags()
         if (i & 16) flag |= SCRIPT_VERIFY_CHECKSEQUENCEVERIFY;
         if (i & 32) flag |= SCRIPT_VERIFY_WITNESS;
         if (i & 64) flag |= SCRIPT_VERIFY_TAPROOT;
-        if (i & 128) flag |= SCRIPT_VERIFY_ANYPREVOUT;
 
         // SCRIPT_VERIFY_WITNESS requires SCRIPT_VERIFY_P2SH
         if (flag & SCRIPT_VERIFY_WITNESS && !(flag & SCRIPT_VERIFY_P2SH)) continue;
         // SCRIPT_VERIFY_TAPROOT requires SCRIPT_VERIFY_WITNESS
         if (flag & SCRIPT_VERIFY_TAPROOT && !(flag & SCRIPT_VERIFY_WITNESS)) continue;
-        // SCRIPT_VERIFY_ANYPREVOUT requires SCRIPT_VERIFY_TAPROOT
-        if ((flag & SCRIPT_VERIFY_ANYPREVOUT) && !(flag & SCRIPT_VERIFY_TAPROOT)) continue;
+
 
         ret.push_back(flag);
     }

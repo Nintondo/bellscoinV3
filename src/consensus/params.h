@@ -32,10 +32,8 @@ enum BuriedDeployment : int16_t {
 constexpr bool ValidDeployment(BuriedDeployment dep) { return dep <= DEPLOYMENT_SEGWIT; }
 
 enum DeploymentPos : uint16_t {
-    DEPLOYMENT_TESTDUMMY,
-    DEPLOYMENT_CHECKTEMPLATEVERIFY, // Deployment of CTV (BIP 119)
-    DEPLOYMENT_ANYPREVOUT,
-    DEPLOYMENT_OP_CAT,
+    DEPLOYMENT_TESTDUMMY,    
+    DEPLOYMENT_OP_CAT, // Deployment of OP_CAT / CTV / 64 bit arithmetic
     // NOTE: Also add new deployments to VersionBitsDeploymentInfo in deploymentinfo.cpp
     MAX_VERSION_BITS_DEPLOYMENTS
 };
@@ -110,9 +108,6 @@ struct Params {
      * This prevents us from warning about the CSV and segwit and taproot activations. */
     int MinBIP9WarningHeight;
 
-
-    /** Block height at which 64bit rules became active (this is one less than the upgrade block itself) */
-    int upgrade8Height;
     /**
      * Minimum blocks including miner confirmation of the total of 2016 blocks in a retargeting period,
      * (nPowTargetTimespan / nPowTargetSpacing) which is also used for BIP9 deployments.

@@ -152,7 +152,6 @@ BITCOIN_CORE_H = \
   common/system.h \
   compressor.h \
   consensus/consensus.h \
-  consensus/activation.hpp \
   consensus/tx_check.h \
   consensus/tx_verify.h \
   core_io.h \
@@ -477,7 +476,6 @@ libbitcoin_node_a_SOURCES = \
   txorphanage.cpp \
   txrequest.cpp \
   validation.cpp \
-  consensus/activation.cpp \
   validationinterface.cpp \
   versionbits.cpp \
   $(BITCOIN_CORE_H)
@@ -938,7 +936,6 @@ libbitcoinkernel_la_SOURCES = \
   consensus/merkle.cpp \
   consensus/tx_check.cpp \
   consensus/tx_verify.cpp \
-  consensus/activation.cpp \
   core_read.cpp \
   dbwrapper.cpp \
   deploymentinfo.cpp \

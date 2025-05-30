@@ -139,9 +139,6 @@ public:
         consensus.nPowAllowMinDifficultyBlocksAfterHeight = std::nullopt;
         consensus.nPostBlossomPowTargetSpacing = Consensus::POW_TARGET_SPACING;
 
-        // protocol upgrade SCRIPT_VERIFY_64_BIT_INTEGERS 
-        consensus.upgrade8Height = 500000;
-
 
         consensus.nPowMaxAdjustDown = 32; // 32% adjustment down
         consensus.nPowMaxAdjustUp = 16; // 16% adjustment up
@@ -156,9 +153,9 @@ public:
 
         // Deployment of OP_CAT/CHECK_TEMPLATE_VERIFY/64_BIT_INTEGERS
         consensus.vDeployments[Consensus::DEPLOYMENT_OP_CAT].bit = 2;
-        consensus.vDeployments[Consensus::DEPLOYMENT_OP_CAT].nStartTime = 1749945600; // 2025-06-15 00:00:00
+        consensus.vDeployments[Consensus::DEPLOYMENT_OP_CAT].nStartTime = 1749945600; // 2025-07-15 00:00:00
         consensus.vDeployments[Consensus::DEPLOYMENT_OP_CAT].nTimeout = 1772658000; // 2026-06-15 00:00:00
-        consensus.vDeployments[Consensus::DEPLOYMENT_OP_CAT].min_activation_height = 550000;
+        consensus.vDeployments[Consensus::DEPLOYMENT_OP_CAT].min_activation_height = 500000;
 
 
         consensus.nMinimumChainWork = uint256S("0x0000000000000000000000000000000000000000000000000000000000100010");
@@ -268,9 +265,7 @@ public:
         consensus.nPostBlossomPowTargetSpacing = Consensus::POW_TARGET_SPACING;
         consensus.nPowAveragingWindow = 17;
         consensus.nPowMaxAdjustDown = 32; // 32% adjustment down
-        consensus.nPowMaxAdjustUp = 16; // 16% adjustment up
-
-        consensus.upgrade8Height = 300000;
+        consensus.nPowMaxAdjustUp = 16; // 16% adjustment up        
 
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].bit = 28;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nStartTime = Consensus::BIP9Deployment::NEVER_ACTIVE;
@@ -279,7 +274,7 @@ public:
 
         // Deployment of OP_CAT/CHECK_TEMPLATE_VERIFY/64_BIT_INTEGERS
         consensus.vDeployments[Consensus::DEPLOYMENT_OP_CAT].bit = 2;
-        consensus.vDeployments[Consensus::DEPLOYMENT_OP_CAT].nStartTime = 1747267200; // 2025-05-15 00:00:00
+        consensus.vDeployments[Consensus::DEPLOYMENT_OP_CAT].nStartTime = 1747267200; // 2025-05-15 00:00:00        
         consensus.vDeployments[Consensus::DEPLOYMENT_OP_CAT].nTimeout = 1772658000; // 2026-06-15 00:00:00
         consensus.vDeployments[Consensus::DEPLOYMENT_OP_CAT].min_activation_height = 360000;
 
@@ -415,8 +410,6 @@ public:
         consensus.nPostBlossomPowTargetSpacing = Consensus::POW_TARGET_SPACING;
         consensus.nPowAveragingWindow = 17;
 
-        consensus.upgrade8Height = 100;
-
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].bit = 28;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nStartTime = Consensus::BIP9Deployment::NEVER_ACTIVE;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
@@ -508,8 +501,6 @@ public:
         consensus.nPostBlossomPowTargetSpacing = Consensus::POW_TARGET_SPACING;
         consensus.nPowMaxAdjustDown = 0; // Turn off adjustment down
         consensus.nPowMaxAdjustUp = 0; // Turn off adjustment up
-
-        consensus.upgrade8Height = 0;
 
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].bit = 28;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nStartTime = Consensus::BIP9Deployment::NEVER_ACTIVE;

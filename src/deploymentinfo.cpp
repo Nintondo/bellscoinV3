@@ -16,14 +16,6 @@ const struct VBDeploymentInfo VersionBitsDeploymentInfo[Consensus::MAX_VERSION_B
         /*.gbt_force =*/ true,
     },
     {
-        /*.name =*/ "checktemplateverify",
-        /*.gbt_force =*/ true,
-    },
-    {
-        /*.name =*/ "anyprevout",
-        /*.gbt_force =*/ true,
-    },
-    {
         /*.name =*/ "opcat",
         /*.gbt_force =*/ true,
     },
@@ -73,8 +65,6 @@ const std::map<std::string, uint32_t> g_verify_flag_names{
     FLAG_NAME(DEFAULT_CHECK_TEMPLATE_VERIFY_HASH),
     FLAG_NAME(DISCOURAGE_UPGRADABLE_CHECK_TEMPLATE_VERIFY_HASH),
     FLAG_NAME(DISCOURAGE_CHECK_TEMPLATE_VERIFY_HASH),
-    FLAG_NAME(ANYPREVOUT),
-    FLAG_NAME(DISCOURAGE_ANYPREVOUT),
     FLAG_NAME(OP_CAT),
     FLAG_NAME(64_BIT_INTEGERS),
     FLAG_NAME(DISCOURAGE_OP_CAT),
