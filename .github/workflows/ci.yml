@@ -8,36 +8,43 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
 
-    - name: Cache depends directory
-      uses: actions/cache@v2
+    - name: Restore depends cache
+      id: depends-cache
+      uses: actions/cache/restore@v4
       with:
         path: depends
         key: ${{ runner.os }}-depends-v1.0
         restore-keys: |
           ${{ runner.os }}-depends-
-          ${{ runner.os }}-depends-v1.0-
-          
+
     - name: Build dependencies
+      if: steps.depends-cache.outputs.cache-hit != 'true'
       run: |
         cd depends
-        make
+        make -j"$(nproc)"
+
+    - name: Save depends cache
+      if: steps.depends-cache.outputs.cache-hit != 'true'
+      uses: actions/cache/save@v4
+      with:
+        path: depends
+        key: ${{ runner.os }}-depends-v1.0
+
+    - name: Install build libraries
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          libxcb-xinerama0 libxcb-icccm4-dev libxcb-image0-dev \
+          libxcb-keysyms1-dev libxcb-render-util0 libxcb-shape0 \
+          libxcb-xkb1 libxkbcommon-x11-0
 
     - name: Configure and build
       run: |
-        sudo apt-get install libxcb-xinerama0 libxcb-icccm4-dev
-        sudo apt-get install -y libxcb-image0-dev
-        sudo apt-get install -y libxcb-keysyms1-dev
-        sudo apt-get install libxcb-render-util0
-        sudo apt-get install libxcb-shape0
-        sudo apt-get install libxcb-xkb1
-        sudo apt-get install libxkbcommon-x11-0
         ./autogen.sh
         ./configure --prefix=$PWD/depends/x86_64-pc-linux-gnu
-        make
+        make -j"$(nproc)"
 
     - name: Check unit tests
-      run: |
-        make check
-
+      run: make check
