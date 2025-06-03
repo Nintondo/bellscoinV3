@@ -6,7 +6,7 @@ FROM ubuntu:22.04 AS builder
 RUN apt-get update && apt-get install -y --no-install-recommends \
         build-essential libtool autotools-dev automake pkg-config \
         bsdmainutils curl ca-certificates ccache rsync git procps \
-        bison libxcb-xinerama0 libxcb-icccm4-dev libxcb-image0-dev \
+        bison cmake libxcb-xinerama0 libxcb-icccm4-dev libxcb-image0-dev \
         libxcb-keysyms1-dev libxcb-render-util0 libxcb-shape0 libxcb-xkb1 \
         libxkbcommon-x11-0 python3 libxml2-utils qtbase5-dev qttools5-dev-tools && \
     apt-get clean && \
