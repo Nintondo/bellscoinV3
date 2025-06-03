@@ -30,5 +30,4 @@ jobs:
         push: true
         tags: |
           ${{ secrets.CI_REGISTRY }}/${{ secrets.CI_REGISTRY_REPO }}/bellscoin-v3:dev
-          # immutable traceable tag – SHA of the commit
           ${{ secrets.CI_REGISTRY }}/${{ secrets.CI_REGISTRY_REPO }}/bellscoin-v3:${{ github.sha }}
