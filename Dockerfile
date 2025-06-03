@@ -2,9 +2,6 @@
 # Set up base image for builder
 FROM ubuntu:22.04 AS builder
 
-# Set environment variables
-ARG VERSION_BELLSCOIN
-
 # Install dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
         build-essential libtool autotools-dev automake pkg-config \
@@ -19,10 +16,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /bellscoin
 
 # Download, extract, and clean up Bellscoin source
-RUN curl -o bellscoin.tar.gz -Lk "https://github.com/Nintondo/bellscoinV3/archive/refs/tags/v${VERSION_BELLSCOIN}.tar.gz" && \
+RUN curl -o bellscoin.tar.gz -Lk "https://github.com/Nintondo/bellscoinV3/archive/refs/head/dev.tar.gz" && \
     tar -xf bellscoin.tar.gz && \
-    mv bellscoinV3-${VERSION_BELLSCOIN}/* ./ && \
-    rm -rf bellscoinV3-${VERSION_BELLSCOIN} && \
+    mv bellscoinV3-dev/* ./ && \
+    rm -rf bellscoinV3-dev && \
     rm -f bellscoin.tar.gz
 
 # Build dependencies, build bellscoin, run tests
