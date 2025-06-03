@@ -16,7 +16,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /bellscoin
 
 # Download, extract, and clean up Bellscoin source
-RUN curl -o bellscoin.tar.gz -Lk "https://github.com/Nintondo/bellscoinV3/archive/refs/head/dev.tar.gz" && \
+RUN curl -o bellscoin.tar.gz -Lk "https://github.com/Nintondo/bellscoinV3/archive/refs/heads/dev.tar.gz" && \
     tar -xf bellscoin.tar.gz && \
     mv bellscoinV3-dev/* ./ && \
     rm -rf bellscoinV3-dev && \
