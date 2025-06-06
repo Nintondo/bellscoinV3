@@ -1,17 +1,13 @@
-Bellscoin Core version 28.0 is now available from:
+Bellscoin Core version 3.1 is now available from:
 
-  <https://bellscoincore.org/bin/bellscoin-core-28.0/>
+  <https://github.com/Nintondo/bellscoinV3/releases>
 
 This release includes new features, various bug fixes and performance
 improvements, as well as updated translations.
 
 Please report bugs using the issue tracker at GitHub:
 
-  <https://github.com/bellscoin/bellscoin/issues>
-
-To receive security and update notifications, please subscribe to:
-
-  <https://bellscoincore.org/en/list/announcements/join/>
+  <https://github.com/Nintondo/bellscoinV3/issues>
 
 How to Upgrade
 ==============
@@ -273,85 +269,10 @@ Credits
 =======
 
 Thanks to everyone who directly contributed to this release:
-- 0xb10c
-- Alfonso Roman Zubeldia
-- Andrew Toth
-- AngusP
-- Anthony Towns
-- Antoine Poinsot
-- Anton A
-- Ava Chow
-- Ayush Singh
-- Ben Westgate
-- Brandon Odiwuor
-- brunoerg
-- bstin
-- Charlie
-- Christopher Bergqvist
-- Cory Fields
-- crazeteam
-- Daniela Brozzoni
-- David Gumberg
-- dergoegge
-- Edil Medeiros
-- Epic Curious
-- Fabian Jahr
-- fanquake
-- furszy
-- glozow
-- Greg Sanders
-- hanmz
-- Hennadii Stepanov
-- Hernan Marino
-- Hodlinator
-- ishaanam
-- ismaelsadeeq
-- Jadi
-- Jon Atack
-- josibake
-- jrakibi
-- kevkevin
-- kevkevinpal
-- Konstantin Akimov
-- laanwj
-- Larry Ruane
-- Lőrinc
-- Luis Schwab
-- Luke Dashjr
-- MarcoFalke
-- marcofleon
-- Marnix
-- Martin Saposnic
-- Martin Zumsande
-- Matt Corallo
-- Matthew Zipkin
-- Matt Whitlock
-- Max Edwards
-- Michael Dietz
-- Murch
-- nanlour
-- pablomartin4btc
-- Peter Todd
-- Pieter Wuille
-- @RandyMcMillan
-- RoboSchmied
-- Roman Zeyde
-- Ryan Ofsky
-- Sebastian Falbesoner
-- Sergi Delgado Segura
-- Sjors Provoost
-- spicyzboss
-- StevenMia
-- stickies-v
-- stratospher
-- Suhas Daftuar
-- sunerok
-- tdb3
-- TheCharlatan
-- umiumi
-- Vasil Dimov
-- virtu
-- willcl-ark
+- Billy Markus
+- Yar Sawyer
+- Dim Marvel
+- Kiel
+- Nikita
 
-As well as to everyone that helped with translations on
-[Transifex](https://www.transifex.com/bellscoin/bellscoin/).
+
