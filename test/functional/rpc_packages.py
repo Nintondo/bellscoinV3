@@ -426,7 +426,6 @@ class RPCPackagesTest(BellscoinTestFramework):
         # but child is too high fee
         # Lower mempool limit to make it easier to fill_mempool
         self.restart_node(0, extra_args=[
-            "-datacarriersize=100000",
             "-maxmempool=5",
             "-persistmempool=0",
         ])
@@ -455,7 +454,7 @@ class RPCPackagesTest(BellscoinTestFramework):
         assert parent["txid"] not in node.getrawmempool()
         assert child["txid"] not in node.getrawmempool()
 
-        # Reset maxmempool, datacarriersize, reset dynamic mempool minimum feerate, and empty mempool.
+        # Reset maxmempool, reset dynamic mempool minimum feerate, and empty mempool.
         self.restart_node(0)
         self.wallet.rescan_utxos()
 

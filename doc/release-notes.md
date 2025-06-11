@@ -1,60 +1,57 @@
-Bellscoin Core version 28.0 is now available from:
+Bells Core version 3.1.0 is now available from:
 
-  <https://bellscoincore.org/bin/bellscoin-core-28.0/>
+  <https://github.com/Nintondo/bellscoinV3/releases>
 
 This release includes new features, various bug fixes and performance
-improvements, as well as updated translations.
+improvements.
 
 Please report bugs using the issue tracker at GitHub:
 
-  <https://github.com/bellscoin/bellscoin/issues>
+  <https://github.com/Nintondo/bellscoinV3/issues>
 
-To receive security and update notifications, please subscribe to:
-
-  <https://bellscoincore.org/en/list/announcements/join/>
 
 How to Upgrade
 ==============
 
 If you are running an older version, shut it down. Wait until it has completely
 shut down (which might take a few minutes in some cases), then run the
-installer (on Windows) or just copy over `/Applications/Bellscoin-Qt` (on macOS)
-or `bellscoind`/`bellscoin-qt` (on Linux).
+installer (on Windows) or just copy over `/Applications/Bells-Qt` (on macOS)
+or `bellsd`/`bells-qt` (on Linux).
 
-Upgrading directly from a version of Bellscoin Core that has reached its EOL is
+Upgrading directly from a version of Bells Core that has reached its EOL is
 possible, but it might take some time if the data directory needs to be migrated. Old
-wallet versions of Bellscoin Core are generally supported.
+wallet versions of Bells Core are generally supported.
 
-Running Bellscoin Core binaries on macOS requires self signing.
+Running Bells Core binaries on macOS requires self signing.
 ```
-cd /path/to/bellscoin-28.0/bin
-xattr -d com.apple.quarantine bellscoin-cli bellscoin-qt bellscoin-tx bellscoin-util bellscoin-wallet bellscoind test_bellscoin
-codesign -s - bellscoin-cli bellscoin-qt bellscoin-tx bellscoin-util bellscoin-wallet bellscoind test_bellscoin
+cd /path/to/bells-3.1.0/bin
+xattr -d com.apple.quarantine bells-cli bells-qt bells-tx bells-util bells-wallet bellsd test_bells
+codesign -s - bells-cli bells-qt bells-tx bells-util bells-wallet bellsd test_bells
 ```
 
 Compatibility
 ==============
 
-Bellscoin Core is supported and extensively tested on operating systems
-using the Linux Kernel 3.17+, macOS 11.0+, and Windows 7 and newer. Bellscoin
+Bells Core is supported and extensively tested on operating systems
+using the Linux Kernel 3.17+, macOS 11.0+, and Windows 7 and newer. Bells
 Core should also work on most other UNIX-like systems but is not as
-frequently tested on them. It is not recommended to use Bellscoin Core on
+frequently tested on them. It is not recommended to use Bells Core on
 unsupported systems.
 
 Windows Data Directory
 ----------------------
 
-The default data directory on Windows has been moved from `C:\Users\Username\AppData\Roaming\Bellscoin`
-to `C:\Users\Username\AppData\Local\Bellscoin`. Bellscoin Core will check the existence
+The default data directory on Windows has been moved from `C:\Users\Username\AppData\Roaming\Bells`
+to `C:\Users\Username\AppData\Local\Bells`. Bells Core will check the existence
 of the old directory first and continue to use that directory for backwards
-compatibility if it is present. (#27064)
+compatibility if it is present.
 
 JSON-RPC 2.0 Support
 --------------------
 
 The JSON-RPC server now recognizes JSON-RPC 2.0 requests and responds with
 strict adherence to the [specification](https://www.jsonrpc.org/specification).
-See [JSON-RPC-interface.md](https://github.com/bellscoin/bellscoin/blob/master/doc/JSON-RPC-interface.md#json-rpc-11-vs-20) for details. (#27101)
+See [JSON-RPC-interface.md](https://github.com/Nintondo/bellscoinV3/blob/master/doc/JSON-RPC-interface.md#json-rpc-11-vs-20) for details.
 
 JSON-RPC clients may need to be updated to be compatible with the JSON-RPC server.
 Please open an issue on GitHub if any compatibility issues are found.
@@ -67,7 +64,7 @@ The libbellscoin-consensus library was deprecated in 27.0 and is now completely 
 P2P and Network Changes
 -----------------------
 
-- Previously if Bellscoin Core was listening for P2P connections, either using
+- Previously if Bells Core was listening for P2P connections, either using
   default settings or via `bind=addr:port` it would always also bind to
   `127.0.0.1:8334` to listen for Tor connections. It was not possible to switch
   this off, even if the node didn't use Tor. This has been changed and now
@@ -130,6 +127,12 @@ Mempool Policy Changes
 - The default value of the `-mempoolfullrbf` configuration option has been changed from 0 to 1,
   i.e. `mempoolfullrbf=1`. (#30493)
 
+- `-datacarriersize` is increased to 100,000 which effectively uncaps the limit (as the maximum transaction size limit will be hit first). It can be overridden   with -datacarriersize=83 to revert to the limit
+  enforced in previous versions. Both `-datacarrier` and `-datacarriersize` options have been marked as deprecated and are expected to be removed in a future release. (#32406)
+
+- Multiple data carrier (OP_RETURN) outputs in a transaction are now permitted for relay and mining. The `-datacarriersize` limit applies to the aggregate size of the scriptPubKeys across all such outputs in a 
+  transaction, not including the scriptPubKey size itself. (#32406)Add comment
+
 Updated RPCs
 ------------
 
@@ -181,7 +184,7 @@ Build System
 - GCC 11.1 or later, or Clang 16.0 or later,
 are now required to compile Bellscoin Core. (#29091, #30263)
 
-- The minimum required glibc to run Bellscoin Core is now
+- The minimum required glibc to run Bells Core is now
 2.31. This means that RHEL 8 and Ubuntu 18.04 (Bionic)
 are no-longer supported. (#29987)
 
@@ -273,6 +276,9 @@ Credits
 =======
 
 Thanks to everyone who directly contributed to this release:
+- Billy Markus
+- Yar Sawyer
+- Dim Marvel
 - 0xb10c
 - Alfonso Roman Zubeldia
 - Andrew Toth
@@ -353,5 +359,3 @@ Thanks to everyone who directly contributed to this release:
 - virtu
 - willcl-ark
 
-As well as to everyone that helped with translations on
-[Transifex](https://www.transifex.com/bellscoin/bellscoin/).

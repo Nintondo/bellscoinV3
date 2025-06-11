@@ -23,8 +23,7 @@ def fill_mempool(test_framework, node):
     """Fill mempool until eviction.
 
     Allows for simpler testing of scenarios with floating mempoolminfee > minrelay
-    Requires -datacarriersize=100000 and
-   -maxmempool=5.
+    Requires -maxmempool=5.
     It will not ensure mempools become synced as it
     is based on a single node and assumes -minrelaytxfee
     is 1 sat/vbyte.
