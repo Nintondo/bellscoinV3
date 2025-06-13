@@ -923,6 +923,7 @@ static RPCHelpMan getblocktemplate()
                         pblock->nVersion &= ~chainman.m_versionbitscache.Mask(consensusParams, pos);
                     }
                 }
+                break;
             }
             case ThresholdState::ACTIVE:
             {

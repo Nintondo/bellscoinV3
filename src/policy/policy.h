@@ -91,7 +91,6 @@ static constexpr unsigned int MANDATORY_SCRIPT_VERIFY_FLAGS{SCRIPT_VERIFY_P2SH |
                                                              SCRIPT_VERIFY_CHECKLOCKTIMEVERIFY |
                                                              SCRIPT_VERIFY_CHECKSEQUENCEVERIFY |
                                                              SCRIPT_VERIFY_WITNESS |
-                                                             SCRIPT_VERIFY_MINIMALDATA |
                                                              SCRIPT_VERIFY_TAPROOT};
 
 /**
@@ -116,7 +115,10 @@ static constexpr unsigned int STANDARD_SCRIPT_VERIFY_FLAGS{MANDATORY_SCRIPT_VERI
                                                              SCRIPT_VERIFY_DISCOURAGE_UPGRADABLE_PUBKEYTYPE |
                                                              SCRIPT_VERIFY_DISCOURAGE_UPGRADABLE_CHECK_TEMPLATE_VERIFY_HASH |
                                                              SCRIPT_VERIFY_DEFAULT_CHECK_TEMPLATE_VERIFY_HASH |
-                                                             SCRIPT_VERIFY_OP_CAT
+                                                             SCRIPT_VERIFY_64_BIT_INTEGERS |
+                                                             SCRIPT_VERIFY_OP_CAT |
+                                                             SCRIPT_VERIFY_INTERNALKEY |
+                                                             SCRIPT_VERIFY_CHECKSIGFROMSTACK
                                                             };
 
 /** For convenience, standard but not mandatory verify flags. */

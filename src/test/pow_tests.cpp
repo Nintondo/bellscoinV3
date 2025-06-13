@@ -21,7 +21,7 @@ void TestDifficultyAveragingImpl(const Consensus::Params& params)
 
     // Start with blocks evenly-spaced and equal difficulty
     std::vector<CBlockIndex> blocks(lastBlk+1);
-    for (int i = 0; i <= lastBlk; i++) {
+    for (size_t i = 0; i <= lastBlk; i++) {
         blocks[i].pprev = i ? &blocks[i - 1] : nullptr;
         blocks[i].nHeight = i;
         blocks[i].nTime = i ? blocks[i - 1].nTime + params.PoWTargetSpacing().count() : 1269211443;
@@ -109,7 +109,7 @@ BOOST_AUTO_TEST_CASE(MinDifficultyRules) {
 
     // Start with blocks evenly-spaced and equal difficulty
     std::vector<CBlockIndex> blocks(lastBlk+1);
-    for (int i = 0; i <= lastBlk; i++) {
+    for (size_t i = 0; i <= lastBlk; i++) {
         blocks[i].pprev = i ? &blocks[i - 1] : nullptr;
         blocks[i].nHeight = params.nPowAllowMinDifficultyBlocksAfterHeight.value() + i;
         blocks[i].nTime = i ? blocks[i - 1].nTime + params.PoWTargetSpacing().count() : 1269211443;

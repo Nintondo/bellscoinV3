@@ -1253,7 +1253,7 @@ bool MemPoolAccept::PolicyScriptChecks(const ATMPArgs& args, Workspace& ws)
 
     const unsigned int scriptVerifyFlags = STANDARD_SCRIPT_VERIFY_FLAGS |
         DepDiscourageFlags(m_active_chainstate.m_chain.Tip(), m_active_chainstate.m_chainman, {
-            { Consensus::DEPLOYMENT_OP_CAT, SCRIPT_VERIFY_DISCOURAGE_OP_CAT | SCRIPT_VERIFY_DISCOURAGE_CHECK_TEMPLATE_VERIFY_HASH },
+            { Consensus::DEPLOYMENT_OP_CAT, SCRIPT_VERIFY_DISCOURAGE_OP_CAT | SCRIPT_VERIFY_DISCOURAGE_CHECK_TEMPLATE_VERIFY_HASH | SCRIPT_VERIFY_DISCOURAGE_INTERNALKEY | SCRIPT_VERIFY_DISCOURAGE_CHECKSIGFROMSTACK},
     });
 
     // Check input scripts and signatures.
@@ -2548,14 +2548,6 @@ unsigned int GetBlockScriptFlags(const CBlockIndex& block_index, const Chainstat
 {
     const Consensus::Params& consensusparams = chainman.GetConsensus();
 
-    // BIP16 didn't become active until Apr 1 2012 (on mainnet, and
-    // retroactively applied to testnet)
-    // However, only one historical block violated the P2SH rules (on both
-    // mainnet and testnet).
-    // Similarly, only one historical block violated the TAPROOT rules on
-    // mainnet.
-    // For simplicity, always leave P2SH+WITNESS+TAPROOT on except for the two
-    // violating blocks.
     uint32_t flags{SCRIPT_VERIFY_P2SH | SCRIPT_VERIFY_WITNESS | SCRIPT_VERIFY_TAPROOT};
     const auto it{consensusparams.script_flag_exceptions.find(*Assert(block_index.phashBlock))};
     if (it != consensusparams.script_flag_exceptions.end()) {
@@ -2583,10 +2575,12 @@ unsigned int GetBlockScriptFlags(const CBlockIndex& block_index, const Chainstat
     }
 
     
-    // Enforce OP_CAT
+    // Enforce OP_CAT, OP_CHECKTEMPLATEVERIFY, OP_INTERNALKEY, OP_CHECKSIGFROMSTACK, 64_BIT_INTEGERS
     if (DeploymentActiveAt(block_index, chainman, Consensus::DEPLOYMENT_OP_CAT)) {
-        flags |= SCRIPT_VERIFY_DEFAULT_CHECK_TEMPLATE_VERIFY_HASH;
         flags |= SCRIPT_VERIFY_OP_CAT;
+        flags |= SCRIPT_VERIFY_DEFAULT_CHECK_TEMPLATE_VERIFY_HASH;
+        flags |= SCRIPT_VERIFY_INTERNALKEY;
+        flags |= SCRIPT_VERIFY_CHECKSIGFROMSTACK;
         flags |= SCRIPT_VERIFY_64_BIT_INTEGERS;
     }
 

@@ -434,6 +434,8 @@ BOOST_FIXTURE_TEST_CASE(chainstatemanager_loadblockindex, TestChain100Setup)
 
     CBlockIndex* validated_tip{nullptr};
     CBlockIndex* assumed_base{nullptr};
+    // Reason for commenting out the following line:
+    // Need to regenerate utxosnapshot for this test to work, as the coinbase maturity is 30 blocks in bells
     // CBlockIndex* assumed_tip{WITH_LOCK(chainman.GetMutex(), return chainman.ActiveChain().Tip())};
     //BOOST_CHECK_EQUAL(assumed_tip->nHeight, 120);
 

@@ -938,6 +938,6 @@ def taproot_construct(pubkey, scripts=None, treat_internal_as_infinity=False):
 
 def is_op_success(o):
     # assume OP_CAT is activated in tests
-    if o == OP_CAT:
+    if o in [OP_CAT, OP_INTERNALKEY, OP_CHECKSIGFROMSTACK]:
         return False
     return o == 0x50 or o == 0x62 or o == 0x89 or o == 0x8a or o == 0x8d or o == 0x8e or (o >= 0x7e and o <= 0x81) or (o >= 0x83 and o <= 0x86) or (o >= 0x95 and o <= 0x99) or (o >= 0xbb and o <= 0xfe)

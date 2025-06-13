@@ -130,7 +130,7 @@ static void ValidateCheckInputsForAllFlags(const CTransaction &tx, uint32_t fail
         TxValidationState state;
 
         // Randomly selects flag combinations
-        uint32_t test_flags = (uint32_t) insecure_rand.randrange((SCRIPT_VERIFY_END_MARKER - 1) << 1);
+        uint32_t test_flags = (uint32_t) insecure_rand.randrange((uint64_t)(SCRIPT_VERIFY_END_MARKER - 1) << 1);
 
         // Filter out incompatible flag choices
         if ((test_flags & SCRIPT_VERIFY_CLEANSTACK)) {

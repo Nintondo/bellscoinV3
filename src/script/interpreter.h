@@ -9,6 +9,7 @@
 #include <consensus/amount.h>
 #include <hash.h>
 #include <primitives/transaction.h>
+#include <pubkey.h>
 #include <script/script_error.h> // IWYU pragma: export
 #include <span.h>
 #include <uint256.h>
@@ -161,6 +162,18 @@ enum : uint32_t {
     // semantics.
     SCRIPT_VERIFY_64_BIT_INTEGERS = (1U << 26),
 
+    // Executing OP_INTERNALKEY
+    SCRIPT_VERIFY_INTERNALKEY = (1U << 27),
+
+    // Making OP_INTERNALKEY non-standard
+    SCRIPT_VERIFY_DISCOURAGE_INTERNALKEY = (1U << 28),
+
+    // Validating OP_CHECKSIGFROMSTACK
+    SCRIPT_VERIFY_CHECKSIGFROMSTACK = (1U << 29),
+
+    // Making OP_CHECKSIGFROMSTACK non-standard
+    SCRIPT_VERIFY_DISCOURAGE_CHECKSIGFROMSTACK = (1U << 30),
+
     // Constants to point to the highest flag in use. Add new flags above this line.
     //
     SCRIPT_VERIFY_END_MARKER
@@ -252,6 +265,9 @@ struct ScriptExecutionData
 
     //! The hash of the corresponding output
     std::optional<uint256> m_output_hash;
+
+    //! The taproot internal key. */
+    std::optional<XOnlyPubKey> m_internal_key = std::nullopt;
 };
 
 /** Signature hash sizes */
@@ -393,5 +409,7 @@ bool VerifyScript(const CScript& scriptSig, const CScript& scriptPubKey, const C
 size_t CountWitnessSigOps(const CScript& scriptSig, const CScript& scriptPubKey, const CScriptWitness* witness, unsigned int flags);
 
 int FindAndDelete(CScript& script, const CScript& b);
+
+std::optional<bool> CheckTapscriptOpSuccess(const CScript& exec_script, unsigned int flags, ScriptError* serror);
 
 #endif // BITCOIN_SCRIPT_INTERPRETER_H

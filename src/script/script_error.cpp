@@ -59,6 +59,8 @@ std::string ScriptErrorString(const ScriptError serror)
             return "Modulo by zero error";
         case SCRIPT_ERR_UNBALANCED_CONDITIONAL:
             return "Invalid OP_IF construction";
+        case SCRIPT_ERR_INVALID_DATA_LENGTH:
+            return "Invalid data length for operation";            
         case SCRIPT_ERR_NEGATIVE_LOCKTIME:
             return "Negative locktime";
         case SCRIPT_ERR_UNSATISFIED_LOCKTIME:

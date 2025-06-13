@@ -1239,6 +1239,7 @@ static void SoftForkDescPushBack(const CBlockIndex* blockindex, UniValue& softfo
         case ThresholdState::STARTED: return "started";
         case ThresholdState::LOCKED_IN: return "locked_in";
         case ThresholdState::ACTIVE: return "active";
+        case ThresholdState::FAILED: return "failed";
         }
         return "invalid";
     };
