@@ -16,7 +16,7 @@ typedef std::vector<valtype> stacktype;
 
 BOOST_FIXTURE_TEST_SUITE(monolith_opcodes_tests, BasicTestingSetup)
 
-std::array<uint32_t, 3> flagset{{0, STANDARD_SCRIPT_VERIFY_FLAGS}};
+std::array<uint32_t, 2> flagset{{0, STANDARD_SCRIPT_VERIFY_FLAGS}};
 
 /**
  * General utility functions to check for script passing/failing.
@@ -465,10 +465,40 @@ BOOST_AUTO_TEST_CASE(div_and_mod_opcode_error_tests) {
     CheckDivModError({}, ScriptError::SCRIPT_ERR_INVALID_STACK_OPERATION);
     CheckDivModError({{}}, ScriptError::SCRIPT_ERR_INVALID_STACK_OPERATION);
 
-    // CheckOps not valid numbers
-    CheckDivModError({{0x01, 0x02, 0x03, 0x04, 0x05}, {0x01, 0x02, 0x03, 0x04, 0x05}}, ScriptError::INVALID_NUMBER_RANGE);
-    CheckDivModError({{0x01, 0x02, 0x03, 0x04, 0x05}, {0x01}}, ScriptError::INVALID_NUMBER_RANGE);
-    CheckDivModError({{0x01, 0x05}, {0x01, 0x02, 0x03, 0x04, 0x05}}, ScriptError::INVALID_NUMBER_RANGE);
+    // Test number range errors - different for each flag combination
+    for (uint32_t flags : flagset) {
+        if (flags & SCRIPT_VERIFY_64_BIT_INTEGERS) {
+            // 64-bit mode: 9-byte numbers exceed 8-byte limit → 64-bit range error
+            CheckError(flags, {{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09}, {0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09}}, 
+                      CScript() << OP_DIV, ScriptError::INVALID_NUMBER_RANGE_64_BIT);
+            CheckError(flags, {{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09}, {0x01}}, 
+                      CScript() << OP_DIV, ScriptError::INVALID_NUMBER_RANGE_64_BIT);
+            CheckError(flags, {{0x01, 0x05}, {0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09}}, 
+                      CScript() << OP_DIV, ScriptError::INVALID_NUMBER_RANGE_64_BIT);
+            
+            CheckError(flags, {{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09}, {0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09}}, 
+                      CScript() << OP_MOD, ScriptError::INVALID_NUMBER_RANGE_64_BIT);
+            CheckError(flags, {{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09}, {0x01}}, 
+                      CScript() << OP_MOD, ScriptError::INVALID_NUMBER_RANGE_64_BIT);
+            CheckError(flags, {{0x01, 0x05}, {0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09}}, 
+                      CScript() << OP_MOD, ScriptError::INVALID_NUMBER_RANGE_64_BIT);
+        } else {
+            // 32-bit mode: 5-byte numbers exceed 4-byte limit → 32-bit range error
+            CheckError(flags, {{0x01, 0x02, 0x03, 0x04, 0x05}, {0x01, 0x02, 0x03, 0x04, 0x05}}, 
+                      CScript() << OP_DIV, ScriptError::INVALID_NUMBER_RANGE);
+            CheckError(flags, {{0x01, 0x02, 0x03, 0x04, 0x05}, {0x01}}, 
+                      CScript() << OP_DIV, ScriptError::INVALID_NUMBER_RANGE);
+            CheckError(flags, {{0x01, 0x05}, {0x01, 0x02, 0x03, 0x04, 0x05}}, 
+                      CScript() << OP_DIV, ScriptError::INVALID_NUMBER_RANGE);
+            
+            CheckError(flags, {{0x01, 0x02, 0x03, 0x04, 0x05}, {0x01, 0x02, 0x03, 0x04, 0x05}}, 
+                      CScript() << OP_MOD, ScriptError::INVALID_NUMBER_RANGE);
+            CheckError(flags, {{0x01, 0x02, 0x03, 0x04, 0x05}, {0x01}}, 
+                      CScript() << OP_MOD, ScriptError::INVALID_NUMBER_RANGE);
+            CheckError(flags, {{0x01, 0x05}, {0x01, 0x02, 0x03, 0x04, 0x05}}, 
+                      CScript() << OP_MOD, ScriptError::INVALID_NUMBER_RANGE);
+        }
+    }
 }
 
 static void div_and_mod_opcode_helper(size_t maxIntegerSize) {
@@ -503,7 +533,7 @@ static void div_and_mod_opcode_helper(size_t maxIntegerSize) {
 }
 
 BOOST_AUTO_TEST_CASE(div_and_mod_opcode_tests) {
-    div_and_mod_opcode_helper(CScriptNum::MAXIMUM_ELEMENT_SIZE_32_BIT);
+   div_and_mod_opcode_helper(CScriptNum::MAXIMUM_ELEMENT_SIZE_32_BIT);
 }
 
 BOOST_AUTO_TEST_CASE(div_and_mod_opcode_tests_64_bit_integers) {
