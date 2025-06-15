@@ -27,9 +27,6 @@
 #include <algorithm>
 #include <utility>
 
-CScript COINBASE_FLAGS;
-GlobalMutex g_coinbaseFlags_mutex;
-
 namespace node {
 int64_t UpdateTime(CBlockHeader* pblock, const Consensus::Params& consensusParams, const CBlockIndex* pindexPrev)
 {
@@ -460,17 +457,8 @@ void IncrementExtraNonce(CBlock* pblock, const CBlockIndex* pindexPrev, unsigned
     CMutableTransaction txCoinbase(*pblock->vtx[0]);
 
     CScript script = (CScript() << ScriptInt::fromIntUnchecked(nHeight) << CScriptNum::fromIntUnchecked(nExtraNonce));
-    CScript cbFlags;
-    {
-        LOCK(g_coinbaseFlags_mutex);
-        cbFlags = COINBASE_FLAGS;
-    }
-    if (script.size() + cbFlags.size() > 100)
-    {
-        cbFlags.resize(100 - script.size());
-    }
 
-    txCoinbase.vin[0].scriptSig = script + cbFlags;
+    txCoinbase.vin[0].scriptSig = script;
     assert(txCoinbase.vin[0].scriptSig.size() <= 100);
 
     pblock->vtx[0] = MakeTransactionRef(std::move(txCoinbase));

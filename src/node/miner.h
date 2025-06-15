@@ -29,9 +29,6 @@ class CScript;
 class Chainstate;
 class ChainstateManager;
 
-extern CScript COINBASE_FLAGS;
-extern GlobalMutex g_coinbaseFlags_mutex;
-
 namespace Consensus { struct Params; };
 
 namespace node {
