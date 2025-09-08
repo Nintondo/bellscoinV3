@@ -3,15 +3,23 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <bench/bench.h>
-#include <kernel/mempool_entry.h>
+#include <consensus/amount.h>
 #include <policy/policy.h>
+#include <primitives/transaction.h>
 #include <random.h>
+#include <script/script.h>
+#include <sync.h>
 #include <test/util/setup_common.h>
+#include <test/util/txmempool.h>
 #include <txmempool.h>
-#include <util/chaintype.h>
 #include <validation.h>
 
+#include <cstddef>
+#include <cstdint>
+#include <memory>
 #include <vector>
+
+class CCoinsViewCache;
 
 static void AddTx(const CTransactionRef& tx, CTxMemPool& pool) EXCLUSIVE_LOCKS_REQUIRED(cs_main, pool.cs)
 {
@@ -21,6 +29,10 @@ static void AddTx(const CTransactionRef& tx, CTxMemPool& pool) EXCLUSIVE_LOCKS_R
     bool spendsCoinbase = false;
     unsigned int sigOpCost = 4;
     LockPoints lp;
+    //AddToMemPool(pool, CTxMemPoolEntry(tx, 1000, nTime, nHeight, sequence, spendsCoinbase, sigOpCost, lp));
+    /*
+    TODO: Implement ChangeSet for mempool
+    */
     pool.addUnchecked(CTxMemPoolEntry(tx, 1000, nTime, nHeight, sequence, spendsCoinbase, sigOpCost, lp));
 }
 
@@ -40,11 +52,11 @@ static std::vector<CTransactionRef> CreateOrderedCoins(FastRandomContext& det_ra
     for (auto x = 0; x < 100; ++x) {
         CMutableTransaction tx = CMutableTransaction();
         tx.vin.resize(1);
-        tx.vin[0].scriptSig = CScript() << CScriptNum::fromIntUnchecked(tx_counter);
-        tx.vin[0].scriptWitness.stack.push_back(CScriptNum::fromIntUnchecked(x).getvch());
+        tx.vin[0].scriptSig = CScript() << CScriptNum(tx_counter);
+        tx.vin[0].scriptWitness.stack.push_back(CScriptNum(x).getvch());
         tx.vout.resize(det_rand.randrange(10)+2);
         for (auto& out : tx.vout) {
-            out.scriptPubKey = CScript() << CScriptNum::fromIntUnchecked(tx_counter) << OP_EQUAL;
+            out.scriptPubKey = CScript() << CScriptNum(tx_counter) << OP_EQUAL;
             out.nValue = 10 * COIN;
         }
         ordered_coins.emplace_back(MakeTransactionRef(tx));
@@ -65,7 +77,7 @@ static std::vector<CTransactionRef> CreateOrderedCoins(FastRandomContext& det_ra
                 tx.vin.emplace_back();
                 tx.vin.back().prevout = COutPoint(hash, coin.vin_left++);
                 tx.vin.back().scriptSig = CScript() << coin.tx_count;
-                tx.vin.back().scriptWitness.stack.push_back(CScriptNum::fromIntUnchecked(coin.tx_count).getvch());
+                tx.vin.back().scriptWitness.stack.push_back(CScriptNum(coin.tx_count).getvch());
             }
             if (coin.vin_left == coin.ref->vin.size()) {
                 coin = available_coins.back();
@@ -73,7 +85,7 @@ static std::vector<CTransactionRef> CreateOrderedCoins(FastRandomContext& det_ra
             }
             tx.vout.resize(det_rand.randrange(10)+2);
             for (auto& out : tx.vout) {
-                out.scriptPubKey = CScript() << CScriptNum::fromIntUnchecked(tx_counter) << OP_EQUAL;
+                out.scriptPubKey = CScript() << CScriptNum(tx_counter) << OP_EQUAL;
                 out.nValue = 10 * COIN;
             }
         }

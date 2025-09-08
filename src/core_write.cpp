@@ -109,12 +109,9 @@ std::string ScriptToAsmStr(const CScript& script, const bool fAttemptSighashDeco
             str += "[error]";
             return str;
         }
-
-        size_t const maxScriptNumSize = CScriptNum::MAXIMUM_ELEMENT_SIZE_64_BIT;
-
         if (0 <= opcode && opcode <= OP_PUSHDATA4) {
-            if (vch.size() <= maxScriptNumSize) {
-                str += strprintf("%d", CScriptNum(vch, false, maxScriptNumSize).getint64());
+            if (vch.size() <= static_cast<std::vector<unsigned char>::size_type>(4)) {
+                str += strprintf("%d", CScriptNum(vch, false).getint());
             } else {
                 // the IsUnspendable check makes sure not to try to decode OP_RETURN data that may match the format of a signature
                 if (fAttemptSighashDecode && !script.IsUnspendable()) {

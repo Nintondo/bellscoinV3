@@ -157,22 +157,17 @@ enum : uint32_t {
     SCRIPT_VERIFY_OP_CAT = (1U << 24),
     SCRIPT_VERIFY_DISCOURAGE_OP_CAT = (1U << 25),
 
-    // Flag that allows us to determine if the script interpreter should allow
-    // 64-bit integer arithmetic and the return of OP_MUL or use the previous
-    // semantics.
-    SCRIPT_VERIFY_64_BIT_INTEGERS = (1U << 26),
-
     // Executing OP_INTERNALKEY
-    SCRIPT_VERIFY_INTERNALKEY = (1U << 27),
+    SCRIPT_VERIFY_INTERNALKEY = (1U << 26),
 
     // Making OP_INTERNALKEY non-standard
-    SCRIPT_VERIFY_DISCOURAGE_INTERNALKEY = (1U << 28),
+    SCRIPT_VERIFY_DISCOURAGE_INTERNALKEY = (1U << 27),
 
     // Validating OP_CHECKSIGFROMSTACK
-    SCRIPT_VERIFY_CHECKSIGFROMSTACK = (1U << 29),
+    SCRIPT_VERIFY_CHECKSIGFROMSTACK = (1U << 28),
 
     // Making OP_CHECKSIGFROMSTACK non-standard
-    SCRIPT_VERIFY_DISCOURAGE_CHECKSIGFROMSTACK = (1U << 30),
+    SCRIPT_VERIFY_DISCOURAGE_CHECKSIGFROMSTACK = (1U << 29),
 
     // Constants to point to the highest flag in use. Add new flags above this line.
     //

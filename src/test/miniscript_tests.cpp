@@ -1,3 +1,4 @@
+
 // Copyright (c) 2019-2022 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
@@ -279,18 +280,18 @@ public:
 
     bool CheckLockTime(const CScriptNum& locktime) const override {
         // Delegate to Satisfier.
-        return ctx.CheckAfter(locktime.getint64());
+        return ctx.CheckAfter(locktime.GetInt64());
     }
 
     bool CheckSequence(const CScriptNum& sequence) const override {
         // Delegate to Satisfier.
-        return ctx.CheckOlder(sequence.getint64());
+        return ctx.CheckOlder(sequence.GetInt64());
     }
 };
 
 using Fragment = miniscript::Fragment;
 using NodeRef = miniscript::NodeRef<CPubKey>;
-using miniscript::operator"" _mst;
+using miniscript::operator""_mst;
 using Node = miniscript::Node<CPubKey>;
 
 /** Compute all challenges (pubkeys, hashes, timelocks) that occur in a given Miniscript. */

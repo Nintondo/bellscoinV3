@@ -231,8 +231,8 @@ struct Satisfier {
     std::vector<unsigned char> ToPKBytes(const Key& key) const { return {key.begin(), key.end()}; }
 
     //! Time lock satisfactions.
-    bool CheckAfter(uint32_t value) const { return m_creator.Checker().CheckLockTime(CScriptNum::fromIntUnchecked(value)); }
-    bool CheckOlder(uint32_t value) const { return m_creator.Checker().CheckSequence(CScriptNum::fromIntUnchecked(value)); }
+    bool CheckAfter(uint32_t value) const { return m_creator.Checker().CheckLockTime(CScriptNum(value)); }
+    bool CheckOlder(uint32_t value) const { return m_creator.Checker().CheckSequence(CScriptNum(value)); }
 
     //! Hash preimage satisfactions.
     miniscript::Availability SatSHA256(const std::vector<unsigned char>& hash, std::vector<unsigned char>& preimage) const {

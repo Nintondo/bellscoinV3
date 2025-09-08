@@ -2580,7 +2580,6 @@ unsigned int GetBlockScriptFlags(const CBlockIndex& block_index, const Chainstat
         flags |= SCRIPT_VERIFY_DEFAULT_CHECK_TEMPLATE_VERIFY_HASH;
         flags |= SCRIPT_VERIFY_INTERNALKEY;
         flags |= SCRIPT_VERIFY_CHECKSIGFROMSTACK;
-        flags |= SCRIPT_VERIFY_64_BIT_INTEGERS;
     }
 
     return flags;

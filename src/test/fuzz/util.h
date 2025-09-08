@@ -154,7 +154,7 @@ template <typename WeakEnumType, size_t size>
 
 [[nodiscard]] inline CScriptNum ConsumeScriptNum(FuzzedDataProvider& fuzzed_data_provider) noexcept
 {
-    return CScriptNum::fromIntUnchecked(fuzzed_data_provider.ConsumeIntegral<int64_t>());
+    return CScriptNum(fuzzed_data_provider.ConsumeIntegral<int64_t>());
 }
 
 [[nodiscard]] inline uint160 ConsumeUInt160(FuzzedDataProvider& fuzzed_data_provider) noexcept

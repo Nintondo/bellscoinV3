@@ -539,7 +539,7 @@ std::vector<CTransactionRef> TestChain100Setup::PopulateMempool(FastRandomContex
         const CAmount fee = 100 * det_rand.randrange(30);
         const CAmount amount_per_output = (total_in - fee) / num_outputs;
         for (size_t n{0}; n < num_outputs; ++n) {
-            CScript spk = CScript() << CScriptNum(CScriptNum::fromIntUnchecked(num_transactions + n));
+            CScript spk = CScript() << CScriptNum(num_transactions + n);
             mtx.vout.emplace_back(amount_per_output, spk);
         }
         CTransactionRef ptx = MakeTransactionRef(mtx);

@@ -6,7 +6,6 @@
 #define BITCOIN_TEST_UTIL_TRANSACTION_UTILS_H
 
 #include <primitives/transaction.h>
-
 #include <array>
 
 class FillableSigningProvider;
