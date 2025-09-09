@@ -71,7 +71,6 @@ const std::map<std::string, uint32_t> g_verify_flag_names{
     FLAG_NAME(DISCOURAGE_INTERNALKEY),
     FLAG_NAME(CHECKSIGFROMSTACK),
     FLAG_NAME(DISCOURAGE_CHECKSIGFROMSTACK),
-    FLAG_NAME(64_BIT_INTEGERS),
 };
 #undef FLAG_NAME
 

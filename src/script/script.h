@@ -12,7 +12,6 @@
 #include <serialize.h>
 #include <uint256.h>
 #include <util/hash_type.h>
-#include "script_error.h"
 
 #include <cassert>
 #include <cstdint>
@@ -23,7 +22,7 @@
 #include <type_traits>
 #include <utility>
 #include <vector>
-#include <optional>
+
 
 // Maximum number of bytes pushable to the stack
 static const unsigned int MAX_SCRIPT_ELEMENT_SIZE = 520;
@@ -215,8 +214,7 @@ enum opcodetype
     
     // Tapscript expansion
     OP_INTERNALKEY = 0xcb,
-    OP_CHECKSIGFROMSTACK = 0xcc,    
-
+    OP_CHECKSIGFROMSTACK = 0xcc,
     OP_INVALIDOPCODE = 0xff,
 };
 
@@ -225,411 +223,188 @@ static const unsigned int MAX_OPCODE = OP_NOP10;
 
 std::string GetOpName(opcodetype opcode);
 
-struct scriptnum_error : std::runtime_error {
-    ScriptError scriptError;
-    explicit
-    scriptnum_error(const std::string &str, ScriptError err = ScriptError::SCRIPT_ERR_UNKNOWN_ERROR)
-        : std::runtime_error(str), scriptError(err)
-    {}
+
+class scriptnum_error : public std::runtime_error
+{
+public:
+    explicit scriptnum_error(const std::string& str) : std::runtime_error(str) {}
 };
 
-
+class CScriptNum
+{
 /**
- * Base template class for CScriptNum and ScriptInt. This class implements
- * some of the functionality common to both subclasses, and also captures
- * some enforcement of the consensus rules related to:
- *
- *  - valid 64 bit range (INT64_MIN is forbidden)
- *  - trapping for arithmetic operations that overflow or that produce a
- *    result equal to INT64_MIN
- */
-template <typename Derived>
-struct ScriptIntBase {
-public:
-    /**
-     * Factory method to safely construct an instance from a raw int64_t.
-     *
-     * Note the unusual enforcement of the rules regarding valid 64-bit
-     * ranges. We enforce a strict range of [INT64_MIN+1, INT64_MAX].
-     */
-    static constexpr
-    std::optional<Derived> fromInt(int64_t x) noexcept {
-        if ( ! valid64BitRange(x)) {
-            return std::nullopt;
-        }
-        return Derived(x);
-    }
-
-    /// Performance/convenience optimization: Construct an instance from a raw
-    /// int64_t where the caller already knows that the supplied value is in range.
-    static constexpr
-    Derived fromIntUnchecked(int64_t x) noexcept {
-        return Derived(x);
-    }
-
-    constexpr
-    bool operator==(int64_t x) const noexcept { return value_ == x; }
-
-    constexpr
-    bool operator!=(int64_t x) const noexcept { return value_ != x; }
-
-    constexpr
-    bool operator<=(int64_t x) const noexcept { return value_ <= x; }
-
-    constexpr
-    bool operator<(int64_t x) const noexcept { return value_ < x; }
-
-    constexpr
-    bool operator>=(int64_t x) const noexcept { return value_ >= x; }
-
-    constexpr
-    bool operator>(int64_t x) const noexcept { return value_ > x; }
-
-    constexpr
-    bool operator==(Derived const& x) const noexcept {
-        return operator==(x.value_);
-    }
-
-    constexpr
-    bool operator!=(Derived const& x) const noexcept {
-        return operator!=(x.value_);
-    }
-
-    constexpr
-    bool operator<=(Derived const& x) const noexcept {
-        return operator<=(x.value_);
-    }
-
-    constexpr
-    bool operator<(Derived const& x) const noexcept {
-        return operator<(x.value_);
-    }
-
-    constexpr
-    bool operator>=(Derived const& x) const noexcept {
-        return operator>=(x.value_);
-    }
-
-    constexpr
-    bool operator>(Derived const& x) const noexcept {
-        return operator>(x.value_);
-    }
-
-    // Arithmetic operations
-    std::optional<Derived> safeAdd(int64_t x) const noexcept {
-        bool const res = __builtin_add_overflow(value_, x, &x);
-        if (res) {
-            return std::nullopt;
-        }
-        if ( ! valid64BitRange(x)) {
-            return std::nullopt;
-        }
-        return Derived(x);
-    }
-
-    std::optional<Derived> safeAdd(Derived const& x) const noexcept {
-        return safeAdd(x.value_);
-    }
-
-    std::optional<Derived> safeSub(int64_t x) const noexcept {
-        bool const res = __builtin_sub_overflow(value_, x, &x);
-        if (res) {
-            return std::nullopt;
-        }
-        if ( ! valid64BitRange(x)) {
-            return std::nullopt;
-        }
-        return Derived(x);
-    }
-
-    std::optional<Derived> safeSub(Derived const& x) const noexcept {
-        return safeSub(x.value_);
-    }
-
-    std::optional<Derived> safeMul(int64_t x) const noexcept {
-        bool const res = __builtin_mul_overflow(value_, x, &x);
-        if (res) {
-            return std::nullopt;
-        }
-        if ( ! valid64BitRange(x)) {
-            return std::nullopt;
-        }
-        return Derived(x);
-    }
-
-    std::optional<Derived> safeMul(Derived const& x) const noexcept {
-        return safeMul(x.value_);
-    }
-
-    constexpr
-    Derived operator/(int64_t x) const noexcept {
-        if (x == -1 && ! valid64BitRange(value_)) {
-            // Guard against overflow, which can't normally happen unless class is misused
-            // by the fromIntUnchecked() factory method (may happen in tests).
-            // This will return INT64_MIN which is what ARM & x86 does anyway for INT64_MIN / -1.
-            return Derived(value_);
-        }
-        return Derived(value_ / x);
-    }
-
-    constexpr
-    Derived operator/(Derived const& x) const noexcept {
-        return operator/(x.value_);
-    }
-
-    constexpr
-    Derived operator%(int64_t x) const noexcept {
-        if (x == -1 && ! valid64BitRange(value_)) {
-            // INT64_MIN % -1 is UB in C++, but mathematically it would yield 0
-            return Derived(0);
-        }
-        return Derived(value_ % x);
-    }
-
-    constexpr
-    Derived operator%(Derived const& x) const noexcept {
-        return operator%(x.value_);
-    }
-
-    // Bitwise operations
-    std::optional<Derived> safeBitwiseAnd(int64_t x) const noexcept {
-        x = value_ & x;
-        if ( ! valid64BitRange(x)) {
-            return std::nullopt;
-        }
-        return Derived(x);
-    }
-
-    std::optional<Derived> safeBitwiseAnd(Derived const& x) const noexcept {
-        return safeBitwiseAnd(x.value_);
-    }
-
-    constexpr
-    Derived operator-() const noexcept {
-        // Defensive programming: -INT64_MIN is UB
-        return Derived(valid64BitRange(value_) ? -value_ : value_);
-    }
-
-    constexpr
-    int64_t getint64() const noexcept {
-        return value_;
-    }
-
-protected:
-    static constexpr
-    bool valid64BitRange(int64_t x) {
-        return x != std::numeric_limits<int64_t>::min();
-    }
-
-    explicit constexpr
-    ScriptIntBase(int64_t x)
-        : value_(x)
-    {}
-
-    int64_t value_;
-};
-
-/**
- * A ScriptInt is a "write-only" class designed to be used with
- * CScript in order to tell the CScript serialization engine to
- * represent small numbers in a more compact way.  It is
- * interchangeable with CScriptNum for serialization purposes,
- * except that for small numbers in the range [-1, 16] ScriptInt
- * ends up serializing slightly smaller, saving one byte.
- *
- * This is because the CScript class serializes ScriptInt differently
- * than it does CScriptNum for integers in the range [-1, 16].
- *
- * Whereas CScriptNum is always pushed as an encapsulated byte blob,
- * ScriptInt instances in the range [-1, 16] are pushed as raw bytes
- * directly (with some offsetting around OP_16 as the anchor).
- *
- * For numbers outside the [-1, 16] range, ScriptInt serializes
- * identically to CScriptNum.
- *
- * When the resulting script is interpreted by the script interpreter,
- * any values that are serialized in this more compact way are internally
- * transformed and normalized into CScriptNum instances on the stack
- * (see interpreter.cpp).  So the purpose of this class is simply as
- * a "type tag" to tell CScript to serialize in the more compact form,
- * if possible.
- *
- * In short, these two serialize differently:
- *
- *   CScript() << CScriptNum::fromIntUnchecked(10); // [PUSH(1) 0x0a] (2 bytes)
- *   CScript() << ScriptInt::fromIntUnchecked(10);  // [0x5a] (1 byte)
- *
- * However, for integers outside the range [-1, 16], the serialization
- * is identical:
- *
- *   CScript() << CScriptNum::fromIntUnchecked(42); // [PUSH(1) 0x2a] (2 bytes)
- *   CScript() << ScriptInt::fromIntUnchecked(42);  // Same as above
- *
- * Note that due to quirks in how CScriptNum serializes 0, these two
- * also serialize identically:
- *
- *   CScript() << CScriptNum::fromIntUnchecked(0);  // [PUSH(0)] == [0x00] (1 byte)
- *   CScript() << ScriptInt::fromIntUnchecked(0);   // [0x00] (1 byte)
- */
-struct ScriptInt : ScriptIntBase<ScriptInt> {
-    friend ScriptIntBase;
-
-private:
-    explicit constexpr
-    ScriptInt(int64_t x) noexcept
-        : ScriptIntBase(x)
-    {}
-};
-
-/**
- * CScriptNum is used to encapsulate signed numbers as byte blobs in a CScript.
- * Its specified range is over [INT64_MIN+1, INT64_MAX].  Attempts to encapsulate
- * a number outside this range are undefined behavior.
- *
- * Note that before Upgrade8, consensus rules forbade a CScriptNum significantly
- * outside the 32 bit range (with some corner case exceptions for temporaries in
- * the interpreter).
- *
- * After Upgrade8 we allow 64 bit numbers in the range [INT64_MIN+1, INT64_MAX].
- * We forbid INT64_MIN, however, since this would encode to a 9 byte CScriptNum
- * and we prefer to keep things simple and restrict CScriptNum to 8 bytes.
- *
- * A CScriptNum gets serialized to a non-2's complement notation, in little-endian
- * byte order. The most significant bit (in the last, most significant byte) is
- * the sign bit. The other bits preceeding it (little endian) are the magnitude.
- *
- * This means that INT64_MIN would get serialized to 9 bytes in this encoding,
- * which is why it is forbidden (since we prefer to limit them to 8 serialized
- * bytes, for simplicity's sake).
- */
-class CScriptNum : public ScriptIntBase<CScriptNum> {
-/**
- * Pre Upgrade8 Hardfork semantics:
- * Numeric opcodes (OP_1ADD, etc) are restricted to operating on 4-byte
- * integers. The semantics are subtle, though: operands must be in the range
- * [-2^31 + 1, 2^31 - 1], but results may overflow (and are valid as long as
- * they are not used in a subsequent numeric operation). CScriptNum enforces
- * those semantics by storing results as an int64 and allowing out-of-range
- * values to be returned as a vector of bytes but throwing an exception if
- * arithmetic is done or the result is interpreted as an integer.
- *
- * Post Upgrade8 Hardfork semantics:
- * Arithmetic opcodes (OP_1ADD, etc) are restricted to operating on 8-byte signed integers.
- * Negative integers are encoding using sign and magnitude, so operands must be in the range
- * [-2^63 + 1, 2^63 - 1].
- * Arithmetic operators throw an exception if overflow is detected.
+ * Numeric opcodes (OP_1ADD, etc) are restricted to operating on 4-byte integers.
+ * The semantics are subtle, though: operands must be in the range [-2^31 +1...2^31 -1],
+ * but results may overflow (and are valid as long as they are not used in a subsequent
+ * numeric operation). CScriptNum enforces those semantics by storing results as
+ * an int64 and allowing out-of-range values to be returned as a vector of bytes but
+ * throwing an exception if arithmetic is done or the result is interpreted as an integer.
  */
 public:
-    friend ScriptIntBase;
 
-    static constexpr size_t MAXIMUM_ELEMENT_SIZE_32_BIT = 4;
-    static constexpr size_t MAXIMUM_ELEMENT_SIZE_64_BIT = 8;
-
-    typedef std::optional<CScriptNum> ScriptNumResult;
-
-private:
-    explicit constexpr
-    CScriptNum(int64_t x) noexcept
-        : ScriptIntBase(x)
-    {}
-
-public:
-
-    explicit
-    CScriptNum(const std::vector<uint8_t> &vch, bool fRequireMinimal, size_t maxIntegerSize)
-        : ScriptIntBase(fromBytes(vch, fRequireMinimal, maxIntegerSize))
-    {}
-
-    static
-    bool IsMinimallyEncoded(const std::vector<uint8_t> &vch, size_t maxIntegerSize);
-
-    static
-    bool MinimallyEncode(std::vector<uint8_t> &data);
-
-    constexpr
-    int32_t getint32() const noexcept {
-        if (value_ > std::numeric_limits<int32_t>::max()) {
-            return std::numeric_limits<int32_t>::max();
-        } else if (value_ < std::numeric_limits<int32_t>::min()) {
-            return std::numeric_limits<int32_t>::min();
-        }
-        return value_;
+    explicit CScriptNum(const int64_t& n)
+    {
+        m_value = n;
     }
 
-    std::vector<uint8_t> getvch() const { return serialize(value_); }
+    static const size_t nDefaultMaxNumSize = 4;
 
-    static
-    std::vector<uint8_t> serialize(int64_t value) {
-        if (value == 0) {
-            return {};
+    explicit CScriptNum(const std::vector<unsigned char>& vch, bool fRequireMinimal,
+                        const size_t nMaxNumSize = nDefaultMaxNumSize)
+    {
+        if (vch.size() > nMaxNumSize) {
+            throw scriptnum_error("script number overflow");
         }
+        if (fRequireMinimal && vch.size() > 0) {
+            // Check that the number is encoded with the minimum possible
+            // number of bytes.
+            //
+            // If the most-significant-byte - excluding the sign bit - is zero
+            // then we're not minimal. Note how this test also rejects the
+            // negative-zero encoding, 0x80.
+            if ((vch.back() & 0x7f) == 0) {
+                // One exception: if there's more than one byte and the most
+                // significant bit of the second-most-significant-byte is set
+                // it would conflict with the sign bit. An example of this case
+                // is +-255, which encode to 0xff00 and 0xff80 respectively.
+                // (big-endian).
+                if (vch.size() <= 1 || (vch[vch.size() - 2] & 0x80) == 0) {
+                    throw scriptnum_error("non-minimally encoded script number");
+                }
+            }
+        }
+        m_value = set_vch(vch);
+    }
 
-        std::vector<uint8_t> result;
+    inline bool operator==(const int64_t& rhs) const    { return m_value == rhs; }
+    inline bool operator!=(const int64_t& rhs) const    { return m_value != rhs; }
+    inline bool operator<=(const int64_t& rhs) const    { return m_value <= rhs; }
+    inline bool operator< (const int64_t& rhs) const    { return m_value <  rhs; }
+    inline bool operator>=(const int64_t& rhs) const    { return m_value >= rhs; }
+    inline bool operator> (const int64_t& rhs) const    { return m_value >  rhs; }
+
+    inline bool operator==(const CScriptNum& rhs) const { return operator==(rhs.m_value); }
+    inline bool operator!=(const CScriptNum& rhs) const { return operator!=(rhs.m_value); }
+    inline bool operator<=(const CScriptNum& rhs) const { return operator<=(rhs.m_value); }
+    inline bool operator< (const CScriptNum& rhs) const { return operator< (rhs.m_value); }
+    inline bool operator>=(const CScriptNum& rhs) const { return operator>=(rhs.m_value); }
+    inline bool operator> (const CScriptNum& rhs) const { return operator> (rhs.m_value); }
+
+    inline CScriptNum operator+(   const int64_t& rhs)    const { return CScriptNum(m_value + rhs);}
+    inline CScriptNum operator-(   const int64_t& rhs)    const { return CScriptNum(m_value - rhs);}
+    inline CScriptNum operator+(   const CScriptNum& rhs) const { return operator+(rhs.m_value);   }
+    inline CScriptNum operator-(   const CScriptNum& rhs) const { return operator-(rhs.m_value);   }
+
+    inline CScriptNum& operator+=( const CScriptNum& rhs)       { return operator+=(rhs.m_value);  }
+    inline CScriptNum& operator-=( const CScriptNum& rhs)       { return operator-=(rhs.m_value);  }
+
+    inline CScriptNum operator&(   const int64_t& rhs)    const { return CScriptNum(m_value & rhs);}
+    inline CScriptNum operator&(   const CScriptNum& rhs) const { return operator&(rhs.m_value);   }
+
+    inline CScriptNum& operator&=( const CScriptNum& rhs)       { return operator&=(rhs.m_value);  }
+
+    inline CScriptNum operator-()                         const
+    {
+        assert(m_value != std::numeric_limits<int64_t>::min());
+        return CScriptNum(-m_value);
+    }
+
+    inline CScriptNum& operator=( const int64_t& rhs)
+    {
+        m_value = rhs;
+        return *this;
+    }
+
+    inline CScriptNum& operator+=( const int64_t& rhs)
+    {
+        assert(rhs == 0 || (rhs > 0 && m_value <= std::numeric_limits<int64_t>::max() - rhs) ||
+                           (rhs < 0 && m_value >= std::numeric_limits<int64_t>::min() - rhs));
+        m_value += rhs;
+        return *this;
+    }
+
+    inline CScriptNum& operator-=( const int64_t& rhs)
+    {
+        assert(rhs == 0 || (rhs > 0 && m_value >= std::numeric_limits<int64_t>::min() + rhs) ||
+                           (rhs < 0 && m_value <= std::numeric_limits<int64_t>::max() + rhs));
+        m_value -= rhs;
+        return *this;
+    }
+
+    inline CScriptNum& operator&=( const int64_t& rhs)
+    {
+        m_value &= rhs;
+        return *this;
+    }
+
+    int getint() const
+    {
+        if (m_value > std::numeric_limits<int>::max())
+            return std::numeric_limits<int>::max();
+        else if (m_value < std::numeric_limits<int>::min())
+            return std::numeric_limits<int>::min();
+        return m_value;
+    }
+
+    int64_t GetInt64() const { return m_value; }
+
+    std::vector<unsigned char> getvch() const
+    {
+        return serialize(m_value);
+    }
+
+    static std::vector<unsigned char> serialize(const int64_t& value)
+    {
+        if(value == 0)
+            return std::vector<unsigned char>();
+
+        std::vector<unsigned char> result;
         const bool neg = value < 0;
-        // NB: -INT64_MIN in 2's complement is UB, so we must guard against it here.
-        uint64_t absvalue = neg && valid64BitRange(value) ? -value : value;
+        uint64_t absvalue = neg ? ~static_cast<uint64_t>(value) + 1 : static_cast<uint64_t>(value);
 
-        while (absvalue) {
+        while(absvalue)
+        {
             result.push_back(absvalue & 0xff);
             absvalue >>= 8;
         }
 
-        // - If the most significant byte is >= 0x80 and the value is positive,
-        // push a new zero-byte to make the significant byte < 0x80 again.
-        // - If the most significant byte is >= 0x80 and the value is negative,
-        // push a new 0x80 byte that will be popped off when converting to an
-        // integral.
-        // - If the most significant byte is < 0x80 and the value is negative,
-        // add 0x80 to it, since it will be subtracted and interpreted as a
-        // negative when converting to an integral.
-        if (result.back() & 0x80) {
+//    - If the most significant byte is >= 0x80 and the value is positive, push a
+//    new zero-byte to make the significant byte < 0x80 again.
+
+//    - If the most significant byte is >= 0x80 and the value is negative, push a
+//    new 0x80 byte that will be popped off when converting to an integral.
+
+//    - If the most significant byte is < 0x80 and the value is negative, add
+//    0x80 to it, since it will be subtracted and interpreted as a negative when
+//    converting to an integral.
+
+        if (result.back() & 0x80)
             result.push_back(neg ? 0x80 : 0);
-        } else if (neg) {
+        else if (neg)
             result.back() |= 0x80;
-        }
 
         return result;
     }
-
 
 private:
-    static
-    int64_t fromBytes(std::vector<uint8_t> const& vch, bool fRequireMinimal, size_t maxIntegerSize) {
-        if (maxIntegerSize > MAXIMUM_ELEMENT_SIZE_64_BIT) {
-            throw scriptnum_error("maxIntegerSize cannot be greater than 8");
-        }
-        if (vch.size() > maxIntegerSize) {
-            throw scriptnum_error("script number overflow",
-                                  maxIntegerSize == 8 ? ScriptError::INVALID_NUMBER_RANGE_64_BIT
-                                                      : ScriptError::INVALID_NUMBER_RANGE);
-        }
-        if (fRequireMinimal && ! IsMinimallyEncoded(vch, maxIntegerSize)) {
-            throw scriptnum_error("non-minimally encoded script number", ScriptError::MINIMALNUM);
-        }
-        return set_vch(vch);
+    static int64_t set_vch(const std::vector<unsigned char>& vch)
+    {
+      if (vch.empty())
+          return 0;
+
+      int64_t result = 0;
+      for (size_t i = 0; i != vch.size(); ++i)
+          result |= static_cast<int64_t>(vch[i]) << 8*i;
+
+      // If the input vector's most significant byte is 0x80, remove it from
+      // the result's msb and return a negative.
+      if (vch.back() & 0x80)
+          return -((int64_t)(result & ~(0x80ULL << (8 * (vch.size() - 1)))));
+
+      return result;
     }
 
-    ///! Precondition: vch.size() must be <= 8.
-    static
-    int64_t set_vch(const std::vector<uint8_t> &vch) {
-        if (vch.empty()) {
-            return 0;
-        }
-
-        int64_t result = 0;
-        for (size_t i = 0; i != vch.size(); ++i) {
-            result |= int64_t(vch[i]) << 8 * i;
-        }
-
-        // If the input vector's most significant byte is 0x80, remove it from
-        // the result's msb and return a negative.
-        if (vch.back() & 0x80) {
-            return -int64_t(result & ~(0x80ULL << (8 * (vch.size() - 1))));
-        }
-
-        return result;
-    }
-
+    int64_t m_value;
 };
 
 /**
@@ -638,9 +413,9 @@ private:
  * Tests in October 2015 showed use of this reduced dbcache memory usage by 23%
  *  and made an initial sync 13% faster.
  */
-typedef prevector<28, uint8_t> CScriptBase;
+typedef prevector<28, unsigned char> CScriptBase;
 
-bool GetScriptOp(CScriptBase::const_iterator& pc, CScriptBase::const_iterator end, opcodetype& opcodeRet, std::vector<uint8_t>* pvchRet);
+bool GetScriptOp(CScriptBase::const_iterator& pc, CScriptBase::const_iterator end, opcodetype& opcodeRet, std::vector<unsigned char>* pvchRet);
 
 /** Serialized script, used inside transaction inputs and outputs */
 class CScript : public CScriptBase
@@ -665,31 +440,17 @@ protected:
 public:
     CScript() = default;
     CScript(const_iterator pbegin, const_iterator pend) : CScriptBase(pbegin, pend) { }
-    CScript(std::vector<uint8_t>::const_iterator pbegin, std::vector<uint8_t>::const_iterator pend) : CScriptBase(pbegin, pend) { }
-    CScript(const uint8_t* pbegin, const uint8_t* pend) : CScriptBase(pbegin, pend) { }
-
-    CScript &operator+=(const CScript &b)
-    {
-        reserve(size() + b.size());
-        insert(end(), b.begin(), b.end());
-        return *this;
-    }
-
-    friend CScript operator+(const CScript &a, const CScript &b)
-    {
-        CScript ret = a;
-        ret += b;
-        return ret;
-    }
+    CScript(std::vector<unsigned char>::const_iterator pbegin, std::vector<unsigned char>::const_iterator pend) : CScriptBase(pbegin, pend) { }
+    CScript(const unsigned char* pbegin, const unsigned char* pend) : CScriptBase(pbegin, pend) { }
 
     SERIALIZE_METHODS(CScript, obj) { READWRITE(AsBase<CScriptBase>(obj)); }
 
     explicit CScript(int64_t b) { operator<<(b); }
-    explicit CScript(opcodetype b) { operator<<(b); }
-    explicit CScript(CScriptNum& b) { operator<<(b); }
+    explicit CScript(opcodetype b)     { operator<<(b); }
+    explicit CScript(const CScriptNum& b) { operator<<(b); }
     // delete non-existent constructor to defend against future introduction
     // e.g. via prevector
-    explicit CScript(const std::vector<uint8_t> &b) { operator<<(b); }
+    explicit CScript(const std::vector<unsigned char>& b) = delete;
 
     /** Delete non-existent operator to defend against future introduction */
     CScript& operator<<(const CScript& b) = delete;
@@ -700,7 +461,7 @@ public:
     {
         if (opcode < 0 || opcode > 0xff)
             throw std::runtime_error("CScript::operator<<(): invalid opcode");
-        insert(end(), (uint8_t)opcode);
+        insert(end(), (unsigned char)opcode);
         return *this;
     }
 
@@ -710,21 +471,16 @@ public:
         return *this;
     }
 
-    CScript& operator<<(ScriptInt const& x) LIFETIMEBOUND
-    {
-        return push_int64(x.getint64());
-    }
-
-    CScript& operator<<(const std::vector<uint8_t>& b) LIFETIMEBOUND
+    CScript& operator<<(const std::vector<unsigned char>& b) LIFETIMEBOUND
     {
         if (b.size() < OP_PUSHDATA1)
         {
-            insert(end(), (uint8_t)b.size());
+            insert(end(), (unsigned char)b.size());
         }
         else if (b.size() <= 0xff)
         {
             insert(end(), OP_PUSHDATA1);
-            insert(end(), (uint8_t)b.size());
+            insert(end(), (unsigned char)b.size());
         }
         else if (b.size() <= 0xffff)
         {
@@ -744,7 +500,7 @@ public:
         return *this;
     }
 
-    bool GetOp(const_iterator& pc, opcodetype& opcodeRet, std::vector<uint8_t>& vchRet) const
+    bool GetOp(const_iterator& pc, opcodetype& opcodeRet, std::vector<unsigned char>& vchRet) const
     {
         return GetScriptOp(pc, end(), opcodeRet, &vchRet);
     }
@@ -785,8 +541,6 @@ public:
      */
     unsigned int GetSigOpCount(const CScript& scriptSig) const;
 
-    bool IsPayToBareDefaultCheckTemplateVerifyHash() const;
-
     /*
      * OP_1 <0x4e73>
      */
@@ -795,7 +549,7 @@ public:
      */
     static bool IsPayToAnchor(int version, const std::vector<uint8_t>& program);
 
-
+    bool IsPayToBareDefaultCheckTemplateVerifyHash() const;
     bool IsPayToScriptHash() const;
     bool IsPayToWitnessScriptHash() const;
     bool IsWitnessProgram(int& version, std::vector<uint8_t>& program) const;

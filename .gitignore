@@ -158,3 +158,4 @@ src/bitcoin-wallet
 src/bitcoind
 src/qt/bitcoin-qt
 src/test/test_bitcoin
+.aider*

@@ -115,7 +115,6 @@ BITCOIN_TESTS =\
   test/merkle_tests.cpp \
   test/merkleblock_tests.cpp \
   test/miner_tests.cpp \
-  test/monolith_opcodes_tests.cpp \
   test/miniminer_tests.cpp \
   test/miniscript_tests.cpp \
   test/minisketch_tests.cpp \

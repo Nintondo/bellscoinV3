@@ -3,6 +3,7 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <coins.h>
+#include <consensus/validation.h>
 #include <script/signingprovider.h>
 #include <test/util/transaction_utils.h>
 
@@ -14,7 +15,7 @@ CMutableTransaction BuildCreditingTransaction(const CScript& scriptPubKey, int n
     txCredit.vin.resize(1);
     txCredit.vout.resize(1);
     txCredit.vin[0].prevout.SetNull();
-    txCredit.vin[0].scriptSig = CScript() << CScriptNum(CScriptNum::fromIntUnchecked(0)) << CScriptNum(CScriptNum::fromIntUnchecked(0));
+    txCredit.vin[0].scriptSig = CScript() << CScriptNum(0) << CScriptNum(0);
     txCredit.vin[0].nSequence = CTxIn::SEQUENCE_FINAL;
     txCredit.vout[0].scriptPubKey = scriptPubKey;
     txCredit.vout[0].nValue = nValue;

@@ -119,20 +119,19 @@ public:
         return m_value;
     }
 
-    std::vector<uint8_t> getvch() const
+    std::vector<unsigned char> getvch() const
     {
         return serialize(m_value);
     }
 
-    static std::vector<uint8_t> serialize(const int64_t& value)
+    static std::vector<unsigned char> serialize(const int64_t& value)
     {
         if(value == 0)
-            return std::vector<uint8_t>();
+            return std::vector<unsigned char>();
 
-        std::vector<uint8_t> result;
+        std::vector<unsigned char> result;
         const bool neg = value < 0;
-        // NB: -INT64_MIN in 2's complement is UB, so we must guard against it here.
-        uint64_t absvalue = neg && value != std::numeric_limits<int64_t>::min() ? -value : value;
+        uint64_t absvalue = neg ? -value : value;
 
         while(absvalue)
         {

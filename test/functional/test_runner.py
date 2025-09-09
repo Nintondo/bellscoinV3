@@ -486,7 +486,7 @@ def main():
 
     enable_bitcoind = config["components"].getboolean("ENABLE_BITCOIND")
 
-    if not enable_bellsd:
+    if not enable_bitcoind:
         print("No functional tests to run.")
         print("Rerun ./configure with --with-daemon and then make")
         sys.exit(1)
