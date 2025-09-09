@@ -1,13 +1,13 @@
 #!/bin/bash
 
-# Запускаем python3 auxpow_mining.py
+# Start python3 auxpow_mining.py
 OUTPUT=$(python3 auxpow_mining.py 2>&1)
 
-# Извлекаем директорию с тестом из вывода
+# Get test directory from the output
 TEST_DIR=$(echo "$OUTPUT" | grep -oP 'TestFramework $$\$\$ERROR$$\: Test failed. Test logging available at \/\K[^\s]+')
 
-# Получаем номер запуска скрипта
+# Get script run number
 N=$(ls -d logs* | wc -l)
 
-# Вызываем скрипт combine_logs.py и сохраняем вывод в файл logsN.txt
-/home/dmatsiukhov/git_repos/bellscoin/test/functional/combine_logs.py "$TEST_DIR" > "logs$N.txt"
+# Call combine_logs.py and save output to logsN.txt
+/workspaces/bellscoinV3/test/functional/combine_logs.py "$TEST_DIR" > "logs$N.txt"
