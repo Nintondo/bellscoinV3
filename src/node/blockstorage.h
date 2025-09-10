@@ -22,6 +22,7 @@
 
 #include <array>
 #include <atomic>
+#include <algorithm>
 #include <cstdint>
 #include <functional>
 #include <limits>
@@ -137,6 +138,24 @@ class BlockManager
     friend ChainstateManager;
 
 private:
+    // Legacy Bellscoin 3.0 XOR compatibility state
+    // Set true after any successful header read with the current key
+    mutable std::atomic<bool> m_xor_key_validated{false};
+    // Set only on definitive outcomes (legacy confirmed+fixed, or definitively not legacy)
+    mutable std::atomic<bool> m_tried_xor_fallback{false};
+    // Serializes in-memory key swaps & provides a consistent snapshot for CAutoFile
+    mutable Mutex m_xor_swap_mutex;
+    // If we rewrite xor.dat to zero, remember the previous non-zero key to detect mixed datasets
+    std::array<std::byte, 8> m_prev_xor_key{};
+    mutable std::atomic<bool> m_has_prev_xor_key{false};
+    
+    inline bool IsZeroXorKey() const {
+        return std::all_of(m_xor_key.begin(), m_xor_key.end(),[](std::byte b){ return b == std::byte{0}; });
+    }
+    
+    // Detect legacy 3.0 data and (once) rewrite xor.dat to zeros atomically; caller should retry on true.
+    bool MaybeLegacyZeroKeyFallback(const FlatFilePos& pos, const MessageStartChars& expected_magic);
+
     const CChainParams& GetParams() const { return m_opts.chainparams; }
     const Consensus::Params& GetConsensus() const { return m_opts.chainparams.GetConsensus(); }
     /**
@@ -243,7 +262,7 @@ private:
 
     const bool m_prune_mode;
 
-    const std::vector<std::byte> m_xor_key;
+    std::vector<std::byte> m_xor_key;
 
     /** Dirty block index entries. */
     std::set<CBlockIndex*> m_dirty_blockindex;

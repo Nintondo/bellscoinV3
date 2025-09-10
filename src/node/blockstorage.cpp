@@ -6,6 +6,7 @@
 
 #include <arith_uint256.h>
 #include <chain.h>
+#include <clientversion.h>
 #include <consensus/params.h>
 #include <consensus/validation.h>
 #include <dbwrapper.h>
@@ -31,11 +32,11 @@
 #include <util/batchpriority.h>
 #include <util/check.h>
 #include <util/fs.h>
+#include <util/fs_helpers.h>
 #include <util/signalinterrupt.h>
 #include <util/strencodings.h>
 #include <util/translation.h>
 #include <validation.h>
-#include <clientversion.h>
 
 #include <map>
 #include <ranges>
@@ -119,27 +120,27 @@ bool BlockTreeDB::LoadBlockIndexGuts(const Consensus::Params& consensusParams, s
             if (pcursor->GetValue(diskindex)) {
                 // Construct block index object
                 CBlockIndex* pindexNew = insertBlockIndex(diskindex.ConstructBlockHash());
-                pindexNew->pprev          = insertBlockIndex(diskindex.hashPrev);
-                pindexNew->nHeight        = diskindex.nHeight;
-                pindexNew->nFile          = diskindex.nFile;
-                pindexNew->nDataPos       = diskindex.nDataPos;
-                pindexNew->nUndoPos       = diskindex.nUndoPos;
-                pindexNew->nVersion       = diskindex.nVersion;
+                pindexNew->pprev = insertBlockIndex(diskindex.hashPrev);
+                pindexNew->nHeight = diskindex.nHeight;
+                pindexNew->nFile = diskindex.nFile;
+                pindexNew->nDataPos = diskindex.nDataPos;
+                pindexNew->nUndoPos = diskindex.nUndoPos;
+                pindexNew->nVersion = diskindex.nVersion;
                 pindexNew->hashMerkleRoot = diskindex.hashMerkleRoot;
-                pindexNew->nTime          = diskindex.nTime;
-                pindexNew->nBits          = diskindex.nBits;
-                pindexNew->nNonce         = diskindex.nNonce;
-                pindexNew->nStatus        = diskindex.nStatus;
-                pindexNew->nTx            = diskindex.nTx;
+                pindexNew->nTime = diskindex.nTime;
+                pindexNew->nBits = diskindex.nBits;
+                pindexNew->nNonce = diskindex.nNonce;
+                pindexNew->nStatus = diskindex.nStatus;
+                pindexNew->nTx = diskindex.nTx;
 
                 /* Bitcoin checks the PoW here.  We don't do this because
                    the CDiskBlockIndex does not contain the auxpow.
                    This check isn't important, since the data on disk should
                 already be valid and can be trusted.  */
 
-                //if (!CheckProofOfWork(pindexNew->GetBlockHash(), pindexNew->nBits, consensusParams)) {
-                //    return error("%s: CheckProofOfWork failed: %s", __func__, pindexNew->ToString());
-                //}
+                // if (!CheckProofOfWork(pindexNew->GetBlockHash(), pindexNew->nBits, consensusParams)) {
+                //     return error("%s: CheckProofOfWork failed: %s", __func__, pindexNew->ToString());
+                // }
 
                 pcursor->Next();
             } else {
@@ -301,7 +302,7 @@ void BlockManager::FindFilesToPruneManual(
         count++;
     }
     LogPrintf("[%s] Prune (Manual): prune_height=%d removed %d blk/rev pairs\n",
-        chain.GetRole(), last_block_can_prune, count);
+              chain.GetRole(), last_block_can_prune, count);
 }
 
 void BlockManager::FindFilesToPrune(
@@ -341,7 +342,7 @@ void BlockManager::FindFilesToPrune(
         const auto chain_tip_height = chain.m_chain.Height();
         if (chainman.IsInitialBlockDownload() && target_sync_height > (uint64_t)chain_tip_height) {
             // Since this is only relevant during IBD, we assume blocks are at least 1 MB on average
-            static constexpr uint64_t average_block_size = 1000000;  /* 1 MB */
+            static constexpr uint64_t average_block_size = 1000000; /* 1 MB */
             const uint64_t remaining_blocks = target_sync_height - chain_tip_height;
             nBuffer += average_block_size * remaining_blocks;
         }
@@ -378,7 +379,8 @@ void BlockManager::FindFilesToPrune(
              min_block_to_prune, last_block_can_prune, count);
 }
 
-void BlockManager::UpdatePruneLock(const std::string& name, const PruneLockInfo& lock_info) {
+void BlockManager::UpdatePruneLock(const std::string& name, const PruneLockInfo& lock_info)
+{
     AssertLockHeld(::cs_main);
     m_prune_locks[name] = lock_info;
 }
@@ -453,7 +455,7 @@ bool BlockManager::LoadBlockIndex(const std::optional<uint256>& snapshot_blockha
         if (pindex->nTx > 0) {
             if (pindex->pprev) {
                 if (m_snapshot_height && pindex->nHeight == *m_snapshot_height &&
-                        pindex->GetBlockHash() == *snapshot_blockhash) {
+                    pindex->GetBlockHash() == *snapshot_blockhash) {
                     // Should have been set above; don't disturb it with code below.
                     Assert(pindex->m_chain_tx_count > 0);
                 } else if (pindex->pprev->m_chain_tx_count > 0) {
@@ -643,8 +645,7 @@ void BlockManager::CleanupBlockRevFiles() const
         const std::string path = fs::PathToString(it->path().filename());
         if (fs::is_regular_file(*it) &&
             path.length() == 12 &&
-            path.substr(8,4) == ".dat")
-        {
+            path.substr(8, 4) == ".dat") {
             if (path.substr(0, 3) == "blk") {
                 mapBlockFiles[path.substr(3, 5)] = it->path();
             } else if (path.substr(0, 3) == "rev") {
@@ -838,18 +839,153 @@ FlatFileSeq BlockManager::UndoFileSeq() const
 
 CAutoFile BlockManager::OpenBlockFile(const FlatFilePos& pos, bool fReadOnly) const
 {
-    return CAutoFile{BlockFileSeq().Open(pos, fReadOnly), CLIENT_VERSION, m_xor_key};
+    // Take a consistent snapshot of the key to avoid races with fallback swap
+    std::vector<std::byte> key_snapshot;
+    LOCK(m_xor_swap_mutex);
+    key_snapshot = m_xor_key;
+
+    return CAutoFile{BlockFileSeq().Open(pos, fReadOnly), CLIENT_VERSION, key_snapshot};
 }
 
 /** Open an undo file (rev?????.dat) */
 CAutoFile BlockManager::OpenUndoFile(const FlatFilePos& pos, bool fReadOnly) const
 {
-    return CAutoFile{UndoFileSeq().Open(pos, fReadOnly), CLIENT_VERSION, m_xor_key};
+    // Take a consistent snapshot of the key to avoid races with fallback swap
+    std::vector<std::byte> key_snapshot;
+    LOCK(m_xor_swap_mutex);
+    key_snapshot = m_xor_key;
+
+    return CAutoFile{UndoFileSeq().Open(pos, fReadOnly), CLIENT_VERSION, key_snapshot};
 }
 
 fs::path BlockManager::GetBlockPosFilename(const FlatFilePos& pos) const
 {
     return m_block_file_seq.FileName(pos);
+}
+
+/* Legacy XOR key fallback detection & mixed-dataset guard
+   Bellscoin 3.0 wrote blk*.dat plain while storing a random non-zero xor.dat (ignored).
+   Bellscoin 3.1+ applies xor.dat.
+   We consider legacy ONLY when:
+     - Caller observed a decoded header mismatch, AND
+     - Raw 4 bytes at (payload_pos - 8) == expected network magic, AND
+     - Raw length (next 4 bytes) is plausible (0 < len <= MAX_SIZE).
+   On detection: atomically rewrite xor.dat to zero with durability and retry once.
+   Mixed dataset:
+     After rewriting to zero, if later we see (raw ^ prev_key) == expected magic,
+     some files were XORed with the old key and others plain -> require -reindex (fatal).
+*/
+bool BlockManager::MaybeLegacyZeroKeyFallback(const FlatFilePos& pos, const MessageStartChars& expected_magic)
+{
+    if (m_xor_key_validated.load(std::memory_order_relaxed) ||
+        m_tried_xor_fallback.load(std::memory_order_relaxed)) return false;
+
+    if (pos.nPos < 8) return false;
+
+    // Read raw (un-XORed) header directly from disk
+    FlatFilePos header_pos = pos;
+    header_pos.nPos -= 8;
+    FILE* f = BlockFileSeq().Open(header_pos, /*read_only=*/true);
+    if (!f) return false;
+
+    unsigned char raw_magic[4]{};
+    unsigned char raw_lenbuf[4]{};
+    size_t rd1 = fread(raw_magic, 1, 4, f);
+    size_t rd2 = (rd1 == 4) ? fread(raw_lenbuf, 1, 4, f) : 0;
+    fclose(f);
+    if (rd1 != 4 || rd2 != 4) return false;
+
+    auto matches = [&](const uint8_t* a, const MessageStartChars& b) {
+        for (size_t i = 0; i < b.size(); ++i) {
+            if (a[i] != b[i]) return false;
+        }
+        return true;
+    };
+
+    // Mixed dataset detection: after we rewrote to zero, detect files XORed with prev key
+    if (IsZeroXorKey() && m_has_prev_xor_key.load(std::memory_order_acquire)) {
+        unsigned char decoded_prev[4];
+        for (size_t i = 0; i < 4; ++i) {
+            decoded_prev[i] = raw_magic[i] ^ std::to_integer<unsigned char>(m_prev_xor_key[i % m_prev_xor_key.size()]);
+        }
+        if (matches(decoded_prev, expected_magic)) {
+            m_opts.notifications.fatalError(
+                _("Detected mixed blk*.dat dataset: some files XORed with previous key and others plain. "
+                  "Please restart with -reindex to rebuild the block files."));
+            m_tried_xor_fallback.store(true, std::memory_order_relaxed); // definitive
+            return false;
+        }
+        return false; // not mixed; not definitive legacy either
+    }
+
+    // Only consider legacy if XOR is enabled and the current key is non-zero
+    if (!m_opts.use_xor || IsZeroXorKey()) return false;
+
+    // Raw magic must match expected for legacy-plain case
+    if (!matches(raw_magic, expected_magic)) {
+        m_tried_xor_fallback.store(true, std::memory_order_relaxed); // definitive: not legacy-plain
+        return false;
+    }
+    // Length plausibility (little-endian)
+    unsigned int raw_len =
+        (unsigned int)raw_lenbuf[0] |
+        ((unsigned int)raw_lenbuf[1] << 8) |
+        ((unsigned int)raw_lenbuf[2] << 16) |
+        ((unsigned int)raw_lenbuf[3] << 24);
+    if (raw_len == 0 || raw_len > MAX_SIZE) {
+        m_tried_xor_fallback.store(true, std::memory_order_relaxed); // definitive: implausible header
+        return false;
+    }
+
+    // Perform atomic rewrite to zero (durable), under lock; also swap in-memory key
+    LOCK(m_xor_swap_mutex);
+    if (m_xor_key_validated.load(std::memory_order_relaxed) ||
+        m_tried_xor_fallback.load(std::memory_order_relaxed)) return false;
+
+    const fs::path xor_key_path{m_opts.blocks_dir / "xor.dat"};
+    const fs::path tmp_path{m_opts.blocks_dir / "xor.dat.tmp"};
+    const std::string old_key_hex = HexStr(m_xor_key);
+    std::array<std::byte, 8> zero_key{};
+
+    try {
+        // Write tmp and commit file contents
+        FILE* fp = fsbridge::fopen(tmp_path, "wb");
+        if (!fp) throw std::runtime_error{"fopen(tmp) failed"};
+        if (fwrite(zero_key.data(), 1, zero_key.size(), fp) != zero_key.size()) {
+            fclose(fp);
+            throw std::runtime_error{"fwrite(tmp) short write"};
+        }
+        if (!FileCommit(fp)) {
+            fclose(fp);
+            throw std::runtime_error{"FileCommit(tmp) failed"};
+        }
+        fclose(fp);
+        // Atomic replace (cross-platform) and commit directory entry
+        if (!RenameOver(tmp_path, xor_key_path)) {
+            throw std::runtime_error{"RenameOver(tmp -> xor.dat) failed"};
+        }
+        DirectoryCommit(xor_key_path.parent_path());
+    } catch (const std::exception& e) {
+        m_opts.notifications.fatalError(strprintf(
+            _("Failed to rewrite xor.dat to zero key (%s). Fix permissions or remove xor.dat manually."),
+            e.what()));
+        return false; // do not mark tried; operator may fix and retry
+    }
+
+    // Remember previous non-zero key (to detect mixed datasets later)
+    {
+        const size_t n = std::min(m_xor_key.size(), m_prev_xor_key.size());
+        std::copy_n(m_xor_key.begin(), n, m_prev_xor_key.begin());
+    }
+    m_has_prev_xor_key.store(true, std::memory_order_release);
+
+    // Swap in-memory key to zero; mark definitive outcome
+    m_xor_key.assign(zero_key.begin(), zero_key.end());
+    m_tried_xor_fallback.store(true, std::memory_order_relaxed);
+
+    LogPrintf("WARNING: Legacy blk*.dat detected. Overwriting stored non-zero xor.dat key %s with zeros at %s\n",
+              old_key_hex, fs::PathToString(xor_key_path));
+    return true; // caller should retry read once
 }
 
 FlatFilePos BlockManager::FindNextBlockPos(unsigned int nAddSize, unsigned int nHeight, uint64_t nTime)
@@ -1057,53 +1193,78 @@ bool BlockManager::WriteUndoDataForBlock(const CBlockUndo& blockundo, BlockValid
 /* Generic implementation of block reading that can handle
    both a block and its header.  */
 
-template<typename T>
+template <typename T>
 bool BlockManager::ReadBlockOrHeader(T& block, const FlatFilePos& pos) const
 {
     block.SetNull();
 
-    // Open history file to read
-    CAutoFile filein{OpenBlockFile(pos, true)};
-    if (filein.IsNull()) {
-        LogError("%s: ReadBlockFromDisk: OpenBlockFile failed for %s\n", __func__, pos.ToString());
+    for (int attempt = 0; attempt < 2; ++attempt) {
+        if (pos.nPos < 8) {
+            LogError("%s: OpenBlockFile failed for %s\n", __func__, pos.ToString());
+            return false;
+        }
+        FlatFilePos hpos = pos;
+        hpos.nPos -= 8;
+        CAutoFile filein{OpenBlockFile(hpos, true)};
+        if (filein.IsNull()) {
+            LogError("%s: ReadBlockFromDisk: OpenBlockFile failed for %s\n", __func__, pos.ToString());
+            return false;
+        }
+        try {
+            MessageStartChars blk_start;
+            unsigned int blk_size;
+            filein >> blk_start >> blk_size;
+            const auto& expected = GetParams().MessageStart();
+            if (blk_start != expected) {
+                if (attempt == 0 &&
+                    const_cast<BlockManager*>(this)->MaybeLegacyZeroKeyFallback(pos, expected)) {
+                    continue; // retry once after fallback
+                }
+                LogError("%s: Block magic mismatch for %s: %s vs %s\n",
+                         __func__, pos.ToString(), HexStr(blk_start), HexStr(expected));
+                return false;
+            }
+            const_cast<BlockManager*>(this)->m_xor_key_validated.store(true, std::memory_order_relaxed);
+            filein >> block; // payload
+        } catch (const std::exception& e) {
+            if (attempt == 0 &&
+                const_cast<BlockManager*>(this)->MaybeLegacyZeroKeyFallback(pos, GetParams().MessageStart())) {
+                continue;
+            }
+            LogError("%s: Deserialize or I/O error - %s at %s\n", __func__, e.what(), pos.ToString());
+            return false;
+        }
+
+        const auto& consensus = GetConsensus();
+        // Check the header
+        if (!HasValidProofOfWork({block}, consensus)) {
+            LogError("ReadBlockFromDisk: Errors in block header at %s", pos.ToString());
+            return false;
+        }
+
+        // Signet only: check block solution
+        if (consensus.signet_blocks && !CheckSignetBlockSolution(block, consensus)) {
+            LogError("ReadBlockFromDisk: Errors in block solution at %s", pos.ToString());
+            return false;
+        }
+
+        return true;
     }
 
-    // Read block
-    try {
-        filein >> block;
-    }
-    catch (const std::exception& e) {
-        LogError("%s: Deserialize or I/O error - %s at %s", __func__, e.what(), pos.ToString());
-        return false;
-    }
-    const auto& consensus = GetConsensus();
-    // Check the header
-    if (!HasValidProofOfWork({block}, consensus))
-    {
-        LogError("ReadBlockFromDisk: Errors in block header at %s", pos.ToString());
-        return false;
-    }
-
-    // Signet only: check block solution
-    if (consensus.signet_blocks && !CheckSignetBlockSolution(block, consensus)) {
-        LogError("ReadBlockFromDisk: Errors in block solution at %s", pos.ToString());
-        return false;
-    }
-
-    return true;
+    return false; // both attempts failed
 }
 
-template<typename T>
+
+template <typename T>
 bool BlockManager::ReadBlockOrHeader(T& block, const CBlockIndex& pindex) const
 {
     const FlatFilePos block_pos{WITH_LOCK(cs_main, return pindex.GetBlockPos())};
 
     if (!ReadBlockOrHeader(block, block_pos))
         return false;
-    if (block.GetHash() != pindex.GetBlockHash())
-    {
+    if (block.GetHash() != pindex.GetBlockHash()) {
         LogError("ReadBlockFromDisk(CBlock&, CBlockIndex*): GetHash() doesn't match index for %s at %s",
-            pindex.ToString(), block_pos.ToString());
+                 pindex.ToString(), block_pos.ToString());
         return false;
     }
 
@@ -1114,33 +1275,49 @@ bool BlockManager::ReadBlockFromDisk(CBlock& block, const FlatFilePos& pos) cons
 {
     block.SetNull();
 
-    // Open history file to read
-    CAutoFile filein{OpenBlockFile(pos, true)};
-    if (filein.IsNull()) {
-        LogError("%s: OpenBlockFile failed for %s\n", __func__, pos.ToString());
-        return false;
+    for (int attempt = 0; attempt < 2; ++attempt) {
+        if (pos.nPos < 8) {
+            LogError("%s: OpenBlockFile failed for %s\n", __func__, pos.ToString());
+            return false;
+        }
+        FlatFilePos hpos = pos;
+        hpos.nPos -= 8;
+        CAutoFile filein{OpenBlockFile(hpos, true)};
+        if (filein.IsNull()) {
+            LogError("%s: OpenBlockFile failed for %s\n", __func__, pos.ToString());
+            return false;
+        }
+        try {
+            MessageStartChars blk_start;
+            unsigned int blk_size;
+            filein >> blk_start >> blk_size;
+            const auto& expected = GetParams().MessageStart();
+            if (blk_start != expected) {
+                if (attempt == 0 &&
+                    const_cast<BlockManager*>(this)->MaybeLegacyZeroKeyFallback(pos, expected)) {
+                    continue; // retry after fallback
+                }
+                LogError("%s: Block magic mismatch for %s: %s vs %s\n",
+                         __func__, pos.ToString(), HexStr(blk_start), HexStr(expected));
+                return false;
+            }
+            const_cast<BlockManager*>(this)->m_xor_key_validated.store(true, std::memory_order_relaxed);
+            filein >> block; // payload
+        } catch (const std::exception& e) {
+            if (attempt == 0 &&
+                const_cast<BlockManager*>(this)->MaybeLegacyZeroKeyFallback(pos, GetParams().MessageStart())) {
+                continue;
+            }
+            LogError("%s: Deserialize or I/O error - %s at %s\n", __func__, e.what(), pos.ToString());
+            return false;
+        }
+        if (GetConsensus().signet_blocks && !CheckSignetBlockSolution(block, GetConsensus())) {
+            LogError("%s: Errors in block solution at %s\n", __func__, pos.ToString());
+            return false;
+        }
+        return true;
     }
-
-    // Read block
-    try {
-        filein >> block;
-    } catch (const std::exception& e) {
-        LogError("%s: Deserialize or I/O error - %s at %s\n", __func__, e.what(), pos.ToString());
-        return false;
-    }
-
-    // Check the header
-    // if (!CheckProofOfWork(block.GetPoWHash(), block.nBits, GetConsensus())) {
-    //     return error("ReadBlockFromDisk: Errors in block header at %s", pos.ToString());
-    // }
-
-    // Signet only: check block solution
-    if (GetConsensus().signet_blocks && !CheckSignetBlockSolution(block, GetConsensus())) {
-        LogError("%s: Errors in block solution at %s\n", __func__, pos.ToString());
-        return false;
-    }
-
-    return true;
+    return false;
 }
 
 bool BlockManager::ReadBlockFromDisk(CBlock& block, const CBlockIndex& index) const
@@ -1164,47 +1341,53 @@ bool BlockManager::ReadBlockHeaderFromDisk(CBlockHeader& block, const CBlockInde
 
 bool BlockManager::ReadRawBlockFromDisk(std::vector<uint8_t>& block, const FlatFilePos& pos) const
 {
-    FlatFilePos hpos = pos;
-    // If nPos is less than 8 the pos is null and we don't have the block data
-    // Return early to prevent undefined behavior of unsigned int underflow
-    if (hpos.nPos < 8) {
-        LogError("%s: OpenBlockFile failed for %s\n", __func__, pos.ToString());
-        return false;
-    }
-    hpos.nPos -= 8; // Seek back 8 bytes for meta header
-    CAutoFile filein{OpenBlockFile(hpos, true)};
-    if (filein.IsNull()) {
-        LogError("%s: OpenBlockFile failed for %s\n", __func__, pos.ToString());
-        return false;
-    }
-
-    try {
-        MessageStartChars blk_start;
-        unsigned int blk_size;
-
-        filein >> blk_start >> blk_size;
-
-        if (blk_start != GetParams().MessageStart()) {
-            LogError("%s: Block magic mismatch for %s: %s versus expected %s\n", __func__, pos.ToString(),
-                         HexStr(blk_start),
-                         HexStr(GetParams().MessageStart()));
+    for (int attempt = 0; attempt < 2; ++attempt) {
+        FlatFilePos hpos = pos;
+        if (hpos.nPos < 8) {
+            LogError("%s: OpenBlockFile failed for %s\n", __func__, pos.ToString());
             return false;
         }
-
-        if (blk_size > MAX_SIZE) {
-            LogError("%s: Block data is larger than maximum deserialization size for %s: %s versus %s\n", __func__, pos.ToString(),
-                         blk_size, MAX_SIZE);
+        hpos.nPos -= 8; // Seek back 8 bytes for meta header
+        CAutoFile filein{OpenBlockFile(hpos, true)};
+        if (filein.IsNull()) {
+            LogError("%s: OpenBlockFile failed for %s\n", __func__, pos.ToString());
             return false;
         }
+        try {
+            MessageStartChars blk_start;
+            unsigned int blk_size;
+            filein >> blk_start >> blk_size;
 
-        block.resize(blk_size); // Zeroing of memory is intentional here
-        filein.read(MakeWritableByteSpan(block));
-    } catch (const std::exception& e) {
-        LogError("%s: Read from block file failed: %s for %s\n", __func__, e.what(), pos.ToString());
-        return false;
+            const auto& expected = GetParams().MessageStart();
+            if (blk_start != expected) {
+                if (attempt == 0 &&
+                    const_cast<BlockManager*>(this)->MaybeLegacyZeroKeyFallback(pos, expected)) {
+                    continue; // retry after fallback
+                }
+                LogError("%s: Block magic mismatch for %s: %s versus expected %s\n",
+                         __func__, pos.ToString(), HexStr(blk_start), HexStr(expected));
+                return false;
+            }
+            const_cast<BlockManager*>(this)->m_xor_key_validated.store(true, std::memory_order_relaxed);
+
+            if (blk_size > MAX_SIZE) {
+                LogError("%s: Block data is larger than maximum deserialization size for %s: %u versus %u\n",
+                         __func__, pos.ToString(), blk_size, MAX_SIZE);
+                return false;
+            }
+            block.resize(blk_size); // Zeroing intentional
+            filein.read(MakeWritableByteSpan(block));
+            return true;
+        } catch (const std::exception& e) {
+            if (attempt == 0 &&
+                const_cast<BlockManager*>(this)->MaybeLegacyZeroKeyFallback(pos, GetParams().MessageStart())) {
+                continue;
+            }
+            LogError("%s: Read from block file failed: %s for %s\n", __func__, e.what(), pos.ToString());
+            return false;
+        }
     }
-
-    return true;
+    return false;
 }
 
 FlatFilePos BlockManager::SaveBlockToDisk(const CBlock& block, int nHeight)
@@ -1246,11 +1429,11 @@ static auto InitBlocksdirXorKey(const BlockManager::Options& opts)
         // Create initial or missing xor key file
         AutoFile xor_key_file{fsbridge::fopen(xor_key_path,
 #ifdef __MINGW64__
-            "wb" // Temporary workaround for https://github.com/bitcoin/bitcoin/issues/30210
+                                              "wb" // Temporary workaround for https://github.com/bitcoin/bitcoin/issues/30210
 #else
-            "wbx"
+                                              "wbx"
 #endif
-        )};
+                                              )};
         xor_key_file << xor_key;
     }
     // If the user disabled the key, it must be zero.
@@ -1326,7 +1509,7 @@ void ImportBlocks(ChainstateManager& chainman, std::vector<fs::path> vImportFile
 
     // -loadblock=
     for (const fs::path& path : vImportFiles) {
-            CAutoFile file{fsbridge::fopen(path, "rb"), CLIENT_VERSION};
+        CAutoFile file{fsbridge::fopen(path, "rb"), CLIENT_VERSION};
         if (!file.IsNull()) {
             LogPrintf("Importing blocks file %s...\n", fs::PathToString(path));
             chainman.LoadExternalBlockFile(file);
@@ -1354,16 +1537,18 @@ void ImportBlocks(ChainstateManager& chainman, std::vector<fs::path> vImportFile
     // End scope of ImportingNow
 }
 
-std::ostream& operator<<(std::ostream& os, const BlockfileType& type) {
-    switch(type) {
-        case BlockfileType::NORMAL: os << "normal"; break;
-        case BlockfileType::ASSUMED: os << "assumed"; break;
-        default: os.setstate(std::ios_base::failbit);
+std::ostream& operator<<(std::ostream& os, const BlockfileType& type)
+{
+    switch (type) {
+    case BlockfileType::NORMAL: os << "normal"; break;
+    case BlockfileType::ASSUMED: os << "assumed"; break;
+    default: os.setstate(std::ios_base::failbit);
     }
     return os;
 }
 
-std::ostream& operator<<(std::ostream& os, const BlockfileCursor& cursor) {
+std::ostream& operator<<(std::ostream& os, const BlockfileCursor& cursor)
+{
     os << strprintf("BlockfileCursor(file_num=%d, undo_height=%d)", cursor.file_num, cursor.undo_height);
     return os;
 }
