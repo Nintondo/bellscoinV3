@@ -245,7 +245,7 @@ class CatTest(BellscoinTestFramework):
         self.log.info("Testing Taproot not enough stack elements OP_CAT spend")
         # Test sendrawtransaction
         taproot_op_cat_not_enough_stack_elements_spend = CTransaction()
-        taproot_op_cat_not_enough_stack_elements_spend.nVersion = 2
+        taproot_op_cat_not_enough_stack_elements_spend.version = 2
         taproot_op_cat_not_enough_stack_elements_spend.vin = [
             CTxIn(taproot_not_enough_stack_elements_outpoint)]
         taproot_op_cat_not_enough_stack_elements_spend.vout = outputs
@@ -269,7 +269,7 @@ class CatTest(BellscoinTestFramework):
 
         self.log.info("Testing Taproot tx with stack element size limit")
         taproot_op_cat_stack_limit_spend = CTransaction()
-        taproot_op_cat_stack_limit_spend.nersion = 2
+        taproot_op_cat_stack_limit_spend.version = 2
         taproot_op_cat_stack_limit_spend.vin = [
             CTxIn(taproot_stack_limit_outpoint)]
         taproot_op_cat_stack_limit_spend.vout = outputs

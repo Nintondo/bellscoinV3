@@ -1532,7 +1532,7 @@ class TaprootTest(BellscoinTestFramework):
         coinbase = CTransaction()
         coinbase.version = 1
         coinbase.vin = [CTxIn(COutPoint(0, 0xffffffff), CScript([OP_1, OP_1]), SEQUENCE_FINAL)]
-        coinbase.vout = [CTxOut(5000000000, CScript([OP_1]))]
+        coinbase.vout = [CTxOut(200000000, CScript([OP_1]))]
         coinbase.nLockTime = 0
         coinbase.rehash()
         assert coinbase.hash == "f60c73405d499a956d3162e3483c395526ef78286458a4cb17b125aa92e49b20"

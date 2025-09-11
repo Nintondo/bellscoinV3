@@ -186,7 +186,7 @@ class FilterTest(BellscoinTestFramework):
         self.log.info('Check that we not receive a tx if the filter does not match a mempool tx')
         filter_peer.merkleblock_received = False
         filter_peer.tx_received = False
-        self.wallet.send_to(from_node=self.nodes[0], scriptPubKey=getnewdestination()[1], amount=7 * COIN)
+        self.wallet.send_to(from_node=self.nodes[0], scriptPubKey=getnewdestination()[1], amount=2 * COIN)
         filter_peer.sync_with_ping()
         assert not filter_peer.merkleblock_received
         assert not filter_peer.tx_received

@@ -237,9 +237,9 @@ class BellscoinTestFramework(metaclass=BellscoinTestMetaClass):
 
         binaries = {
             "bellsd": ("bellsd", "BITCOIND"),
-            "bitcoin-cli": ("bitcoincli", "BITCOINCLI"),
-            "bitcoin-util": ("bitcoinutil", "BITCOINUTIL"),
-            "bitcoin-wallet": ("bitcoinwallet", "BITCOINWALLET"),
+            "bells-cli": ("bellscli", "BITCOINCLI"),
+            "bells-util": ("bellsutil", "BITCOINUTIL"),
+            "bells-wallet": ("bellswallet", "BITCOINWALLET"),
         }
         for binary, [attribute_name, env_variable_name] in binaries.items():
             default_filename = os.path.join(
@@ -513,7 +513,7 @@ class BellscoinTestFramework(metaclass=BellscoinTestMetaClass):
         if binary is None:
             binary = [get_bin_from_version(v, 'bellsd', self.options.bellsd) for v in versions]
         if binary_cli is None:
-            binary_cli = [get_bin_from_version(v, 'bitcoin-cli', self.options.bitcoincli) for v in versions]
+            binary_cli = [get_bin_from_version(v, 'bells-cli', self.options.bellscli) for v in versions]
         assert_equal(len(extra_confs), num_nodes)
         assert_equal(len(extra_args), num_nodes)
         assert_equal(len(versions), num_nodes)
@@ -846,7 +846,7 @@ class BellscoinTestFramework(metaclass=BellscoinTestMetaClass):
                     timewait=self.rpc_timeout,
                     timeout_factor=self.options.timeout_factor,
                     bellsd=self.options.bellsd,
-                    bells_cli=self.options.bitcoincli,
+                    bells_cli=self.options.bellscli,
                     coverage_dir=None,
                     cwd=self.options.tmpdir,
                     descriptors=self.options.descriptors,

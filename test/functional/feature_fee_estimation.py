@@ -77,6 +77,8 @@ def check_raw_estimates(node, fees_seen):
     delta = 1.0e-6  # account for rounding error
     for i in range(1, 26):
         for _, e in node.estimaterawfee(i).items():
+            print(f"{e}")
+
             feerate = float(e["feerate"])
             assert_greater_than(feerate, 0)
 
@@ -398,6 +400,7 @@ class EstimateFeeTest(BellscoinTestFramework):
         self.start_node(0)
         self.connect_nodes(0, 1)
         self.connect_nodes(0, 2)
+        self.sync_blocks()
         assert_equal(self.nodes[0].estimatesmartfee(1)["errors"], ["Insufficient data or no feerate found"])
 
     def broadcast_and_mine(self, broadcaster, miner, feerate, count):

@@ -293,7 +293,7 @@ class RawTransactionsTest(BellscoinTestFramework):
         self.nodes[0].createrawtransaction(inputs=[], outputs={})  # Should not throw for backwards compatibility
         self.nodes[0].createrawtransaction(inputs=[], outputs=[])
         assert_raises_rpc_error(-8, "Data must be hexadecimal string", self.nodes[0].createrawtransaction, [], {'data': 'foo'})
-        assert_raises_rpc_error(-5, "Invalid Bitcoin address", self.nodes[0].createrawtransaction, [], {'foo': 0})
+        assert_raises_rpc_error(-5, "Invalid Bellscoin address", self.nodes[0].createrawtransaction, [], {'foo': 0})
         assert_raises_rpc_error(-3, "Invalid amount", self.nodes[0].createrawtransaction, [], {address: 'foo'})
         assert_raises_rpc_error(-3, "Amount out of range", self.nodes[0].createrawtransaction, [], {address: -1})
         assert_raises_rpc_error(-8, "Invalid parameter, duplicated address: %s" % address, self.nodes[0].createrawtransaction, [], multidict([(address, 1), (address, 1)]))
@@ -465,28 +465,28 @@ class RawTransactionsTest(BellscoinTestFramework):
         # Test the minimum transaction version number that fits in a signed 32-bit integer.
         # As transaction version is serialized unsigned, this should convert to its unsigned equivalent.
         tx = CTransaction()
-        tx.nVersion = 0x80000000
+        tx.version = 0x80000000
         rawtx = tx.serialize().hex()
         decrawtx = self.nodes[0].decoderawtransaction(rawtx)
         assert_equal(decrawtx['version'], 0x80000000)
 
         # Test the maximum transaction version number that fits in a signed 32-bit integer.
         tx = CTransaction()
-        tx.nVersion = 0x7fffffff
+        tx.version = 0x7fffffff
         rawtx = tx.serialize().hex()
         decrawtx = self.nodes[0].decoderawtransaction(rawtx)
         assert_equal(decrawtx['version'], 0x7fffffff)
 
         # Test the minimum transaction version number that fits in an unsigned 32-bit integer.
         tx = CTransaction()
-        tx.nVersion = 0
+        tx.version = 0
         rawtx = tx.serialize().hex()
         decrawtx = self.nodes[0].decoderawtransaction(rawtx)
         assert_equal(decrawtx['version'], 0)
 
         # Test the maximum transaction version number that fits in an unsigned 32-bit integer.
         tx = CTransaction()
-        tx.nVersion = 0xffffffff
+        tx.version = 0xffffffff
         rawtx = tx.serialize().hex()
         decrawtx = self.nodes[0].decoderawtransaction(rawtx)
         assert_equal(decrawtx['version'], 0xffffffff)

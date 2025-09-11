@@ -191,7 +191,7 @@ class BlockchainTest(BellscoinTestFramework):
         assert_equal(res['prune_target_size'], 576716800)
         assert_greater_than(res['size_on_disk'], 0)
 
-    def check_signalling_deploymentinfo_result(self, gdi_result, height, blockhash):
+    def check_signalling_deploymentinfo_result(self, gdi_result, height, blockhash, status_next):
         assert height >= 144 and height <= 287
 
         assert_equal(gdi_result, {
@@ -204,35 +204,39 @@ class BlockchainTest(BellscoinTestFramework):
             'csv': {'type': 'buried', 'active': True, 'height': 5},
             'segwit': {'type': 'buried', 'active': True, 'height': 6},
             'testdummy': {
-                'type': 'heretical',
-                'heretical': {
-                        'start_time': 0,
-                        'timeout': 0x7fffffffffffffff,  # testdummy does not have a timeout so is set to the max int64 value
+                'type': 'bip9',
+                'bip9': {
+                    'bit': 28,
+                    'start_time': 0,
+                    'timeout': 0x7fffffffffffffff,  # testdummy does not have a timeout so is set to the max int64 value
+                    'min_activation_height': 0,
+                    'status': 'started',
+                    'status_next': status_next,
+                    'since': 144,
+                    'statistics': {
                         'period': 144,
-                        'status': 'started',
-                        'status_next': 'started',
-                        'since': 144,
-                        'signal_activate': "30000000",
-                        'signal_abandon': "50000000",
+                        'threshold': 108,
+                        'elapsed': height - 143,
+                        'count': height - 143,
+                        'possible': True,
                     },
                     'signalling': '#'*(height-143),
                 },
                 'active': False
             },
-            'opcat': {
-                'type': 'heretical',
-                'heretical': {
-                    'binana-id': "BIN-2024-0001-000",
+            'taproot': {
+                'type': 'bip9',
+                'bip9': {
                     'start_time': -1,
                     'timeout': 9223372036854775807,
-                    'period': 144,
+                    'min_activation_height': 0,
                     'status': 'active',
+                    'status_next': 'active',
                     'since': 0,
-                    'status_next': 'active'
                 },
                 'height': 0,
-                'active': True,
-            },
+                'active': True
+            }
           }
         })
 
@@ -251,15 +255,15 @@ class BlockchainTest(BellscoinTestFramework):
         ])
 
         gbci207 = self.nodes[0].getblockchaininfo()
-        self.check_signalling_deploymentinfo_result(self.nodes[0].getdeploymentinfo(), gbci207["blocks"], gbci207["bestblockhash"])
+        self.check_signalling_deploymentinfo_result(self.nodes[0].getdeploymentinfo(), gbci207["blocks"], gbci207["bestblockhash"], "started")
 
         # block just prior to lock in
         self.generate(self.wallet, 287 - gbci207["blocks"])
         gbci287 = self.nodes[0].getblockchaininfo()
-        self.check_signalling_deploymentinfo_result(self.nodes[0].getdeploymentinfo(), gbci287["blocks"], gbci287["bestblockhash"])
+        self.check_signalling_deploymentinfo_result(self.nodes[0].getdeploymentinfo(), gbci287["blocks"], gbci287["bestblockhash"], "locked_in")
 
         # calling with an explicit hash works
-        self.check_signalling_deploymentinfo_result(self.nodes[0].getdeploymentinfo(gbci207["bestblockhash"]), gbci207["blocks"], gbci207["bestblockhash"])
+        self.check_signalling_deploymentinfo_result(self.nodes[0].getdeploymentinfo(gbci207["bestblockhash"]), gbci207["blocks"], gbci207["bestblockhash"], "started")
 
     def _test_y2106(self):
         self.log.info("Check that block timestamps work until year 2106")
@@ -327,7 +331,7 @@ class BlockchainTest(BellscoinTestFramework):
         node = self.nodes[0]
         res = node.gettxoutsetinfo()
 
-        assert_equal(res['total_amount'], Decimal('8725.00000000'))
+        assert_equal(res['total_amount'], Decimal('21000.00000000'))
         assert_equal(res['transactions'], HEIGHT)
         assert_equal(res['height'], HEIGHT)
         assert_equal(res['txouts'], HEIGHT)
