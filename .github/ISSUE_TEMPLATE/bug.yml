@@ -56,7 +56,7 @@ body:
       required: false
   - type: dropdown
     attributes:
-      label: How did you obtain Bitcoin Core
+      label: How did you obtain Bells Core
       multiple: false
       options:
         - Compiled from source
