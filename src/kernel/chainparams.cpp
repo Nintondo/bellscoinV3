@@ -151,7 +151,7 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].min_activation_height = 0; // No activation delay
 
-        // Deployment of OP_CAT/CHECK_TEMPLATE_VERIFY/64_BIT_INTEGERS
+        // Deployment of OP_CAT, OP_CHECKTEMPLATEVERIFY, OP_INTERNALKEY, OP_CHECKSIGFROMSTACK
         consensus.vDeployments[Consensus::DEPLOYMENT_OP_CAT].bit = 2;
         consensus.vDeployments[Consensus::DEPLOYMENT_OP_CAT].nStartTime = 1749945600; // 2025-07-15 00:00:00
         consensus.vDeployments[Consensus::DEPLOYMENT_OP_CAT].nTimeout = 1772658000; // 2026-06-15 00:00:00
@@ -273,7 +273,7 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].min_activation_height = 0; // No activation delay
 
-        // Deployment of OP_CAT/CHECK_TEMPLATE_VERIFY/64_BIT_INTEGERS
+        // Deployment of OP_CAT, OP_CHECKTEMPLATEVERIFY, OP_INTERNALKEY, OP_CHECKSIGFROMSTACK
         consensus.vDeployments[Consensus::DEPLOYMENT_OP_CAT].bit = 2;
         consensus.vDeployments[Consensus::DEPLOYMENT_OP_CAT].nStartTime = 1747267200; // 2025-05-15 00:00:00        
         consensus.vDeployments[Consensus::DEPLOYMENT_OP_CAT].nTimeout = 1772658000; // 2026-06-15 00:00:00
@@ -416,7 +416,7 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].min_activation_height = 0; // No activation delay
 
-        // Deployment of OP_CAT/CHECK_TEMPLATE_VERIFY/64_BIT_INTEGERS
+        // Deployment of OP_CAT, OP_CHECKTEMPLATEVERIFY, OP_INTERNALKEY, OP_CHECKSIGFROMSTACK
         consensus.vDeployments[Consensus::DEPLOYMENT_OP_CAT].bit = 2;
         consensus.vDeployments[Consensus::DEPLOYMENT_OP_CAT].nStartTime = 1747267200; // 2025-05-15 00:00:00
         consensus.vDeployments[Consensus::DEPLOYMENT_OP_CAT].nTimeout = 1772658000; // 2026-06-15 00:00:00
@@ -508,7 +508,7 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].min_activation_height = 0; // No activation delay
 
-        // Deployment of OP_CAT/CHECK_TEMPLATE_VERIFY/64_BIT_INTEGERS
+        // Deployment of OP_CAT/CHECK_TEMPLATE_VERIFY
         consensus.vDeployments[Consensus::DEPLOYMENT_OP_CAT].bit = 2;
         consensus.vDeployments[Consensus::DEPLOYMENT_OP_CAT].nStartTime = Consensus::BIP9Deployment::ALWAYS_ACTIVE;
         consensus.vDeployments[Consensus::DEPLOYMENT_OP_CAT].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;

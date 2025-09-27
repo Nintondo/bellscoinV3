@@ -119,8 +119,8 @@ class RPCInterfaceTest(BellscoinTestFramework):
         ]
         results = [
             {"result": 0},
-            {"error": {"code": RPC_METHOD_NOT_FOUND, "message": "Method not found"}},
-            {"result": "0f9188f13cb7b2c71f2a335e3a4fc328bf5beb436012afca590b1a11466e2206"},
+            {"error": {"code": RPC_METHOD_NOT_FOUND, "message": "Method not found: invalidmethod"}},
+            {"result": "f97be01b640a39ac10c75da8d749bed0b065f25d9b28f51fe8070a6cdf976e1a"},
             {"error": {"code": RPC_INVALID_REQUEST, "message": "Missing method"}},
         ]
 

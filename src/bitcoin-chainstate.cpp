@@ -230,7 +230,7 @@ int main(int argc, char* argv[])
         };
 
         bool new_block;
-        auto sc = std::make_shared<submitblock_StateCatcher>(block.GetPoWHash());
+        auto sc = std::make_shared<submitblock_StateCatcher>(block.GetHash());
         validation_signals.RegisterSharedValidationInterface(sc);
         bool accepted = chainman.ProcessNewBlock(blockptr, /*force_processing=*/true, /*min_pow_checked=*/true, /*new_block=*/&new_block);
         validation_signals.UnregisterSharedValidationInterface(sc);

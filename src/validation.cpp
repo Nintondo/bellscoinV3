@@ -2574,7 +2574,7 @@ unsigned int GetBlockScriptFlags(const CBlockIndex& block_index, const Chainstat
     }
 
     
-    // Enforce OP_CAT, OP_CHECKTEMPLATEVERIFY, OP_INTERNALKEY, OP_CHECKSIGFROMSTACK, 64_BIT_INTEGERS
+    // Enforce OP_CAT, OP_CHECKTEMPLATEVERIFY, OP_INTERNALKEY, OP_CHECKSIGFROMSTACK
     if (DeploymentActiveAt(block_index, chainman, Consensus::DEPLOYMENT_OP_CAT)) {
         flags |= SCRIPT_VERIFY_OP_CAT;
         flags |= SCRIPT_VERIFY_DEFAULT_CHECK_TEMPLATE_VERIFY_HASH;

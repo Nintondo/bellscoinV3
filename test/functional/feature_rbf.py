@@ -138,7 +138,7 @@ class ReplaceByFeeTest(BellscoinTestFramework):
     def test_doublespend_chain(self):
         """Doublespend of a long chain"""
 
-        initial_nValue = 5 * COIN
+        initial_nValue = 1 * COIN
         tx0_outpoint = self.make_utxo(self.nodes[0], initial_nValue)
 
         prevout = tx0_outpoint

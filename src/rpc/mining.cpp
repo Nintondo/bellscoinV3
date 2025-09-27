@@ -1059,7 +1059,7 @@ static RPCHelpMan submitblock()
     Mining& miner = EnsureMining(node);
 
     bool new_block;
-    auto sc = std::make_shared<submitblock_StateCatcher>(block.GetPoWHash());
+    auto sc = std::make_shared<submitblock_StateCatcher>(block.GetHash());
     CHECK_NONFATAL(chainman.m_options.signals)->RegisterSharedValidationInterface(sc);
     bool accepted = miner.processNewBlock(blockptr, /*new_block=*/&new_block);
     CHECK_NONFATAL(chainman.m_options.signals)->UnregisterSharedValidationInterface(sc);
