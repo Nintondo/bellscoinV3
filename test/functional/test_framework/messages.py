@@ -689,6 +689,15 @@ class CTransaction:
         return "CTransaction(version=%i vin=%s vout=%s wit=%s nLockTime=%i)" \
             % (self.version, repr(self.vin), repr(self.vout), repr(self.wit), self.nLockTime)
 
+    # Provide compatibility with legacy attribute name
+    @property
+    def nVersion(self):
+        return self.version
+
+    @nVersion.setter
+    def nVersion(self, value):
+        self.version = value
+
 
 class CAuxPow:
     __slots__ = ("coinbase_tx", "vMerkleBranch", "vChainMerkleBranch", "nChainIndex", "parent_block")

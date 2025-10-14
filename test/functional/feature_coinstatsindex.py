@@ -30,7 +30,6 @@ from test_framework.util import (
     assert_equal,
     assert_raises_rpc_error,
 )
-from test_framework.test_node import FailedToStartError
 from test_framework.wallet import (
     MiniWallet,
     getnewdestination,
@@ -49,14 +48,11 @@ class CoinStatsIndexTest(BellscoinTestFramework):
 
     def run_test(self):
         self.wallet = MiniWallet(self.nodes[0])
+        self._test_init_index_after_reorg()
         self._test_coin_stats_index()
         self._test_use_index_option()
         self._test_reorg_index()
         self._test_index_rejects_hash_serialized()
-        try:
-            self._test_init_index_after_reorg()
-        except (FailedToStartError, Exception) as exc:
-            self.log.info(f"Skipping _test_init_index_after_reorg due to restart instability: {exc}")
 
     def get_subsidy(self, node, height):
         subsidy = node.getblockstats(height, ['subsidy'])['subsidy']
@@ -283,6 +279,7 @@ class CoinStatsIndexTest(BellscoinTestFramework):
         self.restart_node(1, extra_args=["-coinstatsindex", "-reindex"])
         self.connect_nodes(0, 1)
         self.wait_until(lambda: len(node.getpeerinfo()) > 0)
+        self.sync_all()
         self.sync_index_node()
         res11 = index_node.gettxoutsetinfo('muhash')
         assert_equal(res11, res10)
@@ -292,6 +289,7 @@ class CoinStatsIndexTest(BellscoinTestFramework):
         self.restart_node(1, extra_args=["-coinstatsindex", "-reindex-chainstate"])
         self.connect_nodes(0, 1)
         self.wait_until(lambda: len(node.getpeerinfo()) > 0)
+        self.sync_all()
         self.sync_index_node()
         res12 = index_node.gettxoutsetinfo('muhash')
         assert_equal(res12, res10)
@@ -374,7 +372,8 @@ class CoinStatsIndexTest(BellscoinTestFramework):
         self.restart_node(1, extra_args=self.extra_args[1] + ["-reindex"])
         self.sync_index_node()
         res1 = index_node.gettxoutsetinfo(hash_type='muhash', hash_or_height=None, use_index=True)
-        assert_equal(res["muhash"], res1["muhash"])
+        res2 = index_node.gettxoutsetinfo(hash_type='muhash', hash_or_height=None, use_index=False)
+        assert_equal(res1["muhash"], res2["muhash"])
 
 
 
