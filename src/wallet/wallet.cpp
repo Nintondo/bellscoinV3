@@ -92,7 +92,7 @@ using util::ToString;
 
 namespace wallet {
 
-std::atomic<OutputType> DEFAULT_ADDRESS_TYPE_V2::default_type{OutputType::LEGACY};
+std::atomic<OutputType> DEFAULT_ADDRESS_TYPE_V2::default_type{OutputType::BECH32};
 
 bool AddWalletSetting(interfaces::Chain& chain, const std::string& wallet_name)
 {

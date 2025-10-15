@@ -2769,11 +2769,11 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
         nLockTimeFlags |= LOCKTIME_VERIFY_SEQUENCE;
     }
 
-    if (wallet::DEFAULT_ADDRESS_TYPE_V2::isType(OutputType::LEGACY)) {
-        if(DeploymentActiveAt(*pindex, m_chainman, Consensus::DEPLOYMENT_SEGWIT)) {
-            wallet::DEFAULT_ADDRESS_TYPE_V2::set(OutputType::BECH32);
-        }
-    }
+    // if (wallet::DEFAULT_ADDRESS_TYPE_V2::isType(OutputType::LEGACY)) {
+    //     if(DeploymentActiveAt(*pindex, m_chainman, Consensus::DEPLOYMENT_SEGWIT)) {
+    //         wallet::DEFAULT_ADDRESS_TYPE_V2::set(OutputType::BECH32);
+    //     }
+    // }
 
     // Get the script flags for this block
     unsigned int flags{GetBlockScriptFlags(*pindex, m_chainman)};
