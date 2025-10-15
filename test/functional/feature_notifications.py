@@ -49,8 +49,12 @@ class NotificationsTest(BellscoinTestFramework):
             f"-alertnotify=echo > {os.path.join(self.alertnotify_dir, '%s')}",
             f"-blocknotify=echo > {os.path.join(self.blocknotify_dir, '%s')}",
             f"-shutdownnotify=echo > {self.shutdownnotify_file}",
+            "-addresstype=bech32",
+            "-changetype=bech32",
         ], [
             f"-walletnotify=echo %h_%b > {os.path.join(self.walletnotify_dir, notify_outputname('%w', '%s'))}",
+            "-addresstype=bech32",
+            "-changetype=bech32",
         ]]
         self.wallet_names = [self.default_wallet_name, self.wallet]
         super().setup_network()
@@ -83,7 +87,8 @@ class NotificationsTest(BellscoinTestFramework):
 
         self.log.info("test -blocknotify")
         block_count = 10
-        blocks = self.generatetoaddress(self.nodes[1], block_count, self.nodes[1].getnewaddress() if self.is_wallet_compiled() else ADDRESS_BCRT1_UNSPENDABLE)
+        mining_address = self.nodes[1].getnewaddress(address_type="bech32") if self.is_wallet_compiled() else ADDRESS_BCRT1_UNSPENDABLE
+        blocks = self.generatetoaddress(self.nodes[1], block_count, mining_address)
 
         # wait at most 10 seconds for expected number of files before reading the content
         self.wait_until(lambda: len(os.listdir(self.blocknotify_dir)) == block_count, timeout=10)

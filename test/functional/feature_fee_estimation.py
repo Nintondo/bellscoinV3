@@ -77,7 +77,6 @@ def check_raw_estimates(node, fees_seen):
     delta = 1.0e-6  # account for rounding error
     for i in range(1, 26):
         for _, e in node.estimaterawfee(i).items():
-            print(f"{e}")
 
             feerate = float(e["feerate"])
             assert_greater_than(feerate, 0)
@@ -180,7 +179,7 @@ class EstimateFeeTest(BellscoinTestFramework):
                     self.nodes[from_index],
                     self.confutxo,
                     self.memutxo,
-                    Decimal("0.005"),
+                    Decimal("0.0005"),
                     min_fee,
                     min_fee,
                     batch_sendtx_reqs,
@@ -401,12 +400,15 @@ class EstimateFeeTest(BellscoinTestFramework):
         self.connect_nodes(0, 1)
         self.connect_nodes(0, 2)
         self.sync_blocks()
+        # Refresh MiniWallet view to drop any unconfirmed change created in previous phases
+        self.wallet = MiniWallet(self.nodes[0])
+        self.wallet.rescan_utxos(include_mempool=False)
         assert_equal(self.nodes[0].estimatesmartfee(1)["errors"], ["Insufficient data or no feerate found"])
 
     def broadcast_and_mine(self, broadcaster, miner, feerate, count):
         """Broadcast and mine some number of transactions with a specified fee rate."""
         for _ in range(count):
-            self.wallet.send_self_transfer(from_node=broadcaster, fee_rate=feerate)
+            self.wallet.send_self_transfer(from_node=broadcaster, fee_rate=feerate, confirmed_only=True)
         self.sync_mempools()
         self.generate(miner, 1)
 

@@ -21,9 +21,6 @@ from test_framework.p2p import P2PInterface, msg_getheaders
 from test_framework.test_framework import BellscoinTestFramework
 from test_framework.util import assert_equal
 
-# 2 hashes required per regtest block (with no difficulty adjustment)
-REGTEST_WORK_PER_BLOCK = 2
-
 class MinimumChainWorkTest(BellscoinTestFramework):
     def set_test_params(self):
         self.setup_clean_chain = True
@@ -48,14 +45,25 @@ class MinimumChainWorkTest(BellscoinTestFramework):
     def run_test(self):
         # Start building a chain on node0.  node2 shouldn't be able to sync until node1's
         # minchainwork is exceeded
-        starting_chain_work = REGTEST_WORK_PER_BLOCK # Genesis block's work
+        min_chain_work = self.node_min_work[1]
+        genesis_hash = self.nodes[0].getblockhash(0)
+        starting_chain_work = int(self.nodes[0].getblockheader(genesis_hash)['chainwork'], 16)
         self.log.info(f"Testing relay across node 1 (minChainWork = {self.node_min_work[1]})")
 
         starting_blockcount = self.nodes[2].getblockcount()
 
-        num_blocks_to_generate = int((self.node_min_work[1] - starting_chain_work) / REGTEST_WORK_PER_BLOCK)
-        self.log.info(f"Generating {num_blocks_to_generate} blocks on node0")
-        hashes = self.generate(self.nodes[0], num_blocks_to_generate, sync_fun=self.no_op)
+        hashes = self.generate(self.nodes[0], 1, sync_fun=self.no_op)
+        current_chain_work = int(self.nodes[0].getblockheader(hashes[-1])['chainwork'], 16)
+        per_block_work = current_chain_work - starting_chain_work
+        assert per_block_work > 0
+
+        if current_chain_work < min_chain_work:
+            additional_blocks = max(0, (min_chain_work - 1 - current_chain_work) // per_block_work)
+            if additional_blocks:
+                hashes.extend(self.generate(self.nodes[0], additional_blocks, sync_fun=self.no_op))
+                current_chain_work = int(self.nodes[0].getblockheader(hashes[-1])['chainwork'], 16)
+
+        self.log.info(f"Generated {len(hashes)} blocks on node0")
 
         self.log.info(f"Node0 current chain work: {self.nodes[0].getblockheader(hashes[-1])['chainwork']}")
 

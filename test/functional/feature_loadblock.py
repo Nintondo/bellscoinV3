@@ -29,7 +29,8 @@ class LoadblockTest(BellscoinTestFramework):
 
     def run_test(self):
         self.nodes[1].setnetworkactive(state=False)
-        self.generate(self.nodes[0], COINBASE_MATURITY, sync_fun=self.no_op)
+        num_blocks = 100
+        self.generate(self.nodes[0], num_blocks, sync_fun=self.no_op)
 
         # Parsing the url of our node to get settings for config file
         data_dir = self.nodes[0].datadir_path
@@ -51,7 +52,7 @@ class LoadblockTest(BellscoinTestFramework):
             cfg.write(f"port={node_url.port}\n")
             cfg.write(f"host={node_url.hostname}\n")
             cfg.write(f"output_file={bootstrap_file}\n")
-            cfg.write(f"max_height=100\n")
+            cfg.write(f"max_height={num_blocks}\n")
             cfg.write(f"netmagic=fabfb5da\n")
             cfg.write(f"input={blocks_dir}\n")
             cfg.write(f"genesis={genesis_block}\n")
@@ -73,9 +74,9 @@ class LoadblockTest(BellscoinTestFramework):
 
         self.log.info("Restart second, unsynced node with bootstrap file")
         self.restart_node(1, extra_args=[f"-loadblock={bootstrap_file}"])
-        assert_equal(self.nodes[1].getblockcount(), 100)  # start_node is blocking on all block files being imported
+        assert_equal(self.nodes[1].getblockcount(), num_blocks)  # start_node is blocking on all block files being imported
 
-        assert_equal(self.nodes[1].getblockchaininfo()['blocks'], 100)
+        assert_equal(self.nodes[1].getblockchaininfo()['blocks'], num_blocks)
         assert_equal(self.nodes[0].getbestblockhash(), self.nodes[1].getbestblockhash())
 
 
