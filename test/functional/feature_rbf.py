@@ -95,6 +95,49 @@ class ReplaceByFeeTest(BellscoinTestFramework):
         confirmed - txout created will be confirmed in the blockchain;
                     unconfirmed otherwise.
         """
+        # Ensure we have a single UTXO large enough to fund the request. On Bells the
+        # pre-mined wallet coins are much smaller than Bitcoin Core's 50 BTC coinbases,
+        # so we may need to consolidate multiple UTXOs before funding large spends.
+        target = amount + 1000  # include fee for the eventual send_to
+        if confirmed:
+            target = max(target, 5 * COIN)  # headroom for replacement spends in later tests
+        self.wallet.rescan_utxos(include_mempool=not confirmed)
+        if confirmed:
+            while node.getrawmempool():
+                self.generate(node, 1)
+            self.wallet.rescan_utxos()
+        while True:
+            available_utxos = sorted(
+                self.wallet.get_utxos(mark_as_spent=False, confirmed_only=confirmed),
+                key=lambda utxo: utxo["value"],
+            )
+            assert available_utxos, "MiniWallet must have confirmed UTXOs available"
+            largest = available_utxos[-1]
+            largest_value_sat = int(Decimal(str(largest["value"])) * COIN)
+            if largest_value_sat >= target:
+                break
+
+            selected = []
+            total_value_sat = 0
+            for utxo in reversed(available_utxos):
+                selected.append(utxo)
+                total_value_sat += int(Decimal(str(utxo["value"])) * COIN)
+                if total_value_sat >= target + 1000:
+                    break
+
+            consolidation = self.wallet.send_self_transfer_multi(
+                from_node=node,
+                utxos_to_spend=selected,
+                sequence=0,
+                num_outputs=1,
+                amount_per_output=total_value_sat - 1000,
+            )
+            # Confirm the consolidation if the caller requested a confirmed UTXO.
+            if confirmed:
+                while node.getrawmempool():
+                    self.generate(node, 1)
+                self.wallet.rescan_utxos()
+
         tx = self.wallet.send_to(from_node=node, scriptPubKey=scriptPubKey or self.wallet.get_scriptPubKey(), amount=amount)
 
         if confirmed:
@@ -138,7 +181,7 @@ class ReplaceByFeeTest(BellscoinTestFramework):
     def test_doublespend_chain(self):
         """Doublespend of a long chain"""
 
-        initial_nValue = 1 * COIN
+        initial_nValue = 5 * COIN
         tx0_outpoint = self.make_utxo(self.nodes[0], initial_nValue)
 
         prevout = tx0_outpoint
@@ -424,7 +467,7 @@ class ReplaceByFeeTest(BellscoinTestFramework):
             # For each root UTXO, create a package that contains the spend of that
             # UTXO and `txs_per_graph` children tx.
             for graph_num in range(num_tx_graphs):
-                root_utxos.append(wallet.get_utxo())
+                root_utxos.append(wallet.get_utxo(confirmed_only=True))
 
                 optin_parent_tx = wallet.send_self_transfer_multi(
                     from_node=normal_node,

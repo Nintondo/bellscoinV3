@@ -1090,7 +1090,7 @@ void BlockManager::UpdateBlockInfo(const CBlock& block, unsigned int nHeight, co
     }
 
     // Update the file information with the current block.
-    const unsigned int added_size = ::GetSerializeSize(block, PROTOCOL_VERSION | SERIALIZE_TRANSACTION_NO_WITNESS);
+    const unsigned int added_size = ::GetSerializeSize(block, PROTOCOL_VERSION);
     const int nFile = pos.nFile;
     if (static_cast<int>(m_blockfile_info.size()) <= nFile) {
         m_blockfile_info.resize(nFile + 1);
