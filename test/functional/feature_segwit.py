@@ -4,7 +4,7 @@
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test the SegWit changeover logic."""
 
-from decimal import Decimal
+from decimal import Decimal, ROUND_DOWN
 
 from test_framework.address import (
     key_to_p2pkh,
@@ -16,6 +16,7 @@ from test_framework.address import (
 from test_framework.blocktools import (
     send_to_witness,
     witness_script,
+    COINBASE_MATURITY,
 )
 from test_framework.descriptors import descsum_create
 from test_framework.messages import (
@@ -58,23 +59,50 @@ NODE_2 = 2
 P2WPKH = 0
 P2WSH = 1
 
+COIN_DECIMAL = Decimal("0.00000001")
+DEFAULT_FEE = Decimal("0.001")
 
-def getutxo(txid):
-    utxo = {}
-    utxo["vout"] = 0
-    utxo["txid"] = txid
+
+def quantize_amount(value):
+    return value.quantize(COIN_DECIMAL, rounding=ROUND_DOWN)
+
+
+def getutxo(node, txid, *, vout=0):
+    tx_out = node.gettxout(txid, vout)
+    assert tx_out is not None, f"UTXO {txid}:{vout} is unexpectedly spent"
+    utxo = {
+        "txid": txid,
+        "vout": vout,
+        "amount": tx_out["value"],
+        "scriptPubKey": tx_out["scriptPubKey"]["hex"],
+    }
     return utxo
 
 
-def find_spendable_utxo(node, min_value):
-    for utxo in node.listunspent(query_options={'minimumAmount': min_value}):
-        if utxo['spendable']:
-            return utxo
+def find_spendable_utxo(node, min_value, max_value=None):
+    min_value = Decimal(str(min_value))
+    max_value = Decimal(str(max_value)) if max_value is not None else None
+    for utxo in node.listunspent():
+        if not utxo.get("spendable", False):
+            continue
+        amount = Decimal(str(utxo["amount"]))
+        if amount < min_value:
+            continue
+        if max_value is not None and amount > max_value:
+            continue
+        return utxo
 
     raise AssertionError(f"Unspent output equal or higher than {min_value} not found")
 
 
 txs_mined = {}  # txindex from txid to blockhash
+
+
+def spend_amount_from_utxo(utxo, fee=DEFAULT_FEE):
+    amount = Decimal(str(utxo["amount"])) - fee
+    amount = quantize_amount(amount)
+    assert amount > 0, f"Calculated spend amount {amount} is not positive"
+    return amount
 
 
 class SegWitTest(BellscoinTestFramework):
@@ -113,13 +141,18 @@ class SegWitTest(BellscoinTestFramework):
         self.sync_all()
 
     def success_mine(self, node, txid, sign, redeem_script=""):
-        send_to_witness(1, node, getutxo(txid), self.pubkey[0], False, Decimal("49.998"), sign, redeem_script)
+        utxo = getutxo(node, txid)
+        send_amount = spend_amount_from_utxo(utxo)
+        new_txid = send_to_witness(1, node, utxo, self.pubkey[0], False, send_amount, sign, redeem_script)
+        self.output_amounts[new_txid] = send_amount
         block = self.generate(node, 1)
         assert_equal(len(node.getblock(block[0])["tx"]), 2)
         self.sync_blocks()
 
     def fail_accept(self, node, error_msg, txid, sign, redeem_script=""):
-        assert_raises_rpc_error(-26, error_msg, send_to_witness, use_p2wsh=1, node=node, utxo=getutxo(txid), pubkey=self.pubkey[0], encode_p2sh=False, amount=Decimal("49.998"), sign=sign, insert_redeem_script=redeem_script)
+        utxo = getutxo(node, txid)
+        send_amount = spend_amount_from_utxo(utxo)
+        assert_raises_rpc_error(-26, error_msg, send_to_witness, use_p2wsh=1, node=node, utxo=utxo, pubkey=self.pubkey[0], encode_p2sh=False, amount=send_amount, sign=sign, insert_redeem_script=redeem_script)
 
     def run_test(self):
         self.generate(self.nodes[0], 161)  # block 161
@@ -135,7 +168,10 @@ class SegWitTest(BellscoinTestFramework):
         assert '!segwit' not in tmpl['rules']
         self.generate(self.nodes[0], 1)  # block 162
 
-        balance_presetup = self.nodes[0].getbalance()
+        balance_presetup = Decimal(str(self.nodes[0].getbalance()))
+        self.output_amounts = {}
+        per_node_received = [Decimal("0"), Decimal("0"), Decimal("0")]
+        total_spent = Decimal("0")
         self.pubkey = []
         p2sh_ids = []  # p2sh_ids[NODE][TYPE] is an array of txids that spend to P2WPKH (TYPE=0) or P2WSH (TYPE=1) scripts to an address for NODE embedded in p2sh
         wit_ids = []  # wit_ids[NODE][TYPE] is an array of txids that spend to P2WPKH (TYPE=0) or P2WSH (TYPE=1) scripts to an address for NODE via bare witness
@@ -182,15 +218,48 @@ class SegWitTest(BellscoinTestFramework):
         for _ in range(5):
             for n in range(3):
                 for v in range(2):
-                    wit_ids[n][v].append(send_to_witness(v, self.nodes[0], find_spendable_utxo(self.nodes[0], 50), self.pubkey[n], False, Decimal("49.999")))
-                    p2sh_ids[n][v].append(send_to_witness(v, self.nodes[0], find_spendable_utxo(self.nodes[0], 50), self.pubkey[n], True, Decimal("49.999")))
+                    utxo = find_spendable_utxo(self.nodes[0], Decimal("1"))
+                    send_amount = spend_amount_from_utxo(utxo)
+                    total_spent += Decimal(str(utxo["amount"]))
+                    txid = send_to_witness(v, self.nodes[0], utxo, self.pubkey[n], False, send_amount)
+                    self.output_amounts[txid] = send_amount
+                    wit_ids[n][v].append(txid)
+                    per_node_received[n] += send_amount
 
-        self.generate(self.nodes[0], 1)  # block 163
+                    utxo = find_spendable_utxo(self.nodes[0], Decimal("1"))
+                    send_amount = spend_amount_from_utxo(utxo)
+                    total_spent += Decimal(str(utxo["amount"]))
+                    txid = send_to_witness(v, self.nodes[0], utxo, self.pubkey[n], True, send_amount)
+                    self.output_amounts[txid] = send_amount
+                    p2sh_ids[n][v].append(txid)
+                    per_node_received[n] += send_amount
+
+        block163 = self.generate(self.nodes[0], 1)[0]  # block 163
+        block163_details = self.nodes[0].getblock(block163, 2)
+        coinbase_value = sum(Decimal(str(vout["value"])) for vout in block163_details["tx"][0]["vout"])
+        coinbase_txid = block163_details["tx"][0]["txid"]
+        coinbase_wallet_tx = self.nodes[0].gettransaction(coinbase_txid)
+        assert "immature" in {detail["category"] for detail in coinbase_wallet_tx["details"]}
+        immature_amounts = [
+            Decimal(str(detail["amount"]))
+            for detail in coinbase_wallet_tx["details"]
+            if detail["category"] == "immature"
+        ]
+        assert immature_amounts, "Coinbase transaction missing immature wallet entry"
+        assert_equal(quantize_amount(sum(immature_amounts)), quantize_amount(coinbase_value))
+
+        # Maturity roll-over: the new block increases spendable balance by the
+        # coinbase from height (current_height - COINBASE_MATURITY).
+        matured_height = self.nodes[0].getblockcount() - COINBASE_MATURITY
+        matured_hash = self.nodes[0].getblockhash(matured_height)
+        matured_details = self.nodes[0].getblock(matured_hash, 2)
+        matured_value = sum(Decimal(str(vout["value"])) for vout in matured_details["tx"][0]["vout"])
 
         # Make sure all nodes recognize the transactions as theirs
-        assert_equal(self.nodes[0].getbalance(), balance_presetup - 60 * 50 + 20 * Decimal("49.999") + 50)
-        assert_equal(self.nodes[1].getbalance(), 20 * Decimal("49.999"))
-        assert_equal(self.nodes[2].getbalance(), 20 * Decimal("49.999"))
+        node0_expected_balance = balance_presetup - total_spent + per_node_received[0] + matured_value
+        assert_equal(quantize_amount(Decimal(str(self.nodes[0].getbalance()))), quantize_amount(node0_expected_balance))
+        assert_equal(quantize_amount(Decimal(str(self.nodes[1].getbalance()))), quantize_amount(per_node_received[1]))
+        assert_equal(quantize_amount(Decimal(str(self.nodes[2].getbalance()))), quantize_amount(per_node_received[2]))
 
         self.log.info("Verify unsigned p2sh witness txs without a redeem script are invalid")
         self.fail_accept(self.nodes[2], "mandatory-script-verify-flag-failed (Operation not valid with the current stack size)", p2sh_ids[NODE_2][P2WPKH][1], sign=False)
@@ -200,10 +269,16 @@ class SegWitTest(BellscoinTestFramework):
 
         self.log.info("Verify witness txs are mined as soon as segwit activates")
 
-        send_to_witness(1, self.nodes[2], getutxo(wit_ids[NODE_2][P2WPKH][0]), self.pubkey[0], encode_p2sh=False, amount=Decimal("49.998"), sign=True)
-        send_to_witness(1, self.nodes[2], getutxo(wit_ids[NODE_2][P2WSH][0]), self.pubkey[0], encode_p2sh=False, amount=Decimal("49.998"), sign=True)
-        send_to_witness(1, self.nodes[2], getutxo(p2sh_ids[NODE_2][P2WPKH][0]), self.pubkey[0], encode_p2sh=False, amount=Decimal("49.998"), sign=True)
-        send_to_witness(1, self.nodes[2], getutxo(p2sh_ids[NODE_2][P2WSH][0]), self.pubkey[0], encode_p2sh=False, amount=Decimal("49.998"), sign=True)
+        for txid in (
+            wit_ids[NODE_2][P2WPKH][0],
+            wit_ids[NODE_2][P2WSH][0],
+            p2sh_ids[NODE_2][P2WPKH][0],
+            p2sh_ids[NODE_2][P2WSH][0],
+        ):
+            utxo = getutxo(self.nodes[2], txid)
+            amount = spend_amount_from_utxo(utxo)
+            new_txid = send_to_witness(1, self.nodes[2], utxo, self.pubkey[0], encode_p2sh=False, amount=amount, sign=True)
+            self.output_amounts[new_txid] = amount
 
         assert_equal(len(self.nodes[2].getrawmempool()), 4)
         blockhash = self.generate(self.nodes[2], 1)[0]  # block 165 (first block with new rules)
@@ -260,7 +335,10 @@ class SegWitTest(BellscoinTestFramework):
         #                      tx2 (segwit input, paying to a non-segwit output) ->
         #                      tx3 (non-segwit input, paying to a non-segwit output).
         # tx1 is allowed to appear in the block, but no others.
-        txid1 = send_to_witness(1, self.nodes[0], find_spendable_utxo(self.nodes[0], 50), self.pubkey[0], False, Decimal("49.996"))
+        tx1_input = find_spendable_utxo(self.nodes[0], Decimal("1"))
+        tx1_amount = spend_amount_from_utxo(tx1_input)
+        txid1 = send_to_witness(1, self.nodes[0], tx1_input, self.pubkey[0], False, tx1_amount)
+        self.output_amounts[txid1] = tx1_amount
         assert txid1 in self.nodes[0].getrawmempool()
 
         tx1_hex = self.nodes[0].gettransaction(txid1)['hex']
@@ -274,11 +352,14 @@ class SegWitTest(BellscoinTestFramework):
         assert_equal(self.nodes[0].getmempoolentry(txid1)["weight"], tx1.get_weight())
 
         # Now create tx2, which will spend from txid1.
+        tx2_amount = quantize_amount(tx1_amount - Decimal("0.01"))
+        assert tx2_amount > 0
         tx = CTransaction()
         tx.vin.append(CTxIn(COutPoint(int(txid1, 16), 0), b''))
-        tx.vout.append(CTxOut(int(49.99 * COIN), CScript([OP_TRUE, OP_DROP] * 15 + [OP_TRUE])))
+        tx.vout.append(CTxOut(int(tx2_amount * COIN), CScript([OP_TRUE, OP_DROP] * 15 + [OP_TRUE])))
         tx2_hex = self.nodes[0].signrawtransactionwithwallet(tx.serialize().hex())['hex']
         txid2 = self.nodes[0].sendrawtransaction(tx2_hex)
+        self.output_amounts[txid2] = tx2_amount
         tx = tx_from_hex(tx2_hex)
         assert not tx.wit.is_null()
 
@@ -290,11 +371,14 @@ class SegWitTest(BellscoinTestFramework):
         assert_equal(self.nodes[0].getmempoolentry(txid2)["weight"], tx.get_weight())
 
         # Now create tx3, which will spend from txid2
+        tx3_amount = quantize_amount(tx2_amount - Decimal("0.04"))
+        assert tx3_amount > 0
         tx = CTransaction()
         tx.vin.append(CTxIn(COutPoint(int(txid2, 16), 0), b""))
-        tx.vout.append(CTxOut(int(49.95 * COIN), CScript([OP_TRUE, OP_DROP] * 15 + [OP_TRUE])))  # Huge fee
+        tx.vout.append(CTxOut(int(tx3_amount * COIN), CScript([OP_TRUE, OP_DROP] * 15 + [OP_TRUE])))  # Huge fee
         tx.calc_sha256()
         txid3 = self.nodes[0].sendrawtransaction(hexstring=tx.serialize().hex(), maxfeerate=0)
+        self.output_amounts[txid3] = tx3_amount
         assert tx.wit.is_null()
         assert txid3 in self.nodes[0].getrawmempool()
 
@@ -556,7 +640,7 @@ class SegWitTest(BellscoinTestFramework):
 
             # Check that createrawtransaction/decoderawtransaction with non-v0 Bech32 works
             v1_addr = program_to_witness(1, [3, 5])
-            v1_tx = self.nodes[0].createrawtransaction([getutxo(spendable_txid[0])], {v1_addr: 1})
+            v1_tx = self.nodes[0].createrawtransaction([getutxo(self.nodes[0], spendable_txid[0])], {v1_addr: 1})
             v1_decoded = self.nodes[1].decoderawtransaction(v1_tx)
             assert_equal(v1_decoded['vout'][0]['scriptPubKey']['address'], v1_addr)
             assert_equal(v1_decoded['vout'][0]['scriptPubKey']['hex'], "51020305")
@@ -596,11 +680,14 @@ class SegWitTest(BellscoinTestFramework):
                 assert_equal(self.nodes[1].listtransactions("*", 1, 0, True)[0]["txid"], txid)
 
     def mine_and_test_listunspent(self, script_list, ismine):
-        utxo = find_spendable_utxo(self.nodes[0], 50)
+        utxo = find_spendable_utxo(self.nodes[0], Decimal("0.5"))
+        total_value = Decimal(str(utxo["amount"]))
+        per_output_amount = quantize_amount((total_value - DEFAULT_FEE) / max(len(script_list), 1))
+        assert per_output_amount > Decimal("0")
         tx = CTransaction()
         tx.vin.append(CTxIn(COutPoint(int('0x' + utxo['txid'], 0), utxo['vout'])))
         for i in script_list:
-            tx.vout.append(CTxOut(10000000, i))
+            tx.vout.append(CTxOut(int(per_output_amount * COIN), i))
         tx.rehash()
         signresults = self.nodes[0].signrawtransactionwithwallet(tx.serialize_without_witness().hex())['hex']
         txid = self.nodes[0].sendrawtransaction(hexstring=signresults, maxfeerate=0)
