@@ -6,6 +6,8 @@
 from test_framework.messages import (
     CTxOut,
     MAX_OP_RETURN_RELAY,
+    WITNESS_SCALE_FACTOR,
+    ser_compact_size,
 )
 from test_framework.script import (
     CScript,
@@ -25,11 +27,11 @@ class DataCarrierTest(BellscoinTestFramework):
         self.extra_args = [
             [],
             ["-datacarrier=0"],
-            ["-datacarrier=1", f"-datacarriersize={MAX_OP_RETURN_RELAY - 1}"],
+            ["-datacarrier=1", f"-datacarriersize={MAX_OP_RETURN_RELAY // 2}"],
             ["-datacarrier=1", f"-datacarriersize=2"],
         ]
 
-    def test_null_data_transaction(self, node: TestNode, data, success: bool) -> None:
+    def test_null_data_transaction(self, node: TestNode, data, success: bool, expected_error: str = "datacarrier") -> None:
         tx = self.wallet.create_self_transfer(fee_rate=0)["tx"]
         data = [] if data is None else [data]
         tx.vout.append(CTxOut(nValue=0, scriptPubKey=CScript([OP_RETURN] + data)))
@@ -41,15 +43,51 @@ class DataCarrierTest(BellscoinTestFramework):
             self.wallet.sendrawtransaction(from_node=node, tx_hex=tx_hex)
             assert tx.rehash() in node.getrawmempool(True), f'{tx_hex} not in mempool'
         else:
-            assert_raises_rpc_error(-26, "scriptpubkey", self.wallet.sendrawtransaction, from_node=node, tx_hex=tx_hex)
+            assert_raises_rpc_error(-26, expected_error, self.wallet.sendrawtransaction, from_node=node, tx_hex=tx_hex)
 
     def run_test(self):
         self.wallet = MiniWallet(self.nodes[0])
 
-        # By default, only 80 bytes are used for data (+1 for OP_RETURN, +2 for the pushdata opcodes).
-        default_size_data = randbytes(MAX_OP_RETURN_RELAY - 3)
-        too_long_data = randbytes(MAX_OP_RETURN_RELAY - 2)
-        small_data = randbytes(MAX_OP_RETURN_RELAY - 4)
+        template_utxo = self.wallet.get_utxo(mark_as_spent=False)
+        template_tx = self.wallet.create_self_transfer(utxo_to_spend=template_utxo, fee_rate=0)["tx"]
+        base_vsize = template_tx.get_vsize()
+
+        def script_size(payload_length: int) -> int:
+            return len(CScript([OP_RETURN, b"\x00" * payload_length]))
+
+        def tx_vsize(payload_length: int) -> int:
+            script_len = script_size(payload_length)
+            return base_vsize + 8 + len(ser_compact_size(script_len)) + script_len
+
+        max_tx_weight = MAX_OP_RETURN_RELAY * WITNESS_SCALE_FACTOR
+        max_tx_vbytes = max_tx_weight // WITNESS_SCALE_FACTOR
+
+        def max_payload_length_for(script_limit: int) -> int:
+            payload_length = script_limit
+            while payload_length >= 0:
+                script_len = script_size(payload_length)
+                if script_len <= script_limit and tx_vsize(payload_length) <= max_tx_vbytes:
+                    return payload_length
+                payload_length -= 1
+            raise RuntimeError("No payload length satisfies the constraints")
+
+        def rejection_reason(payload_length: int, script_limit: int) -> str:
+            if tx_vsize(payload_length) > max_tx_vbytes:
+                return "tx-size"
+            if script_size(payload_length) > script_limit:
+                return "datacarrier"
+            return "scriptpubkey"
+
+        default_limit = MAX_OP_RETURN_RELAY
+        reduced_limit = MAX_OP_RETURN_RELAY // 2
+
+        default_payload_length = max_payload_length_for(default_limit)
+        node2_payload_length = max_payload_length_for(reduced_limit)
+
+        default_size_data = randbytes(default_payload_length)
+        too_long_data = randbytes(default_payload_length + 1)
+        small_data = randbytes(node2_payload_length)
+        node2_too_long_data = randbytes(node2_payload_length + 1)
         one_byte = randbytes(1)
         zero_bytes = randbytes(0)
 
@@ -57,13 +95,28 @@ class DataCarrierTest(BellscoinTestFramework):
         self.test_null_data_transaction(node=self.nodes[0], data=default_size_data, success=True)
 
         self.log.info("Testing a null data transaction larger than allowed by the default -datacarriersize value.")
-        self.test_null_data_transaction(node=self.nodes[0], data=too_long_data, success=False)
+        self.test_null_data_transaction(
+            node=self.nodes[0],
+            data=too_long_data,
+            success=False,
+            expected_error=rejection_reason(len(too_long_data), default_limit),
+        )
 
         self.log.info("Testing a null data transaction with -datacarrier=false.")
-        self.test_null_data_transaction(node=self.nodes[1], data=default_size_data, success=False)
+        self.test_null_data_transaction(
+            node=self.nodes[1],
+            data=default_size_data,
+            success=False,
+            expected_error="datacarrier",
+        )
 
         self.log.info("Testing a null data transaction with a size larger than accepted by -datacarriersize.")
-        self.test_null_data_transaction(node=self.nodes[2], data=default_size_data, success=False)
+        self.test_null_data_transaction(
+            node=self.nodes[2],
+            data=node2_too_long_data,
+            success=False,
+            expected_error=rejection_reason(len(node2_too_long_data), reduced_limit),
+        )
 
         self.log.info("Testing a null data transaction with a size smaller than accepted by -datacarriersize.")
         self.test_null_data_transaction(node=self.nodes[2], data=small_data, success=True)
@@ -84,7 +137,7 @@ class DataCarrierTest(BellscoinTestFramework):
         self.test_null_data_transaction(node=self.nodes[0], data=one_byte, success=True)
         self.test_null_data_transaction(node=self.nodes[1], data=one_byte, success=False)
         self.test_null_data_transaction(node=self.nodes[2], data=one_byte, success=True)
-        self.test_null_data_transaction(node=self.nodes[3], data=one_byte, success=False)
+        self.test_null_data_transaction(node=self.nodes[3], data=one_byte, success=False, expected_error="datacarrier")
 
 
 if __name__ == '__main__':
