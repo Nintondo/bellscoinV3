@@ -19,6 +19,9 @@ from test_framework.messages import (
     CTxIn,
     CTxOut,
     MAX_BIP125_RBF_SEQUENCE,
+    MAX_MONEY,
+    COIN,
+    from_binary,
     WITNESS_SCALE_FACTOR,
 )
 from test_framework.psbt import (
@@ -255,12 +258,26 @@ class PSBTTest(BellscoinTestFramework):
 
         # If inputs are specified, do not automatically add more:
         utxo1 = self.nodes[0].listunspent()[0]
-        assert_raises_rpc_error(-4, "The preselected coins total amount does not cover the transaction target. "
-                                    "Please allow other inputs to be automatically selected or include more coins manually",
-                                self.nodes[0].walletcreatefundedpsbt, [{"txid": utxo1['txid'], "vout": utxo1['vout']}], {self.nodes[2].getnewaddress():90})
+        # Make the target dynamic so that the preselected coin cannot cover it on chains
+        # with larger coinbase rewards (e.g. Bells). Add 1 BEL to exceed the UTXO amount.
+        insufficient_target = Decimal(str(utxo1['amount'])) + Decimal('1')
+        assert_raises_rpc_error(
+            -4,
+            "The preselected coins total amount does not cover the transaction target. "
+            "Please allow other inputs to be automatically selected or include more coins manually",
+            self.nodes[0].walletcreatefundedpsbt,
+            [{"txid": utxo1['txid'], "vout": utxo1['vout']}],
+            {self.nodes[2].getnewaddress(): insufficient_target}
+        )
 
-        psbtx1 = self.nodes[0].walletcreatefundedpsbt([{"txid": utxo1['txid'], "vout": utxo1['vout']}], {self.nodes[2].getnewaddress():90}, 0, {"add_inputs": True})['psbt']
-        assert_equal(len(self.nodes[0].decodepsbt(psbtx1)['tx']['vin']), 2)
+        psbtx1 = self.nodes[0].walletcreatefundedpsbt(
+            [{"txid": utxo1['txid'], "vout": utxo1['vout']}],
+            {self.nodes[2].getnewaddress(): insufficient_target},
+            0,
+            {"add_inputs": True}
+        )['psbt']
+        # With add_inputs=True, the wallet should add at least one more input
+        assert_greater_than_or_equal(len(self.nodes[0].decodepsbt(psbtx1)['tx']['vin']), 2)
 
         # Inputs argument can be null
         self.nodes[0].walletcreatefundedpsbt(None, {self.nodes[2].getnewaddress():10})
@@ -369,7 +386,7 @@ class PSBTTest(BellscoinTestFramework):
         assert_equal(walletprocesspsbt_out['complete'], True)
         self.nodes[1].sendrawtransaction(walletprocesspsbt_out['hex'])
 
-        self.log.info("Test walletcreatefundedpsbt fee rate of 10000 sat/vB and 0.1 BTC/kvB produces a total fee at or slightly below -maxtxfee (~0.05290000)")
+        self.log.info("Test walletcreatefundedpsbt fee rate of 10000 sat/vB and 0.1 BEL/kvB produces a total fee at or slightly below -maxtxfee (~0.05290000)")
         res1 = self.nodes[1].walletcreatefundedpsbt(inputs, outputs, 0, {"fee_rate": 10000, "add_inputs": True})
         assert_approx(res1["fee"], 0.055, 0.005)
         res2 = self.nodes[1].walletcreatefundedpsbt(inputs, outputs, 0, {"feeRate": "0.1", "add_inputs": True})
@@ -403,7 +420,7 @@ class PSBTTest(BellscoinTestFramework):
                 self.nodes[1].walletcreatefundedpsbt, inputs, outputs, 0, {"fee_rate": invalid_value, "add_inputs": True})
 
         self.log.info("- raises RPC error if both feeRate and fee_rate are passed")
-        assert_raises_rpc_error(-8, "Cannot specify both fee_rate (sat/vB) and feeRate (BTC/kvB)",
+        assert_raises_rpc_error(-8, "Cannot specify both fee_rate (sat/vB) and feeRate (BEL/kvB)",
             self.nodes[1].walletcreatefundedpsbt, inputs, outputs, 0, {"fee_rate": 0.1, "feeRate": 0.1, "add_inputs": True})
 
         self.log.info("- raises RPC error if both feeRate and estimate_mode passed")
@@ -756,7 +773,15 @@ class PSBTTest(BellscoinTestFramework):
         assert_equal(analysis['error'], 'PSBT is not valid. Input 0 spends unspendable output')
 
         self.log.info("PSBT with invalid values should have error message and Creator as next")
-        analysis = self.nodes[0].analyzepsbt('cHNidP8BAHECAAAAAfA00BFgAm6tp86RowwH6BMImQNL5zXUcTT97XoLGz0BAAAAAAD/////AgD5ApUAAAAAFgAUKNw0x8HRctAgmvoevm4u1SbN7XL87QKVAAAAABYAFPck4gF7iL4NL4wtfRAKgQbghiTUAAAAAAABAR8AgIFq49AHABYAFJUDtxf2PHo641HEOBOAIvFMNTr2AAAA')
+        # The upstream static PSBT has an input value invalid for Bitcoin (exceeds 21M),
+        # but on Bells MAX_MONEY is 92M BEL, so recreate a PSBT that surely exceeds MAX_MONEY
+        psbt_invalid_val = 'cHNidP8BAHECAAAAAfA00BFgAm6tp86RowwH6BMImQNL5zXUcTT97XoLGz0BAAAAAAD/////AgD5ApUAAAAAFgAUKNw0x8HRctAgmvoevm4u1SbN7XL87QKVAAAAABYAFPck4gF7iL4NL4wtfRAKgQbghiTUAAAAAAABAR8AgIFq49AHABYAFJUDtxf2PHo641HEOBOAIvFMNTr2AAAA'
+        p = PSBT.from_base64(psbt_invalid_val)
+        # Bump the witness_utxo amount over MAX_MONEY to trigger the invalid value path
+        txout = from_binary(CTxOut, p.i[0].map[PSBT_IN_WITNESS_UTXO])
+        txout.nValue = MAX_MONEY + 1
+        p.i[0].map[PSBT_IN_WITNESS_UTXO] = txout.serialize()
+        analysis = self.nodes[0].analyzepsbt(p.to_base64())
         assert_equal(analysis['next'], 'creator')
         assert_equal(analysis['error'], 'PSBT is not valid. Input 0 has invalid value')
 
@@ -764,7 +789,15 @@ class PSBTTest(BellscoinTestFramework):
         analysis = self.nodes[0].analyzepsbt('cHNidP8BAHECAAAAAZYezcxdnbXoQCmrD79t/LzDgtUo9ERqixk8wgioAobrAAAAAAD9////AlDDAAAAAAAAFgAUy/UxxZuzZswcmFnN/E9DGSiHLUsuGPUFAAAAABYAFLsH5o0R38wXx+X2cCosTMCZnQ4baAAAAAABAR8A4fUFAAAAABYAFOBI2h5thf3+Lflb2LGCsVSZwsltIgIC/i4dtVARCRWtROG0HHoGcaVklzJUcwo5homgGkSNAnJHMEQCIGx7zKcMIGr7cEES9BR4Kdt/pzPTK3fKWcGyCJXb7MVnAiALOBgqlMH4GbC1HDh/HmylmO54fyEy4lKde7/BT/PWxwEBAwQBAAAAIgYC/i4dtVARCRWtROG0HHoGcaVklzJUcwo5homgGkSNAnIYDwVpQ1QAAIABAACAAAAAgAAAAAAAAAAAAAAiAgL+CIiB59NSCssOJRGiMYQK1chahgAaaJpIXE41Cyir+xgPBWlDVAAAgAEAAIAAAACAAQAAAAAAAAAA')
         assert_equal(analysis['next'], 'finalizer')
 
-        analysis = self.nodes[0].analyzepsbt('cHNidP8BAHECAAAAAfA00BFgAm6tp86RowwH6BMImQNL5zXUcTT97XoLGz0BAAAAAAD/////AgCAgWrj0AcAFgAUKNw0x8HRctAgmvoevm4u1SbN7XL87QKVAAAAABYAFPck4gF7iL4NL4wtfRAKgQbghiTUAAAAAAABAR8A8gUqAQAAABYAFJUDtxf2PHo641HEOBOAIvFMNTr2AAAA')
+        # Adapt "Output amount invalid" case to Bells by ensuring outputs exceed MAX_MONEY
+        psbt_invalid_out = 'cHNidP8BAHECAAAAAfA00BFgAm6tp86RowwH6BMImQNL5zXUcTT97XoLGz0BAAAAAAD/////AgCAgWrj0AcAFgAUKNw0x8HRctAgmvoevm4u1SbN7XL87QKVAAAAABYAFPck4gF7iL4NL4wtfRAKgQbghiTUAAAAAAABAR8A8gUqAQAAABYAFJUDtxf2PHo641HEOBOAIvFMNTr2AAAA'
+        p_out = PSBT.from_base64(psbt_invalid_out)
+        tx = from_binary(CTransaction, p_out.g.map[PSBT_GLOBAL_UNSIGNED_TX])
+        # Force output[0] to exceed MAX_MONEY
+        tx.vout[0].nValue = MAX_MONEY + 1
+        # Update the PSBT's unsigned tx (serialize without witness per PSBT rules)
+        p_out.g.map[PSBT_GLOBAL_UNSIGNED_TX] = tx.serialize_without_witness()
+        analysis = self.nodes[0].analyzepsbt(p_out.to_base64())
         assert_equal(analysis['next'], 'creator')
         assert_equal(analysis['error'], 'PSBT is not valid. Output amount invalid')
 
