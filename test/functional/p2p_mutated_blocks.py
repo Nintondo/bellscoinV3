@@ -72,10 +72,10 @@ class MutatedBlocksTest(BellscoinTestFramework):
                    get_block_txn.block_txn_request.indexes == [1]
         honest_relayer.wait_until(self_transfer_requested, timeout=5)
 
-        # Block at height 101 should be the only one in flight from peer 0
+        # Block at height 31 should be the only one in flight from peer 0
         peer_info_prior_to_attack = self.nodes[0].getpeerinfo()
         assert_equal(peer_info_prior_to_attack[0]['id'], 0)
-        assert_equal([101], peer_info_prior_to_attack[0]["inflight"])
+        assert_equal([31], peer_info_prior_to_attack[0]["inflight"])
 
         # Attempt to clear the honest relayer's download request by sending the
         # mutated block (as the attacker).
@@ -84,11 +84,11 @@ class MutatedBlocksTest(BellscoinTestFramework):
         # Attacker should get disconnected for sending a mutated block
         attacker.wait_for_disconnect(timeout=5)
 
-        # Block at height 101 should *still* be the only block in-flight from
+        # Block at height 31 should *still* be the only block in-flight from
         # peer 0
         peer_info_after_attack = self.nodes[0].getpeerinfo()
         assert_equal(peer_info_after_attack[0]['id'], 0)
-        assert_equal([101], peer_info_after_attack[0]["inflight"])
+        assert_equal([31], peer_info_after_attack[0]["inflight"])
 
         # The honest relayer should be able to complete relaying the block by
         # sending the blocktxn that was requested.

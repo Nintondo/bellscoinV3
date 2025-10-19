@@ -78,10 +78,18 @@ class P2PHandshakeTest(BellscoinTestFramework):
                                           DESIRABLE_SERVICE_FLAGS_FULL, expect_disconnect=False)
 
         self.log.info("Check that limited peers are only desired if the local chain is close to the tip (<24h)")
-        self.generate_at_mocktime(int(time.time()) - 25 * 3600)  # tip outside the 24h window, should fail
+        # Bells regtest PoW target spacing is 60s, and the implementation
+        # treats "close to tip" as ApproximateBestBlockDepth() < 144 blocks.
+        # Translate that to seconds to avoid assuming 10-minute blocks.
+        threshold_blocks = 144
+        target_spacing_sec = 60
+        threshold_sec = threshold_blocks * target_spacing_sec
+        # tip outside the 24h-equivalent window in seconds, should fail
+        self.generate_at_mocktime(int(time.time()) - (threshold_sec + target_spacing_sec))
         self.test_desirable_service_flags(node, [NODE_NETWORK_LIMITED | NODE_WITNESS],
                                           DESIRABLE_SERVICE_FLAGS_FULL, expect_disconnect=True)
-        self.generate_at_mocktime(int(time.time()) - 23 * 3600)  # tip inside the 24h window, should succeed
+        # tip inside the 24h-equivalent window in seconds, should succeed
+        self.generate_at_mocktime(int(time.time()) - (threshold_sec - target_spacing_sec))
         self.test_desirable_service_flags(node, [NODE_NETWORK_LIMITED | NODE_WITNESS],
                                           DESIRABLE_SERVICE_FLAGS_PRUNED, expect_disconnect=False)
 

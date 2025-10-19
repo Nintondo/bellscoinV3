@@ -622,7 +622,14 @@ class CompactBlocksTest(BellscoinTestFramework):
     def test_low_work_compactblocks(self, test_node):
         # A compactblock with insufficient work won't get its header included
         node = self.nodes[0]
-        hashPrevBlock = int(node.getblockhash(node.getblockcount() - 150), 16)
+        # Ensure sufficient chain height for selecting an old prev block
+        min_back = 150
+        cur_height = node.getblockcount()
+        target_height = min_back + 5
+        if cur_height <= target_height:
+            self.generate(node, target_height - cur_height)
+            cur_height = node.getblockcount()
+        hashPrevBlock = int(node.getblockhash(cur_height - min_back), 16)
         block = self.build_block_on_tip(node)
         block.hashPrevBlock = hashPrevBlock
         block.solve()
