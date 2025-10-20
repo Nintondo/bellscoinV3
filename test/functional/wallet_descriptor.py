@@ -147,7 +147,8 @@ class WalletDescriptorTest(BellscoinTestFramework):
         # Make transactions
         self.log.info("Test sending and receiving")
         addr = recv_wrpc.getnewaddress()
-        send_wrpc.sendtoaddress(addr, 10)
+        # Send a conservative amount to avoid dependency on chain-specific coinbase reward
+        send_wrpc.sendtoaddress(addr, 1)
 
         # Make sure things are disabled
         self.log.info("Test disabled RPCs")

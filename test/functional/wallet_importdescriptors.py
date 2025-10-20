@@ -17,6 +17,7 @@ variants.
 
 import concurrent.futures
 
+from decimal import Decimal
 from test_framework.authproxy import JSONRPCException
 from test_framework.blocktools import COINBASE_MATURITY
 from test_framework.test_framework import BellscoinTestFramework
@@ -409,9 +410,31 @@ class ImportDescriptorsTest(BellscoinTestFramework):
                      address,
                      solvable=True,
                      ismine=True)
-        txid = w0.sendtoaddress(address, 49.99995540)
+        # Send a large-but-affordable amount based on current balance
+        pay_in = (w0.getbalance() / 2).quantize(Decimal('0.00000001'))
+        if pay_in <= Decimal('0.01'):
+            pay_in = Decimal('0.01')
+        txid = w0.sendtoaddress(address, pay_in)
         self.generatetoaddress(self.nodes[0], 6, w0.getnewaddress())
-        tx = wpriv.createrawtransaction([{"txid": txid, "vout": 0}], {w0.getnewaddress(): 49.999})
+        # Determine the correct vout for the recipient address (ordering can vary)
+        decoded_prev = self.nodes[0].decoderawtransaction(w0.gettransaction(txid)['hex'])
+        vout_index = 0
+        for i, vout in enumerate(decoded_prev.get('vout', [])):
+            spk = vout.get('scriptPubKey', {})
+            # Newer decodes may expose a single 'address' field instead of 'addresses'
+            addr_single = spk.get('address')
+            addr_list = spk.get('addresses', []) or []
+            candidates = set(addr_list)
+            if addr_single:
+                candidates.add(addr_single)
+            if address in candidates:
+                vout_index = i
+                break
+        # Spend most of the received coin leaving a small implicit fee
+        spend_out = (pay_in - Decimal('0.001')).quantize(Decimal('0.00000001'))
+        if spend_out <= Decimal('0'):
+            spend_out = (pay_in * Decimal('0.9')).quantize(Decimal('0.00000001'))
+        tx = wpriv.createrawtransaction([{"txid": txid, "vout": vout_index}], {w0.getnewaddress(): spend_out})
         signed_tx = wpriv.signrawtransactionwithwallet(tx)
         w1.sendrawtransaction(signed_tx['hex'])
 
@@ -454,9 +477,16 @@ class ImportDescriptorsTest(BellscoinTestFramework):
         change_addr = wmulti_priv.getrawchangeaddress('bech32') # uses change 0
         assert_equal(change_addr, 'bcrt1qt9uhe3a9hnq7vajl7a094z4s3crm9ttf8zw3f5v9gr2nyd7e3lnsy44n8e') # Derived at m/84'/1'/0'/0
         assert_equal(wmulti_priv.getwalletinfo()['keypoolsize'], 1000)
-        txid = w0.sendtoaddress(addr, 10)
+        # Fund multisig wallet with a dynamic amount
+        amt_ms = min(Decimal('10'), (w0.getbalance() / 2)).quantize(Decimal('0.00000001'))
+        if amt_ms <= Decimal('0.01'):
+            amt_ms = Decimal('0.01')
+        txid = w0.sendtoaddress(addr, amt_ms)
         self.generate(self.nodes[0], 6)
-        send_txid = wmulti_priv.sendtoaddress(w0.getnewaddress(), 8) # uses change 1
+        send_back = (amt_ms * Decimal('0.8')).quantize(Decimal('0.00000001'))
+        if send_back <= Decimal('0.005'):
+            send_back = (amt_ms * Decimal('0.5')).quantize(Decimal('0.00000001'))
+        send_txid = wmulti_priv.sendtoaddress(w0.getnewaddress(), send_back) # uses change 1
         decoded = wmulti_priv.gettransaction(txid=send_txid, verbose=True)['decoded']
         assert_equal(len(decoded['vin'][0]['txinwitness']), 4)
         self.sync_all()
@@ -491,10 +521,13 @@ class ImportDescriptorsTest(BellscoinTestFramework):
         assert_equal(wmulti_pub.getwalletinfo()['keypoolsize'], 999)
 
         # generate some utxos for next tests
-        utxo = self.create_outpoints(w0, outputs=[{addr: 10}])[0]
+        co_amt = min(Decimal('10'), (w0.getbalance() / 3)).quantize(Decimal('0.00000001'))
+        if co_amt <= Decimal('0.01'):
+            co_amt = Decimal('0.01')
+        utxo = self.create_outpoints(w0, outputs=[{addr: co_amt}])[0]
 
         addr2 = wmulti_pub.getnewaddress('', 'bech32')
-        utxo2 = self.create_outpoints(w0, outputs=[{addr2: 10}])[0]
+        utxo2 = self.create_outpoints(w0, outputs=[{addr2: co_amt}])[0]
 
         self.generate(self.nodes[0], 6)
         assert_equal(wmulti_pub.getbalance(), wmulti_priv.getbalance())
@@ -550,7 +583,11 @@ class ImportDescriptorsTest(BellscoinTestFramework):
         assert_equal(res[1]['success'], True)
         assert_equal(res[1]['warnings'][0], 'Not all private keys provided. Some wallet functionality may return unexpected errors')
 
-        rawtx = self.nodes[1].createrawtransaction([utxo], {w0.getnewaddress(): 9.999})
+        # Spend most of co_amt, leaving small fee margin
+        out_amt1 = (co_amt - Decimal('0.001')).quantize(Decimal('0.00000001'))
+        if out_amt1 <= Decimal('0'):
+            out_amt1 = (co_amt * Decimal('0.9')).quantize(Decimal('0.00000001'))
+        rawtx = self.nodes[1].createrawtransaction([utxo], {w0.getnewaddress(): out_amt1})
         tx_signed_1 = wmulti_priv1.signrawtransactionwithwallet(rawtx)
         assert_equal(tx_signed_1['complete'], False)
         tx_signed_2 = wmulti_priv2.signrawtransactionwithwallet(tx_signed_1['hex'])
@@ -582,10 +619,16 @@ class ImportDescriptorsTest(BellscoinTestFramework):
         assert_equal(res[1]['success'], True)
 
         addr = wmulti_priv_big.getnewaddress()
-        w0.sendtoaddress(addr, 10)
+        amt_ms2 = min(Decimal('10'), (w0.getbalance() / 2)).quantize(Decimal('0.00000001'))
+        if amt_ms2 <= Decimal('0.01'):
+            amt_ms2 = Decimal('0.01')
+        w0.sendtoaddress(addr, amt_ms2)
         self.generate(self.nodes[0], 1)
         # It is standard and would relay.
-        txid = wmulti_priv_big.sendtoaddress(w0.getnewaddress(), 9.999)
+        send_back2 = (amt_ms2 * Decimal('0.999')).quantize(Decimal('0.00000001'))
+        if send_back2 <= Decimal('0.005'):
+            send_back2 = (amt_ms2 * Decimal('0.8')).quantize(Decimal('0.00000001'))
+        txid = wmulti_priv_big.sendtoaddress(w0.getnewaddress(), send_back2)
         decoded = wmulti_priv_big.gettransaction(txid=txid, verbose=True)['decoded']
         # 20 sigs + dummy + witness script
         assert_equal(len(decoded['vin'][0]['txinwitness']), 22)
@@ -616,10 +659,14 @@ class ImportDescriptorsTest(BellscoinTestFramework):
         assert_equal(res[1]['success'], True)
 
         addr = multi_priv_big.getnewaddress("", "legacy")
-        w0.sendtoaddress(addr, 10)
+        amt_ms3 = min(Decimal('10'), (w0.getbalance() / 2)).quantize(Decimal('0.00000001'))
+        if amt_ms3 <= Decimal('0.01'):
+            amt_ms3 = Decimal('0.01')
+        w0.sendtoaddress(addr, amt_ms3)
         self.generate(self.nodes[0], 6)
         # It is standard and would relay.
-        txid = multi_priv_big.sendtoaddress(w0.getnewaddress(), 10, "", "", True)
+        send_back3 = (amt_ms3 * Decimal('1.0')).quantize(Decimal('0.00000001'))
+        txid = multi_priv_big.sendtoaddress(w0.getnewaddress(), send_back3, "", "", True)
         decoded = multi_priv_big.gettransaction(txid=txid, verbose=True)['decoded']
 
         self.log.info("Amending multisig with new private keys")
@@ -644,7 +691,10 @@ class ImportDescriptorsTest(BellscoinTestFramework):
             }])
         assert_equal(res[0]['success'], True)
 
-        rawtx = self.nodes[1].createrawtransaction([utxo2], {w0.getnewaddress(): 9.999})
+        out_amt2 = (co_amt - Decimal('0.001')).quantize(Decimal('0.00000001'))
+        if out_amt2 <= Decimal('0'):
+            out_amt2 = (co_amt * Decimal('0.9')).quantize(Decimal('0.00000001'))
+        rawtx = self.nodes[1].createrawtransaction([utxo2], {w0.getnewaddress(): out_amt2})
         tx = wmulti_priv3.signrawtransactionwithwallet(rawtx)
         assert_equal(tx['complete'], True)
         self.nodes[1].sendrawtransaction(tx['hex'])
@@ -688,7 +738,9 @@ class ImportDescriptorsTest(BellscoinTestFramework):
 
         encrypted_wallet.walletpassphrase("passphrase", 99999)
         with concurrent.futures.ThreadPoolExecutor(max_workers=1) as thread:
-            with self.nodes[0].assert_debug_log(expected_msgs=["Rescan started from block 0f9188f13cb7b2c71f2a335e3a4fc328bf5beb436012afca590b1a11466e2206... (slow variant inspecting all blocks)"], timeout=10):
+            genesis_hash = self.nodes[0].getblockhash(0)
+            expected_msg = f"Rescan started from block {genesis_hash}... (slow variant inspecting all blocks)"
+            with self.nodes[0].assert_debug_log(expected_msgs=[expected_msg], timeout=10):
                 importing = thread.submit(encrypted_wallet.importdescriptors, requests=[descriptor])
 
             # Set the passphrase timeout to 1 to test that the wallet remains unlocked during the rescan

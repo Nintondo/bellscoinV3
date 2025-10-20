@@ -12,6 +12,7 @@ from test_framework.blocktools import (
     add_witness_commitment,
     create_block,
     create_coinbase,
+    COINBASE_MATURITY,
 )
 from test_framework.messages import (
     MAX_BIP125_RBF_SEQUENCE,
@@ -309,7 +310,10 @@ class SegWitTest(BellscoinTestFramework):
         # Create a transaction that spends the coinbase
         tx = CTransaction()
         tx.vin.append(CTxIn(COutPoint(txid, 0), b""))
-        tx.vout.append(CTxOut(49 * 100000000, CScript([OP_TRUE, OP_DROP] * 15 + [OP_TRUE])))
+        # Spend the actual coinbase value minus a small fee to avoid
+        # assumptions about the block subsidy amount.
+        spend_value = block.vtx[0].vout[0].nValue - 1000
+        tx.vout.append(CTxOut(spend_value, CScript([OP_TRUE, OP_DROP] * 15 + [OP_TRUE])))
         tx.calc_sha256()
 
         # Check that serializing it with or without witness is the same
@@ -319,7 +323,7 @@ class SegWitTest(BellscoinTestFramework):
         self.test_node.send_and_ping(msg_tx(tx))  # make sure the block was processed
         assert tx.hash in self.nodes[0].getrawmempool()
         # Save this transaction for later
-        self.utxo.append(UTXO(tx.sha256, 0, 49 * 100000000))
+        self.utxo.append(UTXO(tx.sha256, 0, tx.vout[0].nValue))
         self.generate(self.nodes[0], 1)
 
     @subtest
@@ -1424,8 +1428,8 @@ class SegWitTest(BellscoinTestFramework):
         spend_tx.wit.vtxinwit[0].scriptWitness.stack = [witness_script]
         spend_tx.rehash()
 
-        # Now test a premature spend.
-        self.generate(self.nodes[0], 98)
+        # Now test a premature spend. Mine just below maturity to ensure rejection.
+        self.generate(self.nodes[0], COINBASE_MATURITY - 2)
         block2 = self.build_next_block()
         self.update_witness_block_with_transactions(block2, [spend_tx])
         test_witness_block(self.nodes[0], self.test_node, block2, accepted=False, reason='bad-txns-premature-spend-of-coinbase')
