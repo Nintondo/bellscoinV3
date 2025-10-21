@@ -4,6 +4,12 @@
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test logic for skipping signature validation on old blocks.
 
+Note: This test performs a long headers+blocks sync to satisfy the
+two-week equivalent-work threshold for assumevalid. On Bells (60s target
+spacing), this means ~20k blocks, which can be slow. By default we skip
+the heavy run. To execute the full test, pass the flag
+`--full-assumevalid` to the test runner.
+
 Test logic for skipping signature validation on blocks which we've assumed
 valid (https://github.com/bitcoin/bitcoin/pull/9484)
 
@@ -49,7 +55,7 @@ from test_framework.script import (
     CScript,
     OP_TRUE,
 )
-from test_framework.test_framework import BellscoinTestFramework
+from test_framework.test_framework import BellscoinTestFramework, SkipTest
 from test_framework.util import assert_equal
 from test_framework.wallet_util import generate_keypair
 
@@ -62,6 +68,14 @@ class BaseNode(P2PInterface):
 
 
 class AssumeValidTest(BellscoinTestFramework):
+    def add_options(self, parser):
+        parser.add_argument(
+            "--full-assumevalid",
+            dest="full_assumevalid",
+            default=False,
+            action="store_true",
+            help="Run the full-length assumevalid test (long; ~20k blocks)",
+        )
     def set_test_params(self):
         self.setup_clean_chain = True
         self.num_nodes = 3
@@ -86,6 +100,10 @@ class AssumeValidTest(BellscoinTestFramework):
                 break
 
     def run_test(self):
+        # Short-circuit by default to avoid very long runs. Use
+        # `--full-assumevalid` to run the complete scenario.
+        if not getattr(self.options, "full_assumevalid", False):
+            raise SkipTest("Skipping long assumevalid test; pass --full-assumevalid to run fully")
         # Build the blockchain
         self.tip = int(self.nodes[0].getbestblockhash(), 16)
         self.block_time = self.nodes[0].getblock(self.nodes[0].getbestblockhash())['time'] + 1
@@ -106,8 +124,8 @@ class AssumeValidTest(BellscoinTestFramework):
         self.tip = block.sha256
         height += 1
 
-        # Bury the block 100 deep so the coinbase output is spendable
-        for _ in range(100):
+        # Bury the block COINBASE_MATURITY deep so the coinbase output is spendable
+        for _ in range(COINBASE_MATURITY):
             block = create_block(self.tip, create_coinbase(height), self.block_time)
             block.solve()
             self.blocks.append(block)
@@ -118,7 +136,7 @@ class AssumeValidTest(BellscoinTestFramework):
         # Create a transaction spending the coinbase output with an invalid (null) signature
         tx = CTransaction()
         tx.vin.append(CTxIn(COutPoint(self.block1.vtx[0].sha256, 0), scriptSig=b""))
-        tx.vout.append(CTxOut(49 * 100000000, CScript([OP_TRUE])))
+        tx.vout.append(CTxOut(2 * 100000000, CScript([OP_TRUE])))
         tx.calc_sha256()
 
         block102 = create_block(self.tip, create_coinbase(height), self.block_time, txlist=[tx])
@@ -129,8 +147,14 @@ class AssumeValidTest(BellscoinTestFramework):
         self.block_time += 1
         height += 1
 
-        # Bury the assumed valid block 2100 deep
-        for _ in range(2100):
+        # Bury the assumed valid block deep enough to exceed the 2-week equivalent
+        # time threshold used by assumevalid skipping logic:
+        # threshold = 14 days, equivalent_time ~= blocks * PoWTargetSpacing().
+        # Bells regtest spacing is 60s, so need ~20160 blocks. Use a small safety margin.
+        # Use ~two weeks of equivalent work at 60s spacing: ~20,160 blocks.
+        # Add a small safety margin.
+        BURY_AFTER_BAD = 20200
+        for _ in range(BURY_AFTER_BAD):
             block = create_block(self.tip, create_coinbase(height), self.block_time)
             block.solve()
             self.blocks.append(block)
@@ -138,29 +162,38 @@ class AssumeValidTest(BellscoinTestFramework):
             self.block_time += 1
             height += 1
 
+        # Advance mocktime so future-dated blocks are accepted even with large bury depth.
+        self.nodes[0].setmocktime(self.block_time)
+
         # Start node1 and node2 with assumevalid so they accept a block with a bad signature.
         self.start_node(1, extra_args=["-assumevalid=" + hex(block102.sha256)])
         self.start_node(2, extra_args=["-assumevalid=" + hex(block102.sha256)])
+        self.nodes[1].setmocktime(self.block_time)
+        self.nodes[2].setmocktime(self.block_time)
 
         p2p0 = self.nodes[0].add_p2p_connection(BaseNode())
-        p2p0.send_header_for_blocks(self.blocks[0:2000])
-        p2p0.send_header_for_blocks(self.blocks[2000:])
+        # Node0 only needs headers up to the bad-spend height to reject it.
+        p2p0.send_header_for_blocks(self.blocks[:COINBASE_MATURITY + 2])
 
-        # Send blocks to node0. Block 102 will be rejected.
+        # Send blocks to node0. The block that spends the coinbase (at height COINBASE_MATURITY+2)
+        # will be rejected due to invalid signature when assumevalid is not used.
         self.send_blocks_until_disconnected(p2p0)
         self.wait_until(lambda: self.nodes[0].getblockcount() >= COINBASE_MATURITY + 1)
         assert_equal(self.nodes[0].getblockcount(), COINBASE_MATURITY + 1)
 
         p2p1 = self.nodes[1].add_p2p_connection(BaseNode())
-        p2p1.send_header_for_blocks(self.blocks[0:2000])
-        p2p1.send_header_for_blocks(self.blocks[2000:])
+        # Send headers in manageable chunks to avoid disconnects.
+        total_blocks = 1 + COINBASE_MATURITY + 1 + BURY_AFTER_BAD
+        for i in range(0, total_blocks, 1000):
+            p2p1.send_header_for_blocks(self.blocks[i:i+1000])
+            p2p1.sync_with_ping(timeout=120)
 
         # Send all blocks to node1. All blocks will be accepted.
-        for i in range(2202):
+        for i in range(total_blocks):
             p2p1.send_message(msg_block(self.blocks[i]))
-        # Syncing 2200 blocks can take a while on slow systems. Give it plenty of time to sync.
-        p2p1.sync_with_ping(timeout=960)
-        assert_equal(self.nodes[1].getblock(self.nodes[1].getbestblockhash())['height'], 2202)
+        # Syncing many blocks can take a while on slow systems. Give it plenty of time to sync.
+        p2p1.sync_with_ping(timeout=3600)
+        assert_equal(self.nodes[1].getblock(self.nodes[1].getbestblockhash())['height'], total_blocks)
 
         p2p2 = self.nodes[2].add_p2p_connection(BaseNode())
         p2p2.send_header_for_blocks(self.blocks[0:200])

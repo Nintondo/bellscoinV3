@@ -583,13 +583,31 @@ public:
         };
 
         m_assumeutxo_data = {
+            {
+                .height = 110,
+                .hash_serialized = AssumeutxoHash{uint256{"acf5b20d7372e4180b6858d5e564d89d5147d7cb64b2320e1a52237c5c0e117a"}},
+                .m_chain_tx_count = 111,
+                .blockhash = consteval_ctor(uint256{"6c8ca461bebaa0f9d28f70eec69bdb4c788d52d889cf9e0ffcb9bc184241e181"}),
+            },
+            {
+                .height = 200,
+                .hash_serialized = AssumeutxoHash{uint256{"83a66265d71b1ecea3542a47da38895b72bc8fda7fd0e0c0492c6bf2134d6451"}},
+                .m_chain_tx_count = 201,
+                .blockhash = consteval_ctor(uint256{"5653c55b52ea27f00c5a26a01218d118a3a2f77e2984d8e8d5607d56041189f7"}),
+            },            
+            {
+                .height = 299,
+                .hash_serialized = AssumeutxoHash{uint256{"4899f07889bedd831b34cf83464303d99fe3c5b4ed88f43ae10c3ea3e974d34d"}},
+                .m_chain_tx_count = 334,
+                .blockhash = consteval_ctor(uint256{"67626c7385240a9cf7228fae5ca76a20057f3bc6fdace25afa6d68f3ee0e8dd4"}),
+            },
 
         };
 
         chainTxData = ChainTxData{
-            0,
-            0,
-            0
+            .nTime = 0,
+            .tx_count = 0,
+            .dTxRate = 0.001, // Set a non-zero rate to make it testable
         };
 
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,111);

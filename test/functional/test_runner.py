@@ -115,6 +115,7 @@ BASE_SCRIPTS = [
     'feature_segwit.py --legacy-wallet',
     'feature_segwit.py --descriptors --v1transport',
     'feature_segwit.py --descriptors --v2transport',
+    'feature_checktemplateverify.py',
     'p2p_tx_download.py',
     'wallet_avoidreuse.py --legacy-wallet',
     'wallet_avoidreuse.py --descriptors',
@@ -188,8 +189,9 @@ BASE_SCRIPTS = [
     'tool_wallet.py --legacy-wallet --bdbro',
     'tool_wallet.py --legacy-wallet --bdbro --swap-bdb-endian',
     'tool_wallet.py --descriptors',
-    'tool_signet_miner.py --legacy-wallet',
-    'tool_signet_miner.py --descriptors',
+    'auxpow_mining.py',
+    'auxpow_invalidpow.py',
+    'auxpow_zerohash.py',
     'wallet_txn_clone.py',
     'wallet_txn_clone.py --segwit',
     'rpc_getchaintips.py',
@@ -310,7 +312,6 @@ BASE_SCRIPTS = [
     'wallet_upgradewallet.py --legacy-wallet',
     'wallet_crosschain.py',
     'mining_basic.py',
-    #'feature_signet.py',
     'p2p_mutated_blocks.py',
     'wallet_implicitsegwit.py --legacy-wallet',
     'rpc_named_arguments.py',
@@ -843,7 +844,8 @@ class TestResult():
 def check_script_prefixes():
     """Check that test scripts start with one of the allowed name prefixes."""
 
-    good_prefixes_re = re.compile("^(example|feature|interface|mempool|mining|p2p|rpc|wallet|tool)_")
+    # Allow project-specific test prefixes in addition to upstream ones
+    good_prefixes_re = re.compile("^(example|feature|interface|mempool|mining|p2p|rpc|wallet|tool|auxpow)_")
     bad_script_names = [script for script in ALL_SCRIPTS if good_prefixes_re.match(script) is None]
 
     if bad_script_names:

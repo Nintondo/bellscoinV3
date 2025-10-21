@@ -18,6 +18,7 @@ from test_framework.messages import (
     COutPoint,
     COIN,
     sha256,
+    ser_string,
 )
 from test_framework.p2p import P2PInterface
 from test_framework.script import (
@@ -54,6 +55,38 @@ def random_bytes(n):
     return bytes(random.getrandbits(8) for i in range(n))
 
 
+def get_standard_template_hash(tx: CTransaction, nIn: int) -> bytes:
+    """Compute the default OP_CHECKTEMPLATEVERIFY standard template hash (BIP119) for tx at input index nIn.
+
+    Hash = SHA256(nVersion || nLockTime || [scriptSigHash?] || vin_count || sequences_hash || vout_count || outputs_hash || nIn)
+    where:
+      - outputs_hash = SHA256(concat(serialized CTxOut))
+      - sequences_hash = SHA256(concat(nSequence (4-byte LE) for each vin))
+      - scriptSig_hash = SHA256(concat(ser_string(scriptSig) for each vin)) if any scriptSig is non-empty
+    """
+    # outputs_hash
+    outputs_ser = b"".join(out.serialize() for out in tx.vout)
+    outputs_hash = sha256(outputs_ser)
+    # sequences_hash
+    sequences_ser = b"".join(vin.nSequence.to_bytes(4, "little", signed=False) for vin in tx.vin)
+    sequences_hash = sha256(sequences_ser)
+    # scriptsigs
+    has_scriptsigs = any(vin.scriptSig for vin in tx.vin)
+    buf = b""
+    buf += tx.nVersion.to_bytes(4, "little", signed=True)
+    buf += tx.nLockTime.to_bytes(4, "little", signed=False)
+    if has_scriptsigs:
+        scriptsigs_ser = b"".join(ser_string(vin.scriptSig) for vin in tx.vin)
+        scriptSigs_hash = sha256(scriptsigs_ser)
+        buf += scriptSigs_hash
+    buf += len(tx.vin).to_bytes(4, "little", signed=False)
+    buf += sequences_hash
+    buf += len(tx.vout).to_bytes(4, "little", signed=False)
+    buf += outputs_hash
+    buf += int(nIn).to_bytes(4, "little", signed=False)
+    return sha256(buf)
+
+
 def template_hash_for_outputs(outputs, nIn=0, nVin=1, vin_override=None):
     c = CTransaction()
     c.nVersion = 2
@@ -61,7 +94,8 @@ def template_hash_for_outputs(outputs, nIn=0, nVin=1, vin_override=None):
     if vin_override is None:
         c.vin = [CTxIn()] * nVin
     c.vout = outputs
-    return c.get_standard_template_hash(nIn)
+    return get_standard_template_hash(c, nIn)
+    
 
 
 def random_p2sh():
@@ -579,7 +613,7 @@ class CheckTemplateVerifyTest(BellscoinTestFramework):
         self.log.info(
             "Testing OP_CHECKTEMPLATEVERIFY spend with template hash from the witness stack"
         )
-        h = check_template_verify_tx_empty_stack.get_standard_template_hash(0)
+        h = get_standard_template_hash(check_template_verify_tx_empty_stack, 0)
         check_template_verify_tx_empty_stack.wit.vtxinwit[0].scriptWitness.stack = [
             h,
             empty_stack_script,
@@ -731,4 +765,4 @@ class CheckTemplateVerifyTest(BellscoinTestFramework):
 
 
 if __name__ == "__main__":
-    CheckTemplateVerifyTest().main()
+    CheckTemplateVerifyTest(__file__).main()

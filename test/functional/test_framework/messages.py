@@ -650,6 +650,20 @@ class CTransaction:
 
     def getwtxid(self):
         return hash256(self.serialize())[::-1].hex()
+    
+    def get_standard_template_hash(self, nIn):
+        r = b""
+        r += self.version.to_bytes(4, "little", signed=True)
+        r += self.nLockTime.to_bytes(4, "little")
+        if any(inp.scriptSig for inp in self.vin):
+            r += sha256(b"".join(ser_string(inp.scriptSig) for inp in self.vin))
+        r += len(self.vin).to_bytes(4, "little")
+        r += sha256(b"".join(inp.nSequence.to_bytes(4, "little") for inp in self.vin))
+        r += len(self.vout).to_bytes(4, "little")
+        r += sha256(b"".join(out.serialize() for out in self.vout))
+        r += nIn.to_bytes(4, "little")
+        return sha256(r)
+    
 
     # Recalculate the txid (transaction hash without witness)
     def rehash(self):
