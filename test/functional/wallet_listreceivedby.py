@@ -6,6 +6,7 @@
 from decimal import Decimal
 
 from test_framework.blocktools import COINBASE_MATURITY
+from test_framework.messages import COIN
 from test_framework.test_framework import BellscoinTestFramework
 from test_framework.util import (
     assert_array_result,
@@ -179,9 +180,10 @@ class ReceivedByTest(BellscoinTestFramework):
         label = "label"
         address = self.nodes[0].getnewaddress(label)
 
-        reward = Decimal("25")
         self.generatetoaddress(self.nodes[0], 1, address)
         hash = self.nodes[0].getbestblockhash()
+        # Determine the actual block subsidy for the mined block (in coins)
+        reward = Decimal(self.nodes[0].getblockstats(hash)["subsidy"]) / Decimal(COIN)
 
         self.log.info("getreceivedbyaddress returns nothing with defaults")
         balance = self.nodes[0].getreceivedbyaddress(address)

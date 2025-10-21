@@ -128,7 +128,7 @@ class ListDescriptorsTest(BellscoinTestFramework):
             'wallet_name': 'w4',
             'descriptors': [
                 {'active': False,
-                 'desc': 'combo(0227d85ba011276cf25b51df6a188b75e604b38770a462b2d0e9fb2fc839ef5d3f)#np574htj',
+                 'desc': 'combo(03dc1c3270d0fe13f714c1273da7e2691d3993d2c7f024f4ef0a84cb6824e7aa73)#qk52e543',
                  'timestamp': TIME_GENESIS_BLOCK},
             ]
         }

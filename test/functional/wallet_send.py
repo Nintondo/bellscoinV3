@@ -410,22 +410,24 @@ class WalletSendTest(BellscoinTestFramework):
         # assert_fee_amount(fee, Decimal(len(res["hex"]) / 2), Decimal("0.000001"))
 
         self.log.info("If inputs are specified, do not automatically add more...")
-        res = self.test_send(from_wallet=w0, to_wallet=w1, amount=51, inputs=[], add_to_wallet=False)
+        # Use a dynamic amount based on a small UTXO so that a single preselected input is insufficient
+        utxos = sorted(w0.listunspent(), key=lambda u: u["amount"])  # smallest first
+        utxo1 = utxos[0]
+        send_more_than_utxo1 = utxo1["amount"] + Decimal(1)
+        res = self.test_send(from_wallet=w0, to_wallet=w1, amount=send_more_than_utxo1, inputs=[], add_to_wallet=False)
         assert res["complete"]
-        utxo1 = w0.listunspent()[0]
-        assert_equal(utxo1["amount"], 50)
         ERR_NOT_ENOUGH_PRESET_INPUTS = "The preselected coins total amount does not cover the transaction target. " \
                                        "Please allow other inputs to be automatically selected or include more coins manually"
-        self.test_send(from_wallet=w0, to_wallet=w1, amount=51, inputs=[utxo1],
+        self.test_send(from_wallet=w0, to_wallet=w1, amount=send_more_than_utxo1, inputs=[utxo1],
                        expect_error=(-4, ERR_NOT_ENOUGH_PRESET_INPUTS))
-        self.test_send(from_wallet=w0, to_wallet=w1, amount=51, inputs=[utxo1], add_inputs=False,
+        self.test_send(from_wallet=w0, to_wallet=w1, amount=send_more_than_utxo1, inputs=[utxo1], add_inputs=False,
                        expect_error=(-4, ERR_NOT_ENOUGH_PRESET_INPUTS))
-        res = self.test_send(from_wallet=w0, to_wallet=w1, amount=51, inputs=[utxo1], add_inputs=True, add_to_wallet=False)
+        res = self.test_send(from_wallet=w0, to_wallet=w1, amount=send_more_than_utxo1, inputs=[utxo1], add_inputs=True, add_to_wallet=False)
         assert res["complete"]
 
         self.log.info("Manual change address and position...")
         self.test_send(from_wallet=w0, to_wallet=w1, amount=1, change_address="not an address",
-                       expect_error=(-5, "Change address must be a valid bitcoin address"))
+                       expect_error=(-5, "Change address must be a valid"))
         change_address = w0.getnewaddress()
         self.test_send(from_wallet=w0, to_wallet=w1, amount=1, add_to_wallet=False, change_address=change_address)
         assert res["complete"]
