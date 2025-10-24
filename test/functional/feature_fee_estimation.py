@@ -256,6 +256,12 @@ class EstimateFeeTest(BellscoinTestFramework):
         # In sat/vb
         low_feerate = 1
         high_feerate = 10
+        assert len(utxos) > 0
+        # Filter out UTXOs that can't pay the replacement fee without falling below dust
+        tx_vsize = make_tx(self.wallet, utxos[0], low_feerate)["tx"].get_vsize()
+        dust_buffer_sats = 1000  # keep the RBF change comfortably above the dust threshold
+        min_value_sats = high_feerate * tx_vsize + dust_buffer_sats
+        utxos = [u for u in utxos if int(u["value"] * COIN) >= min_value_sats]
         # Cache the utxos of which to replace the spender after it failed to get
         # confirmed
         utxos_to_respend = []

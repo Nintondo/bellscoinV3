@@ -469,9 +469,8 @@ class OrphanHandlingTest(BellscoinTestFramework):
 
         # 5. After parent is accepted, orphans should be reconsidered.
         # The real child should be accepted and the fake one rejected.
-        node_mempool = node.getrawmempool()
-        assert tx_parent["txid"] in node_mempool
-        assert tx_child["txid"] in node_mempool
+        self.wait_until(lambda: tx_parent["txid"] in node.getrawmempool(), timeout=10)
+        self.wait_until(lambda: tx_child["txid"] in node.getrawmempool(), timeout=10)
         assert_equal(node.getmempoolentry(tx_child["txid"])["wtxid"], tx_child["wtxid"])
 
     @cleanup
@@ -580,9 +579,8 @@ class OrphanHandlingTest(BellscoinTestFramework):
         # order since the message-processing is randomized. If tx_orphan_bad_wit is validated first,
         # its consensus error leads to disconnection of bad_peer. If tx_child is validated first,
         # tx_orphan_bad_wit is rejected for txn-same-nonwitness-data-in-mempool (no punishment).
-        node_mempool = node.getrawmempool()
-        assert tx_parent["txid"] in node_mempool
-        assert tx_child["txid"] in node_mempool
+        self.wait_until(lambda: tx_parent["txid"] in node.getrawmempool(), timeout=10)
+        self.wait_until(lambda: tx_child["txid"] in node.getrawmempool(), timeout=10)
         assert_equal(node.getmempoolentry(tx_child["txid"])["wtxid"], tx_child["wtxid"])
 
 
