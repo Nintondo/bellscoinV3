@@ -4381,23 +4381,51 @@ static bool ContextualCheckBlockHeader(const CBlockHeader& block, BlockValidatio
         return state.Invalid(BlockValidationResult::BLOCK_TIME_FUTURE, "time-too-new", "block timestamp too far in the future");
     }
 
-    const auto& baseVer = block.GetBaseVersion();
-    // TODO: enable version check on historical blocks
+    const auto baseVer = block.GetBaseVersion();
 
-    // Reject blocks with outdated version
-    // if ((baseVer < 2 && DeploymentActiveAfter(pindexPrev, chainman, Consensus::DEPLOYMENT_HEIGHTINCB)) ||
-    //     (baseVer < 3 && DeploymentActiveAfter(pindexPrev, chainman, Consensus::DEPLOYMENT_DERSIG)) ||
-    //     (baseVer < 4 && DeploymentActiveAfter(pindexPrev, chainman, Consensus::DEPLOYMENT_CLTV))) {
-    //         return state.Invalid(BlockValidationResult::BLOCK_INVALID_HEADER, strprintf("bad-version(0x%08x)", baseVer),
-    //                              strprintf("rejected nVersion=0x%08x block", baseVer));
-    // }
+    LogPrint(BCLog::VALIDATION, "ContextualCheckBlockHeader: height=%d baseVer=%d nVersion=0x%08x legacy_allow=%d bip34_active=%d bip66_active=%d cltv_active=%d\n",
+              nHeight, baseVer, block.nVersion, consensusParams.AllowLegacyBlocks(nHeight),
+              DeploymentActiveAfter(pindexPrev, chainman, Consensus::DEPLOYMENT_HEIGHTINCB),
+              DeploymentActiveAfter(pindexPrev, chainman, Consensus::DEPLOYMENT_DERSIG),
+              DeploymentActiveAfter(pindexPrev, chainman, Consensus::DEPLOYMENT_CLTV));
 
-    const int32_t& nChainID = block.GetChainId();
-    if(nHeight > consensusParams.nAuxpowStartHeight)
-    {
-        if((!CPureBlockHeader::IsValidBaseVersion(baseVer) || (nChainID > 0 && nChainID != consensusParams.nAuxpowChainId)))
-                return state.Invalid(BlockValidationResult::BLOCK_INVALID_HEADER, strprintf("bad-version(0x%08x)", baseVer),
-                                    strprintf("rejected nVersion=0x%08x block", block.nVersion));
+    if (!consensusParams.AllowLegacyBlocks(nHeight) && block.IsLegacy()) {
+        return state.Invalid(BlockValidationResult::BLOCK_INVALID_HEADER,
+                             "bad-version-legacy",
+                             strprintf("rejected legacy nVersion=0x%08x block", block.nVersion));
+    }
+
+    const bool enforce_version_rules = !consensusParams.AllowLegacyBlocks(nHeight);
+
+    if (enforce_version_rules) {
+        if ((baseVer < 2 && DeploymentActiveAfter(pindexPrev, chainman, Consensus::DEPLOYMENT_HEIGHTINCB)) ||
+            (baseVer < 3 && DeploymentActiveAfter(pindexPrev, chainman, Consensus::DEPLOYMENT_DERSIG)) ||
+            (baseVer < 4 && DeploymentActiveAfter(pindexPrev, chainman, Consensus::DEPLOYMENT_CLTV))) {
+            return state.Invalid(BlockValidationResult::BLOCK_INVALID_HEADER,
+                                 strprintf("bad-version(0x%08x)", baseVer),
+                                 strprintf("rejected nVersion=0x%08x block", block.nVersion));
+        }
+
+        if (nHeight >= consensusParams.nAuxpowStartHeight) {
+            if (!CPureBlockHeader::IsValidBaseVersion(baseVer)) {
+                return state.Invalid(BlockValidationResult::BLOCK_INVALID_HEADER,
+                                     strprintf("bad-version(0x%08x)", baseVer),
+                                     strprintf("rejected nVersion=0x%08x block", block.nVersion));
+            }
+
+            const int32_t nChainID = block.GetChainId();
+            if (block.IsAuxpow()) {
+                if (nChainID != consensusParams.nAuxpowChainId) {
+                    return state.Invalid(BlockValidationResult::BLOCK_INVALID_HEADER,
+                                         "bad-auxpow-chainid",
+                                         strprintf("rejected nVersion=0x%08x block", block.nVersion));
+                }
+            } else if (nChainID != 0) {
+                return state.Invalid(BlockValidationResult::BLOCK_INVALID_HEADER,
+                                     "bad-nonauxpow-chainid",
+                                     strprintf("rejected nVersion=0x%08x block", block.nVersion));
+            }
+        }
     }
 
     return true;

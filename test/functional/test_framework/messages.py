@@ -44,7 +44,7 @@ MAX_MONEY = 92000000 * COIN
 MAX_BIP125_RBF_SEQUENCE = 0xfffffffd  # Sequence number that is rbf-opt-in (BIP 125) and csv-opt-out (BIP 68)
 SEQUENCE_FINAL = 0xffffffff  # Sequence number that disables nLockTime if set for every input of a tx
 
-MAX_PROTOCOL_MESSAGE_LENGTH = 100 * 1024 * 1024  # Matches CMessageHeader::MaxPayloadLength()
+MAX_PROTOCOL_MESSAGE_LENGTH = 4 * 1024 * 1024  # Matches CMessageHeader::MaxPayloadLength()
 MAX_HEADERS_RESULTS = 2000  # Number of headers sent in one getheaders result
 MAX_INV_SIZE = 50000  # Maximum number of entries in an 'inv' protocol message
 

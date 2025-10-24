@@ -121,6 +121,7 @@ public:
         consensus.BIP65Height = 40240;
         consensus.BIP66Height = 40240;
         consensus.CSVHeight = 40240;
+        consensus.nLegacyBlocksBefore = 120456; // we have v1 blocks 94100, 96100, 97524, 97962, 99213, 99677, 105400, 105497, 112774, 120455 mined during the dawn that have to be accepted
         consensus.SegwitHeight = 144000; // segwit activation height
         consensus.MinBIP9WarningHeight = 191520; // taproot activation height + miner confirmation window
         consensus.nNewPowDiffHeight = 144000;
@@ -159,7 +160,7 @@ public:
 
 
         consensus.nMinimumChainWork = uint256S("0x0000000000000000000000000000000000000000000000000000000000100010");
-        consensus.defaultAssumeValid = uint256S("0x50c259c50c5c2ab235f2ceb45da49f7c046f0411667c00d81cb8165f2b843ea1"); // 40000
+        consensus.defaultAssumeValid = uint256S("0xf5f8b98bfd8ad9293e588b04bc030e75eab5f7aafe956c10e165d06c8277ebcd"); // 550000
 
         /**
          * The message start string is designed to be unlikely to occur in normal data.
@@ -248,6 +249,7 @@ public:
         consensus.BIP65Height = 1; // 00000000007f6655f22f98e72ed80d8b06dc761d5da09df0fa1dc4be4f861eb6
         consensus.BIP66Height = 1; // 000000002104c8c45e99a8853285a3b592602a3ccde2b832481da85e9e4ba182
         consensus.CSVHeight = 1; // 00000000025e930139bac5c6c31a403776da130831ab85be56578f3fa75369bb
+        consensus.nLegacyBlocksBefore = consensus.BIP34Height;
         consensus.SegwitHeight = 20; // 00000000002b980fcd729daaa248fd9316a5200e9b367f4ff2c42453e84201ca
         consensus.MinBIP9WarningHeight = 720; // taproot activation height + miner confirmation window
         consensus.nAuxpowStartHeight = 15;
@@ -484,6 +486,7 @@ public:
         consensus.BIP65Height = 1;  // Always active unless overridden
         consensus.BIP66Height = 1;  // Always active unless overridden
         consensus.CSVHeight = 1;    // Always active unless overridden
+        consensus.nLegacyBlocksBefore = consensus.BIP34Height;
         consensus.SegwitHeight = 1; // Always active unless overridden
         consensus.MinBIP9WarningHeight = 1;
         consensus.nNewPowDiffHeight = 0;
@@ -549,6 +552,7 @@ public:
                 break;
             }
         }
+        consensus.nLegacyBlocksBefore = consensus.BIP34Height;
 
         for (const auto& [deployment_pos, version_bits_params] : opts.version_bits_parameters) {
             consensus.vDeployments[deployment_pos].nStartTime = version_bits_params.start_time;
