@@ -75,10 +75,15 @@ class RawTransactionsTest(BellscoinTestFramework):
 
         to_lock = []
         for utxo in wallet.listunspent():
-            if "desc" in utxo:
-                for prefix in prefixes:
-                    if utxo["desc"].startswith(prefix):
-                        to_lock.append({"txid": utxo["txid"], "vout": utxo["vout"]})
+            # Lock all UTXOs that are NOT of the requested type. Keep only those
+            # whose descriptor starts with one of the expected prefixes.
+            desc = utxo.get("desc")
+            if not desc:
+                # If we don't know the descriptor, be conservative and do not lock it.
+                # Legacy wallets may omit desc for unsolvable outputs; skip those.
+                continue
+            if not any(desc.startswith(prefix) for prefix in prefixes):
+                to_lock.append({"txid": utxo["txid"], "vout": utxo["vout"]})
         wallet.lockunspent(False, to_lock)
 
     def unlock_utxos(self, wallet):
