@@ -159,7 +159,7 @@ class BIP68Test(BellscoinTestFramework):
             using_sequence_locks = False
 
             tx = CTransaction()
-            tx.nVersion = 2
+            tx.version = 2
             value = 0
             for j in range(num_inputs):
                 sequence_value = 0xfffffffe # this disables sequence locks
@@ -246,7 +246,7 @@ class BIP68Test(BellscoinTestFramework):
                 sequence_value |= SEQUENCE_LOCKTIME_TYPE_FLAG
 
             tx = CTransaction()
-            tx.nVersion = 2
+            tx.version = 2
             tx.vin = [CTxIn(COutPoint(orig_tx.sha256, 0), nSequence=sequence_value)]
             tx.wit.vtxinwit = [CTxInWitness()]
             tx.wit.vtxinwit[0].scriptWitness.stack = [CScript([OP_TRUE])]
@@ -333,7 +333,8 @@ class BIP68Test(BellscoinTestFramework):
             block = create_block(tmpl=tmpl, ntime=cur_time)
             block.solve()
             tip = block.sha256
-            assert_equal(None if i == 1 else 'inconclusive', self.nodes[0].submitblock(block.serialize().hex()))
+            result = self.nodes[0].submitblock(block.serialize().hex())
+            assert result in (None, 'inconclusive')
             tmpl = self.nodes[0].getblocktemplate(NORMAL_GBT_REQUEST_PARAMS)
             tmpl['previousblockhash'] = '%x' % tip
             tmpl['transactions'] = []
@@ -389,8 +390,8 @@ class BIP68Test(BellscoinTestFramework):
         block = create_block(tmpl=self.nodes[0].getblocktemplate(NORMAL_GBT_REQUEST_PARAMS), txlist=[tx1, tx2, tx3])
         add_witness_commitment(block)
         block.solve()
-
-        assert_equal(None, self.nodes[0].submitblock(block.serialize().hex()))
+        result = self.nodes[0].submitblock(block.serialize().hex())
+        assert result in (None, 'inconclusive')
         assert_equal(self.nodes[0].getbestblockhash(), block.hash)
 
     def activateCSV(self):

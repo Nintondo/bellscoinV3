@@ -69,8 +69,8 @@ class InvalidBlockRequestTest(BellscoinTestFramework):
         # For more information on merkle-root malleability see src/consensus/merkle.cpp.
         self.log.info("Test merkle root malleability.")
 
-        tx1 = create_tx_with_script(block1.vtx[0], 0, script_sig=bytes([OP_TRUE]), amount=50 * COIN)
-        tx2 = create_tx_with_script(tx1, 0, script_sig=bytes([OP_TRUE]), amount=50 * COIN)
+        tx1 = create_tx_with_script(block1.vtx[0], 0, script_sig=bytes([OP_TRUE]), amount=2 * COIN)
+        tx2 = create_tx_with_script(tx1, 0, script_sig=bytes([OP_TRUE]), amount=2 * COIN)
         block2 = create_block(tip, create_coinbase(height), block_time, txlist=[tx1, tx2])
         block_time += 1
         block2.solve()
@@ -97,7 +97,10 @@ class InvalidBlockRequestTest(BellscoinTestFramework):
 
         self.log.info("Test very broken block.")
 
-        block3 = create_block(tip, create_coinbase(height, nValue=100), block_time)
+        tmpl = node.getblocktemplate({"rules": ["segwit"]})
+        assert_equal(tmpl["coinbasevalue"] % COIN, 0)
+        excess_coinbase_value = tmpl["coinbasevalue"] // COIN + 1
+        block3 = create_block(tip, create_coinbase(height, nValue=excess_coinbase_value), block_time)
         block_time += 1
         block3.solve()
 
@@ -117,7 +120,7 @@ class InvalidBlockRequestTest(BellscoinTestFramework):
 
         # Complete testing of CVE-2018-17144, by checking for the inflation bug.
         # Create a block that spends the output of a tx in a previous block.
-        tx3 = create_tx_with_script(tx2, 0, script_sig=bytes([OP_TRUE]), amount=50 * COIN)
+        tx3 = create_tx_with_script(tx2, 0, script_sig=bytes([OP_TRUE]), amount=2 * COIN)
         tx3.vin.append(tx3.vin[0])  # Duplicates input
         tx3.rehash()
         block4 = create_block(tip, create_coinbase(height), block_time, txlist=[tx3])

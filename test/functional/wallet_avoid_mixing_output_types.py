@@ -143,7 +143,11 @@ class AddressInputTypeGrouping(BellscoinTestFramework):
 
         # alias self.nodes[i] to A, B for readability
         A, B = self.nodes[0], self.nodes[1]
-        self.generate(A, COINBASE_MATURITY + 5)
+        # On Bells, the first 100 blocks have 2-coin subsidy. Mining just
+        # COINBASE_MATURITY+5 yields only 5 matured coinbases (~10 coins),
+        # which is insufficient for the following 40-coin funding. Mine more
+        # so that matured funds comfortably exceed 40 coins plus fees.
+        self.generate(A, COINBASE_MATURITY + 30)
 
         self.log.info("Creating mixed UTXOs in B's wallet")
         for v in generate_payment_values(3, 10):

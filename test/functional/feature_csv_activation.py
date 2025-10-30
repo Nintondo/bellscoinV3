@@ -110,7 +110,7 @@ class BIP68_112_113Test(BellscoinTestFramework):
 
     def create_bip112special(self, input, txversion):
         tx = self.create_self_transfer_from_utxo(input)
-        tx.nVersion = txversion
+        tx.version = txversion
         self.miniwallet.sign_tx(tx)
         tx.vin[0].scriptSig = CScript([-1, OP_CHECKSEQUENCEVERIFY, OP_DROP] + list(CScript(tx.vin[0].scriptSig)))
         tx.rehash()

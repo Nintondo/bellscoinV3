@@ -89,9 +89,10 @@ class AssumeutxoTest(BellscoinTestFramework):
         self.log.info("  - snapshot file with mismatching network magic")
         invalid_magics = [
             # magic, name, real
-            [0xf9beb4d9, "main", True],
-            [0x0b110907, "test", True],
-            [0x0a03cf40, "signet", True],
+            # Use Bells' network magics for recognized networks
+            [0xc0c0c0c0, "main", True],
+            [0xc3c3c3c3, "test", True],
+            # Keep two unrecognized examples
             [0x00000000, "", False],
             [0xffffffff, "", False],
         ]
@@ -110,8 +111,12 @@ class AssumeutxoTest(BellscoinTestFramework):
             with open(bad_snapshot_path, 'wb') as f:
                 f.write(valid_snapshot_contents[:11] + bytes.fromhex(bad_block_hash)[::-1] + valid_snapshot_contents[43:])
 
-            msg = f"Unable to load UTXO snapshot: assumeutxo block hash in snapshot metadata not recognized (hash: {bad_block_hash}). The following snapshot heights are available: 110, 200, 299, 299."
-            assert_raises_rpc_error(-32603, msg, node.loadtxoutset, bad_snapshot_path)
+            # Only check the stable prefix of the error; available heights depend on chainparams
+            msg_prefix = (
+                f"Unable to load UTXO snapshot: assumeutxo block hash in snapshot metadata not recognized (hash: {bad_block_hash}). "
+                f"The following snapshot heights are available:"
+            )
+            assert_raises_rpc_error(-32603, msg_prefix, node.loadtxoutset, bad_snapshot_path)
 
         self.log.info("  - snapshot file with wrong number of coins")
         valid_num_coins = int.from_bytes(valid_snapshot_contents[43:43 + 8], "little")
@@ -125,12 +130,12 @@ class AssumeutxoTest(BellscoinTestFramework):
         self.log.info("  - snapshot file with alternated but parsable UTXO data results in different hash")
         cases = [
             # (content, offset, wrong_hash, custom_message)
-            [b"\xff" * 32, 0, "7d52155c9a9fdc4525b637ef6170568e5dad6fabd0b1fdbb9432010b8453095b", None],  # wrong outpoint hash
-            [(2).to_bytes(1, "little"), 32, None, "Bad snapshot data after deserializing 1 coins."],  # wrong txid coins count
+            [b"\xff" * 32, 0, "0a16ab2cce6892ccc60d7e4151e1e9bd90ac0e2ef522590482792f4b1542423f", None],  # wrong outpoint hash
+            [(2).to_bytes(1, "little"), 32, None, "Bad snapshot format or truncated snapshot after deserializing 2 coins."],  # wrong txid coins count
             [b"\xfd\xff\xff", 32, None, "Mismatch in coins count in snapshot metadata and actual snapshot data"],  # txid coins count exceeds coins left
-            [b"\x01", 33, "9f4d897031ab8547665b4153317ae2fdbf0130c7840b66427ebc48b881cb80ad", None],  # wrong outpoint index
-            [b"\x81", 34, "3da966ba9826fb6d2604260e01607b55ba44e1a5de298606b08704bc62570ea8", None],  # wrong coin code VARINT
-            [b"\x80", 34, "091e893b3ccb4334378709578025356c8bcb0a623f37c7c4e493133c988648e5", None],  # another wrong coin code
+            [b"\x01", 33, "28dcabebdb7fade7c97083db4d6a4ccad0fee3dc826ed64b6d3d61399e50b378", None],  # wrong outpoint index
+            [b"\x81", 34, "f062e64456abd844025e26c0a2b7282dec041aaf3bdf616d408aa496624482c8", None],  # wrong coin code VARINT
+            [b"\x80", 34, "9079b948f09300f53be41ce3af8dffa2e42aacdc31a0d204c8a9055dd17ee7e3", None],  # another wrong coin code
             [b"\x84\x58", 34, None, "Bad snapshot data after deserializing 0 coins"],  # wrong coin case with height 364 and coinbase 0
             [b"\xCA\xD2\x8F\x5A", 39, None, "Bad snapshot data after deserializing 0 coins - bad tx out value"],  # Amount exceeds MAX_MONEY
         ]
@@ -142,12 +147,12 @@ class AssumeutxoTest(BellscoinTestFramework):
                 f.write(content)
                 f.write(valid_snapshot_contents[(5 + 2 + 4 + 32 + 8 + offset + len(content)):])
 
-            msg = custom_message if custom_message is not None else f"Bad snapshot content hash: expected a4bf3407ccb2cc0145c49ebba8fa91199f8a3903daf0883875941497d2493c27, got {wrong_hash}."
+            msg = custom_message if custom_message is not None else f"Bad snapshot content hash: expected 4899f07889bedd831b34cf83464303d99fe3c5b4ed88f43ae10c3ea3e974d34d, got {wrong_hash}."
             expected_error(msg)
 
     def test_headers_not_synced(self, valid_snapshot_path):
         for node in self.nodes[1:]:
-            msg = "Unable to load UTXO snapshot: The base block header (0300fa441b815903744564ef7eb87199b056e7ddb56283c51b6c40b1d6257b21) must appear in the headers chain. Make sure all headers are syncing, and call loadtxoutset again."
+            msg = "Unable to load UTXO snapshot: The base block header (67626c7385240a9cf7228fae5ca76a20057f3bc6fdace25afa6d68f3ee0e8dd4) must appear in the headers chain. Make sure all headers are syncing, and call loadtxoutset again."
             assert_raises_rpc_error(-32603, msg, node.loadtxoutset, valid_snapshot_path)
 
     def test_invalid_chainstate_scenarios(self):
@@ -186,13 +191,13 @@ class AssumeutxoTest(BellscoinTestFramework):
         self.restart_node(2, extra_args=self.extra_args[2])
 
     def test_invalid_file_path(self):
-        self.log.info("Test bitcoind should fail when file path is invalid.")
+        self.log.info("Test bellsd should fail when file path is invalid.")
         node = self.nodes[0]
         path = node.datadir_path / node.chain / "invalid" / "path"
         assert_raises_rpc_error(-8, "Couldn't open file {} for reading.".format(path), node.loadtxoutset, path)
 
     def test_snapshot_with_less_work(self, dump_output_path):
-        self.log.info("Test bitcoind should fail when snapshot has less accumulated work than this node.")
+        self.log.info("Test bellsd should fail when snapshot has less accumulated work than this node.")
         node = self.nodes[0]
         msg = "Unable to load UTXO snapshot: Population failed: Work does not exceed active chainstate."
         assert_raises_rpc_error(-32603, msg, node.loadtxoutset, dump_output_path)
@@ -206,7 +211,7 @@ class AssumeutxoTest(BellscoinTestFramework):
             block_hash = node.getblockhash(height)
             node.invalidateblock(block_hash)
             assert_equal(node.getblockcount(), height - 1)
-            msg = "Unable to load UTXO snapshot: The base block header (0300fa441b815903744564ef7eb87199b056e7ddb56283c51b6c40b1d6257b21) is part of an invalid chain."
+            msg = "Unable to load UTXO snapshot: The base block header (67626c7385240a9cf7228fae5ca76a20057f3bc6fdace25afa6d68f3ee0e8dd4) is part of an invalid chain."
             assert_raises_rpc_error(-32603, msg, node.loadtxoutset, dump_output_path)
             node.reconsiderblock(block_hash)
 
@@ -334,7 +339,7 @@ class AssumeutxoTest(BellscoinTestFramework):
         chainstate_snapshot_path.mkdir()
         with open(chainstate_snapshot_path / "base_blockhash", 'wb') as f:
             f.write(b'z' * 32)
-        expected_error = f"Error: A fatal internal error occurred, see debug.log for details"
+        expected_error = f"Error: A fatal internal error occurred, see debug.log for details: Assumeutxo data not found for the given blockhash '7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a'."
         self.nodes[0].assert_start_raises_init_error(expected_msg=expected_error)
 
         # resurrect node again
@@ -416,7 +421,7 @@ class AssumeutxoTest(BellscoinTestFramework):
 
         assert_equal(
             dump_output['txoutset_hash'],
-            "a4bf3407ccb2cc0145c49ebba8fa91199f8a3903daf0883875941497d2493c27")
+            "4899f07889bedd831b34cf83464303d99fe3c5b4ed88f43ae10c3ea3e974d34d")
         assert_equal(dump_output["nchaintx"], blocks[SNAPSHOT_BASE_HEIGHT].chain_tx)
         assert_equal(n0.getblockchaininfo()["blocks"], SNAPSHOT_BASE_HEIGHT)
 
@@ -544,7 +549,10 @@ class AssumeutxoTest(BellscoinTestFramework):
         signed_txid = tx_from_hex(signed_tx).rehash()
 
         assert n1.gettxout(prev_tx['txid'], 0) is not None
-        n1.sendrawtransaction(signed_tx)
+        # The coinbase subsidy on this chain can be much larger than 50*COIN,
+        # so the resulting fee can exceed the default maxfeerate. Allow any
+        # fee here since the goal is just to confirm mempool acceptance.
+        n1.sendrawtransaction(signed_tx, 0)
         assert signed_txid in n1.getrawmempool()
         assert not n1.gettxout(prev_tx['txid'], 0)
 

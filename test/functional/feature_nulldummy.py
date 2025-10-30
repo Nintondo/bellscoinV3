@@ -13,6 +13,7 @@ Generate COINBASE_MATURITY (CB) more blocks to ensure the coinbases are mature.
 [Policy/Consensus] Check that the new NULLDUMMY rules are enforced on block CB + 5.
 """
 import time
+from decimal import Decimal, ROUND_DOWN
 
 from test_framework.address import address_to_scriptpubkey
 from test_framework.blocktools import (
@@ -82,28 +83,36 @@ class NULLDUMMYTest(BellscoinTestFramework):
         coinbase_txid = []
         for i in self.coinbase_blocks:
             coinbase_txid.append(self.nodes[0].getblock(i)['tx'][0])
+        coinbase_verbose = self.nodes[0].getblock(self.coinbase_blocks[0], 2)
+        block_subsidy = Decimal(str(coinbase_verbose['tx'][0]['vout'][0]['value']))
+        assert block_subsidy > 0
+        amount_scale = block_subsidy / Decimal('50')
+
+        def scaled_amount(units: int) -> Decimal:
+            return (Decimal(units) * amount_scale).quantize(Decimal('0.00000001'), rounding=ROUND_DOWN)
+
         self.generate(self.nodes[0], COINBASE_MATURITY)  # block height = COINBASE_MATURITY + 2
         self.lastblockhash = self.nodes[0].getbestblockhash()
         self.lastblockheight = COINBASE_MATURITY + 2
         self.lastblocktime = int(time.time()) + self.lastblockheight
 
         self.log.info(f"Test 1: NULLDUMMY compliant base transactions should be accepted to mempool and mined before activation [{COINBASE_MATURITY + 3}]")
-        test1txs = [self.create_transaction(txid=coinbase_txid[0], addr=self.ms_address, amount=49,
+        test1txs = [self.create_transaction(txid=coinbase_txid[0], addr=self.ms_address, amount=scaled_amount(49),
                                             privkey=self.nodes[0].get_deterministic_priv_key().key)]
         txid1 = self.nodes[0].sendrawtransaction(test1txs[0].serialize_with_witness().hex(), 0)
         test1txs.append(self.create_transaction(txid=txid1, input_details=ms_unlock_details,
-                                                addr=self.ms_address, amount=48,
+                                                addr=self.ms_address, amount=scaled_amount(48),
                                                 privkey=self.privkey))
         txid2 = self.nodes[0].sendrawtransaction(test1txs[1].serialize_with_witness().hex(), 0)
         test1txs.append(self.create_transaction(txid=coinbase_txid[1],
-                                                addr=self.wit_ms_address, amount=49,
+                                                addr=self.wit_ms_address, amount=scaled_amount(49),
                                                 privkey=self.nodes[0].get_deterministic_priv_key().key))
         txid3 = self.nodes[0].sendrawtransaction(test1txs[2].serialize_with_witness().hex(), 0)
         self.block_submit(self.nodes[0], test1txs, accept=True)
 
         self.log.info("Test 2: Non-NULLDUMMY base multisig transaction should not be accepted to mempool before activation")
         test2tx = self.create_transaction(txid=txid2, input_details=ms_unlock_details,
-                                          addr=self.ms_address, amount=47,
+                                          addr=self.ms_address, amount=scaled_amount(47),
                                           privkey=self.privkey)
         invalidate_nulldummy_tx(test2tx)
         assert_raises_rpc_error(-26, NULLDUMMY_ERROR, self.nodes[0].sendrawtransaction, test2tx.serialize_with_witness().hex(), 0)
@@ -113,7 +122,7 @@ class NULLDUMMYTest(BellscoinTestFramework):
 
         self.log.info("Test 4: Non-NULLDUMMY base multisig transaction is invalid after activation")
         test4tx = self.create_transaction(txid=test2tx.hash, input_details=ms_unlock_details,
-                                          addr=getnewdestination()[2], amount=46,
+                                          addr=getnewdestination()[2], amount=scaled_amount(46),
                                           privkey=self.privkey)
         test6txs = [CTransaction(test4tx)]
         invalidate_nulldummy_tx(test4tx)
@@ -121,9 +130,10 @@ class NULLDUMMYTest(BellscoinTestFramework):
         self.block_submit(self.nodes[0], [test4tx], accept=False)
 
         self.log.info("Test 5: Non-NULLDUMMY P2WSH multisig transaction invalid after activation")
+        witness_utxo_amount = (Decimal(test1txs[2].vout[0].nValue) / Decimal(100000000)).quantize(Decimal('0.00000001'), rounding=ROUND_DOWN)
         test5tx = self.create_transaction(txid=txid3, input_details={"scriptPubKey": test1txs[2].vout[0].scriptPubKey.hex(),
-                                          "amount": 49, "witnessScript": wms["redeemScript"]},
-                                          addr=getnewdestination(address_type='p2sh-segwit')[2], amount=48,
+                                          "amount": witness_utxo_amount, "witnessScript": wms["redeemScript"]},
+                                          addr=getnewdestination(address_type='p2sh-segwit')[2], amount=scaled_amount(48),
                                           privkey=self.privkey)
         test6txs.append(CTransaction(test5tx))
         test5tx.wit.vtxinwit[0].scriptWitness.stack[0] = b'\x01'

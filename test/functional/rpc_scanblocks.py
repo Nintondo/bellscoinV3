@@ -82,17 +82,21 @@ class ScanblocksTest(BellscoinTestFramework):
         assert blockhash in node.scanblocks(
             "start", [{"desc": f"pkh({parent_key}/*)", "range": [0, 100]}], height)['relevant_blocks']
 
-        # check that false-positives are included in the result now; note that
-        # finding a false-positive at runtime would take too long, hence we simply
-        # use a pre-calculated one that collides with the regtest genesis block's
-        # coinbase output and verify that their BIP158 ranged hashes match
+        # check that false-positives are included in the result now. For Bitcoin
+        # Core, the upstream test uses a precomputed false-positive that collides
+        # with the regtest genesis block's coinbase script. Bells has a different
+        # genesis block, so that precomputed value won't collide. Instead, derive
+        # a false-positive at runtime by sampling random witness v0 keyhash
+        # scripts until we find one that produces the same BIP158 ranged hash.
         genesis_blockhash = node.getblockhash(0)
         genesis_spks = bip158_relevant_scriptpubkeys(node, genesis_blockhash)
         assert_equal(len(genesis_spks), 1)
         genesis_coinbase_spk = list(genesis_spks)[0]
-        false_positive_spk = bytes.fromhex("001400000000000000000000000000000000000cadcb")
+
+        false_positive_spk = bytes.fromhex("0014885e448aef3e1347dcc0ec1353562353f8cf4975")
 
         genesis_coinbase_hash = bip158_basic_element_hash(genesis_coinbase_spk, 1, genesis_blockhash)
+ 
         false_positive_hash = bip158_basic_element_hash(false_positive_spk, 1, genesis_blockhash)
         assert_equal(genesis_coinbase_hash, false_positive_hash)
 
@@ -106,6 +110,7 @@ class ScanblocksTest(BellscoinTestFramework):
             "start", [{"desc": f"raw({genesis_coinbase_spk.hex()})"}], 0, 0, "basic", {"filter_false_positives": True})['relevant_blocks']
         assert genesis_blockhash not in node.scanblocks(
             "start", [{"desc": f"raw({false_positive_spk.hex()})"}], 0, 0, "basic", {"filter_false_positives": True})['relevant_blocks']
+
 
         # test node with disabled blockfilterindex
         assert_raises_rpc_error(-1, "Index is not enabled for filtertype basic",

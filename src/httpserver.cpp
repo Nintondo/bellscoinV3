@@ -46,6 +46,9 @@
 /** Maximum size of http request (request line + headers) */
 static const size_t MAX_HEADERS_SIZE = 8192;
 
+/** Maximum size of http body */
+static const size_t MAX_BODY_SIZE = 0xC800000;
+
 /** HTTP request work item */
 class HTTPWorkItem final : public HTTPClosure
 {
@@ -452,7 +455,7 @@ bool InitHTTPServer(const util::SignalInterrupt& interrupt)
 
     evhttp_set_timeout(http, gArgs.GetIntArg("-rpcservertimeout", DEFAULT_HTTP_SERVER_TIMEOUT));
     evhttp_set_max_headers_size(http, MAX_HEADERS_SIZE);
-    evhttp_set_max_body_size(http, MAX_SIZE);
+    evhttp_set_max_body_size(http, MAX_BODY_SIZE);
     evhttp_set_gencb(http, http_request_cb, (void*)&interrupt);
 
     if (!HTTPBindAddresses(http)) {

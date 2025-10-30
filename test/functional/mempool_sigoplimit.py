@@ -53,6 +53,7 @@ class BytesPerSigOpTest(BellscoinTestFramework):
             from_node=self.nodes[0],
             scriptPubKey=script_to_p2wsh_script(witness_script),
             amount=1000000,
+            confirmed_only=True,
         )
 
         # create spending transaction

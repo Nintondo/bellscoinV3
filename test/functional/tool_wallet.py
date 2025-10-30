@@ -44,7 +44,7 @@ class ToolWalletTest(BellscoinTestFramework):
         if "dump" in args and self.options.bdbro:
             default_args.append("-withinternalbdb")
 
-        return subprocess.Popen([self.options.bitcoinwallet] + default_args + list(args), stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        return subprocess.Popen([self.options.bellswallet] + default_args + list(args), stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 
     def assert_raises_tool_error(self, error, *args):
         p = self.bitcoin_wallet_process(*args)
@@ -130,7 +130,7 @@ class ToolWalletTest(BellscoinTestFramework):
 
     def write_dump(self, dump, filename, magic=None, skip_checksum=False):
         if magic is None:
-            magic = "BITCOIN_CORE_WALLET_DUMP"
+            magic = "BELLS_CORE_WALLET_DUMP"
         with open(filename, "w", encoding="utf8") as f:
             row = ",".join([magic, dump[magic]]) + "\n"
             f.write(row)
@@ -198,7 +198,7 @@ class ToolWalletTest(BellscoinTestFramework):
         self.assert_raises_tool_error("Error parsing command line arguments: Invalid command 'help'", 'help')
         self.assert_raises_tool_error('Error: Additional arguments provided (create). Methods do not take arguments. Please refer to `-help`.', 'info', 'create')
         self.assert_raises_tool_error('Error parsing command line arguments: Invalid parameter -foo', '-foo')
-        self.assert_raises_tool_error('No method provided. Run `bitcoin-wallet -help` for valid methods.')
+        self.assert_raises_tool_error('No method provided. Run `bells-wallet -help` for valid methods.')
         self.assert_raises_tool_error('Wallet name must be provided when creating a new wallet.', 'create')
         locked_dir = self.nodes[0].wallets_path
         error = 'Error initializing wallet database environment "{}"!'.format(locked_dir)
@@ -342,7 +342,7 @@ class ToolWalletTest(BellscoinTestFramework):
         dump_data = self.read_dump(wallet_dump)
         orig_dump = dump_data.copy()
         # Check the dump magic
-        assert_equal(dump_data['BITCOIN_CORE_WALLET_DUMP'], '1')
+        assert_equal(dump_data['BELLS_CORE_WALLET_DUMP'], '1')
         # Check the file format
         assert_equal(dump_data["format"], file_format)
 
@@ -367,20 +367,20 @@ class ToolWalletTest(BellscoinTestFramework):
 
         self.log.info('Checking createfromdump handling of magic and versions')
         bad_ver_wallet_dump = self.nodes[0].datadir_path / "wallet-bad_ver1.dump"
-        dump_data["BITCOIN_CORE_WALLET_DUMP"] = "0"
+        dump_data["BELLS_CORE_WALLET_DUMP"] = "0"
         self.write_dump(dump_data, bad_ver_wallet_dump)
-        self.assert_raises_tool_error('Error: Dumpfile version is not supported. This version of bitcoin-wallet only supports version 1 dumpfiles. Got dumpfile with version 0', '-wallet=badload', '-dumpfile={}'.format(bad_ver_wallet_dump), 'createfromdump')
+        self.assert_raises_tool_error('Error: Dumpfile version is not supported. This version of bells-wallet only supports version 1 dumpfiles. Got dumpfile with version 0', '-wallet=badload', '-dumpfile={}'.format(bad_ver_wallet_dump), 'createfromdump')
         assert not (self.nodes[0].wallets_path / "badload").is_dir()
         bad_ver_wallet_dump = self.nodes[0].datadir_path / "wallet-bad_ver2.dump"
-        dump_data["BITCOIN_CORE_WALLET_DUMP"] = "2"
+        dump_data["BELLS_CORE_WALLET_DUMP"] = "2"
         self.write_dump(dump_data, bad_ver_wallet_dump)
-        self.assert_raises_tool_error('Error: Dumpfile version is not supported. This version of bitcoin-wallet only supports version 1 dumpfiles. Got dumpfile with version 2', '-wallet=badload', '-dumpfile={}'.format(bad_ver_wallet_dump), 'createfromdump')
+        self.assert_raises_tool_error('Error: Dumpfile version is not supported. This version of bells-wallet only supports version 1 dumpfiles. Got dumpfile with version 2', '-wallet=badload', '-dumpfile={}'.format(bad_ver_wallet_dump), 'createfromdump')
         assert not (self.nodes[0].wallets_path / "badload").is_dir()
         bad_magic_wallet_dump = self.nodes[0].datadir_path / "wallet-bad_magic.dump"
-        del dump_data["BITCOIN_CORE_WALLET_DUMP"]
+        del dump_data["BELLS_CORE_WALLET_DUMP"]
         dump_data["not_the_right_magic"] = "1"
         self.write_dump(dump_data, bad_magic_wallet_dump, "not_the_right_magic")
-        self.assert_raises_tool_error('Error: Dumpfile identifier record is incorrect. Got "not_the_right_magic", expected "BITCOIN_CORE_WALLET_DUMP".', '-wallet=badload', '-dumpfile={}'.format(bad_magic_wallet_dump), 'createfromdump')
+        self.assert_raises_tool_error('Error: Dumpfile identifier record is incorrect. Got "not_the_right_magic", expected "BELLS_CORE_WALLET_DUMP".', '-wallet=badload', '-dumpfile={}'.format(bad_magic_wallet_dump), 'createfromdump')
         assert not (self.nodes[0].wallets_path / "badload").is_dir()
 
         self.log.info('Checking createfromdump handling of checksums')

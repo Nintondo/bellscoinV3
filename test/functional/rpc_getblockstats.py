@@ -20,10 +20,12 @@ TESTSDIR = os.path.dirname(os.path.realpath(__file__))
 
 class GetblockstatsTest(BellscoinTestFramework):
 
-    start_height = 101
+    start_height = 31
     max_stat_pos = 2
 
     def add_options(self, parser):
+        self.add_wallet_options(parser)
+
         parser.add_argument('--gen-test-data', dest='gen_test_data',
                             default=False, action='store_true',
                             help='Generate test data')
@@ -31,6 +33,7 @@ class GetblockstatsTest(BellscoinTestFramework):
                             default='data/rpc_getblockstats.json',
                             action='store', metavar='FILE',
                             help='Test data file')
+        
 
     def set_test_params(self):
         self.num_nodes = 1
@@ -50,11 +53,11 @@ class GetblockstatsTest(BellscoinTestFramework):
         self.generate(self.nodes[0], COINBASE_MATURITY + 1)
 
         address = self.nodes[0].get_deterministic_priv_key().address
-        self.nodes[0].sendtoaddress(address=address, amount=10, subtractfeefromamount=True)
+        self.nodes[0].sendtoaddress(address=address, amount=0.1, subtractfeefromamount=True)
         self.generate(self.nodes[0], 1)
 
-        self.nodes[0].sendtoaddress(address=address, amount=10, subtractfeefromamount=True)
-        self.nodes[0].sendtoaddress(address=address, amount=10, subtractfeefromamount=False)
+        self.nodes[0].sendtoaddress(address=address, amount=0.1, subtractfeefromamount=True)
+        self.nodes[0].sendtoaddress(address=address, amount=0.1, subtractfeefromamount=False)
         self.nodes[0].settxfee(amount=0.003)
         self.nodes[0].sendtoaddress(address=address, amount=1, subtractfeefromamount=True)
         # Send to OP_RETURN output to test its exclusion from statistics
@@ -161,7 +164,7 @@ class GetblockstatsTest(BellscoinTestFramework):
                                 self.nodes[0].getblockstats, hash_or_height=1, stats=['minfee', f'aaa{inv_sel_stat}'])
         # Mainchain's genesis block shouldn't be found on regtest
         assert_raises_rpc_error(-5, 'Block not found', self.nodes[0].getblockstats,
-                                hash_or_height='000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f')
+                                hash_or_height='e5be24df57c43a82d15c2f06bda961296948f8f8eb48501bed1efb929afe0698')
 
         # Invalid number of args
         assert_raises_rpc_error(-1, 'getblockstats hash_or_height ( stats )', self.nodes[0].getblockstats, '00', 1, 2)
@@ -169,7 +172,7 @@ class GetblockstatsTest(BellscoinTestFramework):
 
         self.log.info('Test block height 0')
         genesis_stats = self.nodes[0].getblockstats(0)
-        assert_equal(genesis_stats["blockhash"], "0f9188f13cb7b2c71f2a335e3a4fc328bf5beb436012afca590b1a11466e2206")
+        assert_equal(genesis_stats["blockhash"], "f97be01b640a39ac10c75da8d749bed0b065f25d9b28f51fe8070a6cdf976e1a")
         assert_equal(genesis_stats["utxo_increase"], 1)
         assert_equal(genesis_stats["utxo_size_inc"], 117)
         assert_equal(genesis_stats["utxo_increase_actual"], 0)

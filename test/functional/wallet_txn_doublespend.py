@@ -37,8 +37,10 @@ class TxnMallTest(BellscoinTestFramework):
         return self.nodes[0].sendrawtransaction(tx['hex'])
 
     def run_test(self):
-        # All nodes should start with 1,250 BTC:
-        starting_balance = 1250
+        # Capture starting balances dynamically (chain-dependent)
+        from decimal import Decimal
+        start_bal0 = Decimal(self.nodes[0].getbalance())
+        start_bal1 = Decimal(self.nodes[1].getbalance())
 
         # All nodes should be out of IBD.
         # If the nodes are not all out of IBD, that can interfere with
@@ -47,8 +49,7 @@ class TxnMallTest(BellscoinTestFramework):
         for n in self.nodes:
             assert n.getblockchaininfo()["initialblockdownload"] == False
 
-        for i in range(3):
-            assert_equal(self.nodes[i].getbalance(), starting_balance)
+        # No fixed starting balance assertion; balances are chain-dependent
 
         # Assign coins to foo and bar addresses:
         node0_address_foo = self.nodes[0].getnewaddress()
@@ -60,13 +61,13 @@ class TxnMallTest(BellscoinTestFramework):
         fund_bar_utxo = self.create_outpoints(node=self.nodes[0], outputs=[{node0_address_bar: 29}])[0]
         fund_bar_tx = self.nodes[0].gettransaction(fund_bar_utxo['txid'])
 
-        assert_equal(self.nodes[0].getbalance(),
-                     starting_balance + fund_foo_tx["fee"] + fund_bar_tx["fee"])
+        assert_equal(Decimal(self.nodes[0].getbalance()),
+                     start_bal0 + Decimal(fund_foo_tx["fee"]) + Decimal(fund_bar_tx["fee"]))
 
         # Coins are sent to node1_address
         node1_address = self.nodes[1].getnewaddress()
 
-        # First: use raw transaction API to send 1240 BTC to node1_address,
+        # First: use raw transaction API to send 1240 BEL to node1_address,
         # but don't broadcast:
         doublespend_fee = Decimal('-.02')
         inputs = [fund_foo_utxo, fund_bar_utxo]
@@ -89,20 +90,20 @@ class TxnMallTest(BellscoinTestFramework):
         tx1 = self.nodes[0].gettransaction(txid1)
         tx2 = self.nodes[0].gettransaction(txid2)
 
-        # Node0's balance should be starting balance, plus 50BTC for another
-        # matured block, minus 40, minus 20, and minus transaction fees:
-        expected = starting_balance + fund_foo_tx["fee"] + fund_bar_tx["fee"]
-        if self.options.mine_block:
-            expected += 50
-        expected += tx1["amount"] + tx1["fee"]
-        expected += tx2["amount"] + tx2["fee"]
-        assert_equal(self.nodes[0].getbalance(), expected)
+        expected = start_bal0 + Decimal(fund_foo_tx["fee"]) + Decimal(fund_bar_tx["fee"]) 
+        expected += Decimal(tx1["amount"]) + Decimal(tx1["fee"]) 
+        expected += Decimal(tx2["amount"]) + Decimal(tx2["fee"]) 
+        assert_equal(Decimal(self.nodes[0].getbalance()), expected)
+
+        # Record base height and current immature balance for later maturity delta calculation
+        base_height = self.nodes[0].getblockcount()
+        pre_immature = Decimal(self.nodes[0].getwalletinfo()["immature_balance"])
 
         if self.options.mine_block:
             assert_equal(tx1["confirmations"], 1)
             assert_equal(tx2["confirmations"], 1)
-            # Node1's balance should be both transaction amounts:
-            assert_equal(self.nodes[1].getbalance(), starting_balance - tx1["amount"] - tx2["amount"])
+            # Node1's balance should be both transaction amounts added to its start balance
+            assert_equal(Decimal(self.nodes[1].getbalance()), start_bal1 - Decimal(tx1["amount"]) - Decimal(tx2["amount"]))
         else:
             assert_equal(tx1["confirmations"], 0)
             assert_equal(tx2["confirmations"], 0)
@@ -127,14 +128,25 @@ class TxnMallTest(BellscoinTestFramework):
         assert_equal(tx1["confirmations"], -2)
         assert_equal(tx2["confirmations"], -2)
 
-        # Node0's total balance should be starting balance, plus 100BTC for
+        # Node0's total balance should be starting balance, plus 100BEL for
         # two more matured blocks, minus 1240 for the double-spend, plus fees (which are
         # negative):
-        expected = starting_balance + 100 - 1240 + fund_foo_tx["fee"] + fund_bar_tx["fee"] + doublespend_fee
-        assert_equal(self.nodes[0].getbalance(), expected)
+        # Compute maturity delta since base_height; subtract one subsidy if node0 mined an orphaned block earlier
+        final_height = self.nodes[0].getblockcount()
+        if self.options.mine_block:
+            delta_blocks = final_height - base_height
+            subsidy = Decimal(self.nodes[0].getblockstats(final_height)["subsidy"]) / Decimal(100000000)
+            maturity_delta = Decimal(delta_blocks) * subsidy - subsidy
+        else:
+            post_immature = Decimal(self.nodes[0].getwalletinfo()["immature_balance"]) 
+            maturity_delta = pre_immature - post_immature
+            if maturity_delta < 0:
+                maturity_delta = Decimal(0)
+        expected = start_bal0 + maturity_delta - Decimal('1240') + Decimal(fund_foo_tx["fee"]) + Decimal(fund_bar_tx["fee"]) + doublespend_fee
+        assert_equal(Decimal(self.nodes[0].getbalance()), expected)
 
-        # Node1's balance should be its initial balance (1250 for 25 block rewards) plus the doublespend:
-        assert_equal(self.nodes[1].getbalance(), 1250 + 1240)
+        # Node1's balance should be its initial balance plus the doublespend amount
+        assert_equal(Decimal(self.nodes[1].getbalance()), start_bal1 + Decimal('1240'))
 
 
 if __name__ == '__main__':

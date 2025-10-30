@@ -4,7 +4,10 @@
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test orphaned block rewards in the wallet."""
 
+from decimal import Decimal
+
 from test_framework.test_framework import BellscoinTestFramework
+from test_framework.messages import COIN
 from test_framework.util import assert_equal
 
 class OrphanedBlockRewardTest(BellscoinTestFramework):
@@ -29,11 +32,14 @@ class OrphanedBlockRewardTest(BellscoinTestFramework):
         # it later.
         self.sync_blocks()
         blk = self.generate(self.nodes[1], 1)[0]
+        blk_height = self.nodes[1].getblockheader(blk)["height"]
 
         # Let the block reward mature and send coins including both
         # the existing balance and the block reward.
         self.generate(self.nodes[0], 150)
-        assert_equal(self.nodes[1].getbalance(), 10 + 25)
+        # Determine the actual mined block subsidy for blk (in coins)
+        blk_subsidy = Decimal(self.nodes[1].getblockstats(blk_height)["subsidy"]) / Decimal(COIN)
+        assert_equal(self.nodes[1].getbalance(), Decimal("10") + blk_subsidy)
         pre_reorg_conf_bals = self.nodes[1].getbalances()
         txid = self.nodes[1].sendtoaddress(self.nodes[0].getnewaddress(), 30)
         orig_chain_tip = self.nodes[0].getbestblockhash()

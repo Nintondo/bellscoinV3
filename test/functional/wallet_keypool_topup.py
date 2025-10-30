@@ -12,6 +12,7 @@ Two nodes. Node1 is under test. Node0 is providing transactions and generating b
 - connect node1 to node0. Verify that they sync and node1 receives its funds."""
 import shutil
 
+from decimal import Decimal
 from test_framework.blocktools import COINBASE_MATURITY
 from test_framework.test_framework import BellscoinTestFramework
 from test_framework.util import (
@@ -68,9 +69,11 @@ class KeypoolRestoreTest(BellscoinTestFramework):
                 assert address_details["isscript"] and address_details["iswitness"]
 
             self.log.info("Send funds to wallet")
-            self.nodes[0].sendtoaddress(addr_oldpool, 10)
+            amt_old = Decimal('1.00000000')
+            amt_ext = Decimal('0.50000000')
+            self.nodes[0].sendtoaddress(addr_oldpool, amt_old)
             self.generate(self.nodes[0], 1)
-            self.nodes[0].sendtoaddress(addr_extpool, 5)
+            self.nodes[0].sendtoaddress(addr_extpool, amt_ext)
             self.generate(self.nodes[0], 1)
 
             self.log.info("Restart node with wallet backup")
@@ -81,7 +84,7 @@ class KeypoolRestoreTest(BellscoinTestFramework):
             self.sync_all()
 
             self.log.info("Verify keypool is restored and balance is correct")
-            assert_equal(self.nodes[idx].getbalance(), 15)
+            assert_equal(self.nodes[idx].getbalance(), amt_old + amt_ext)
             assert_equal(self.nodes[idx].listtransactions()[0]['category'], "receive")
             # Check that we have marked all keys up to the used keypool key as used
             if self.options.descriptors:

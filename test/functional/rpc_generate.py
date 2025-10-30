@@ -65,10 +65,10 @@ class RPCGenerateTest(BellscoinTestFramework):
 
         # Generate some extra mempool transactions to verify they don't get mined
         for _ in range(10):
-            miniwallet.send_self_transfer(from_node=node)
+            miniwallet.send_self_transfer(from_node=node, confirmed_only=True)
 
         self.log.info('Generate block with txid')
-        txid = miniwallet.send_self_transfer(from_node=node)['txid']
+        txid = miniwallet.send_self_transfer(from_node=node, confirmed_only=True)['txid']
         hash = self.generateblock(node, address, [txid])['hash']
         block = node.getblock(hash, 1)
         assert_equal(len(block['tx']), 2)

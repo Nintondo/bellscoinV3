@@ -152,7 +152,10 @@ class SignRawTransactionWithWalletTest(BellscoinTestFramework):
         self.log.info("Test signing a fully signed transaction does nothing")
         self.nodes[0].walletpassphrase("password", 9999)
         self.generate(self.nodes[0], COINBASE_MATURITY + 1)
-        rawtx = self.nodes[0].createrawtransaction([], [{self.nodes[0].getnewaddress(): 10}])
+        # Use an amount that the wallet can actually fund on this chain
+        spendable = self.nodes[0].getbalance()
+        send_amount = min(Decimal("10"), (spendable / 2) if spendable > 0 else Decimal("0.5"))
+        rawtx = self.nodes[0].createrawtransaction([], [{self.nodes[0].getnewaddress(): send_amount}])
         fundedtx = self.nodes[0].fundrawtransaction(rawtx)
         signedtx = self.nodes[0].signrawtransactionwithwallet(fundedtx["hex"])
         assert_equal(signedtx["complete"], True)
@@ -222,8 +225,14 @@ class SignRawTransactionWithWalletTest(BellscoinTestFramework):
         # Make sure CLTV is active
         assert self.nodes[0].getdeploymentinfo()['deployments']['bip65']['active']
 
-        # Create a P2WSH script with CLTV
-        script = CScript([100, OP_CHECKLOCKTIMEVERIFY, OP_DROP])
+        # Ensure sufficient mature balance for subsequent funding on chains with small initial subsidies
+        self.generate(self.nodes[0], COINBASE_MATURITY + 1)
+
+        # Create a P2WSH script with CLTV. Make the CLTV value relative to current height
+        # so that tx locktime (set to current height) satisfies the requirement.
+        current_height = self.nodes[0].getblockcount()
+        cltv_value = max(1, current_height - 1)
+        script = CScript([cltv_value, OP_CHECKLOCKTIMEVERIFY, OP_DROP])
         address = script_to_p2wsh(script)
 
         # Fund that address and make the spend
@@ -232,7 +241,7 @@ class SignRawTransactionWithWalletTest(BellscoinTestFramework):
         utxo2 = self.nodes[0].listunspent()[0]
         amt = Decimal(1) + utxo2["amount"] - Decimal(0.00001)
         tx = self.nodes[0].createrawtransaction(
-            [utxo1, {"txid": utxo2["txid"], "vout": utxo2["vout"]}],
+            [{**utxo1, "sequence": 0}, {"txid": utxo2["txid"], "vout": utxo2["vout"]}],
             [{self.nodes[0].getnewaddress(): amt}],
             self.nodes[0].getblockcount()
         )
@@ -246,7 +255,8 @@ class SignRawTransactionWithWalletTest(BellscoinTestFramework):
         # Sign and send the transaction
         signed = self.nodes[0].signrawtransactionwithwallet(tx)
         assert_equal(signed["complete"], True)
-        self.nodes[0].sendrawtransaction(signed["hex"])
+        # Broadcast to ensure standard policy acceptance with satisfied CLTV
+        self.nodes[0].sendrawtransaction(signed["hex"]) 
 
     def test_signing_with_missing_prevtx_info(self):
         txid = "1d1d4e24ed99057e84c3f80fd8fbec79ed9e1acee37da269356ecea000000000"

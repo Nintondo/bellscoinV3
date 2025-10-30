@@ -30,7 +30,9 @@ class SignMessagesWithPrivTest(BellscoinTestFramework):
 
         self.log.info('test signing with priv_key')
         priv_key = 'cUeKHd5orzT3mz8P9pxyREHfsWtVfgsfDjiZZBcjUBAaGk1BTj7N'
-        expected_signature = 'INbVnW4e6PeRmsv2Qgu8NuopvrVjkcxob+sX8OcZG0SALhWybUjzMLPdAsXI46YZGb0KQTRii+wWIQzRpG/U+S0='
+        # Bells uses MESSAGE_MAGIC = "Bells Signed Message:\n", so the
+        # deterministic compact signature differs from Bitcoin Core's.
+        expected_signature = 'IAjyeoXUfMHjGYmpzWePnftnFK7DVU7keR45Lf9gA6StBzCNMeWg1EgEJQ6roqSR+pa49hp7UhbjneT+hSX58v0='
         signature = self.nodes[0].signmessagewithprivkey(priv_key, message)
         assert_equal(expected_signature, signature)
 

@@ -15,6 +15,7 @@ variants.
 - `test_address()` is called to call getaddressinfo for an address on node1
   and test the values returned."""
 
+from decimal import Decimal
 from test_framework.blocktools import COINBASE_MATURITY
 from test_framework.script import (
     CScript,
@@ -258,8 +259,11 @@ class ImportMultiTest(BellscoinTestFramework):
 
         # P2SH address
         multisig = get_multisig(self.nodes[0])
-        self.generate(self.nodes[1], COINBASE_MATURITY, sync_fun=self.no_op)
-        self.nodes[1].sendtoaddress(multisig.p2sh_addr, 10.00)
+        self.generate(self.nodes[1], COINBASE_MATURITY + 1, sync_fun=self.no_op)
+        amt = min(Decimal('10'), (self.nodes[1].getbalance() / 2)).quantize(Decimal('0.00000001'))
+        if amt <= Decimal('0.1'):
+            amt = Decimal('0.1')
+        self.nodes[1].sendtoaddress(multisig.p2sh_addr, amt)
         self.generate(self.nodes[1], 1, sync_fun=self.no_op)
         timestamp = self.nodes[1].getblock(self.nodes[1].getbestblockhash())['mediantime']
 
@@ -278,8 +282,11 @@ class ImportMultiTest(BellscoinTestFramework):
 
         # P2SH + Redeem script
         multisig = get_multisig(self.nodes[0])
-        self.generate(self.nodes[1], COINBASE_MATURITY, sync_fun=self.no_op)
-        self.nodes[1].sendtoaddress(multisig.p2sh_addr, 10.00)
+        self.generate(self.nodes[1], COINBASE_MATURITY + 1, sync_fun=self.no_op)
+        amt = min(Decimal('10'), (self.nodes[1].getbalance() / 2)).quantize(Decimal('0.00000001'))
+        if amt <= Decimal('0.1'):
+            amt = Decimal('0.1')
+        self.nodes[1].sendtoaddress(multisig.p2sh_addr, amt)
         self.generate(self.nodes[1], 1, sync_fun=self.no_op)
         timestamp = self.nodes[1].getblock(self.nodes[1].getbestblockhash())['mediantime']
 
@@ -298,8 +305,11 @@ class ImportMultiTest(BellscoinTestFramework):
 
         # P2SH + Redeem script + Private Keys + !Watchonly
         multisig = get_multisig(self.nodes[0])
-        self.generate(self.nodes[1], COINBASE_MATURITY, sync_fun=self.no_op)
-        self.nodes[1].sendtoaddress(multisig.p2sh_addr, 10.00)
+        self.generate(self.nodes[1], COINBASE_MATURITY + 1, sync_fun=self.no_op)
+        amt = min(Decimal('10'), (self.nodes[1].getbalance() / 2)).quantize(Decimal('0.00000001'))
+        if amt <= Decimal('0.1'):
+            amt = Decimal('0.1')
+        self.nodes[1].sendtoaddress(multisig.p2sh_addr, amt)
         self.generate(self.nodes[1], 1, sync_fun=self.no_op)
         timestamp = self.nodes[1].getblock(self.nodes[1].getbestblockhash())['mediantime']
 
@@ -323,8 +333,11 @@ class ImportMultiTest(BellscoinTestFramework):
 
         # P2SH + Redeem script + Private Keys + Watchonly
         multisig = get_multisig(self.nodes[0])
-        self.generate(self.nodes[1], COINBASE_MATURITY, sync_fun=self.no_op)
-        self.nodes[1].sendtoaddress(multisig.p2sh_addr, 10.00)
+        self.generate(self.nodes[1], COINBASE_MATURITY + 1, sync_fun=self.no_op)
+        amt = min(Decimal('10'), (self.nodes[1].getbalance() / 2)).quantize(Decimal('0.00000001'))
+        if amt <= Decimal('0.1'):
+            amt = Decimal('0.1')
+        self.nodes[1].sendtoaddress(multisig.p2sh_addr, amt)
         self.generate(self.nodes[1], 1, sync_fun=self.no_op)
         timestamp = self.nodes[1].getblock(self.nodes[1].getbestblockhash())['mediantime']
 

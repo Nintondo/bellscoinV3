@@ -80,9 +80,6 @@
 #include <boost/random/uniform_int.hpp>
 #include <boost/random/mersenne_twister.hpp>
 
-#include <boost/random/uniform_int.hpp>
-#include <boost/random/mersenne_twister.hpp>
-
 using kernel::CCoinsStats;
 using kernel::CoinStatsHashType;
 using kernel::ComputeUTXOStats;
@@ -1044,26 +1041,28 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
     // Even though just checking direct mempool parents for inheritance would be sufficient, we
     // check using the full ancestor set here because it's more convenient to use what we have
     // already calculated.
-    if (const auto err{SingleTRUCChecks(ws.m_ptx, ws.m_ancestors, ws.m_conflicts, ws.m_vsize)}) {
-        // Single transaction contexts only.
-        if (args.m_allow_sibling_eviction && err->second != nullptr) {
-            // We should only be considering where replacement is considered valid as well.
-            Assume(args.m_allow_replacement);
+    if (!args.m_bypass_limits) {
+        if (const auto err{SingleTRUCChecks(ws.m_ptx, ws.m_ancestors, ws.m_conflicts, ws.m_vsize)}) {
+            // Single transaction contexts only.
+            if (args.m_allow_sibling_eviction && err->second != nullptr) {
+                // We should only be considering where replacement is considered valid as well.
+                Assume(args.m_allow_replacement);
 
-            // Potential sibling eviction. Add the sibling to our list of mempool conflicts to be
-            // included in RBF checks.
-            ws.m_conflicts.insert(err->second->GetHash());
-            // Adding the sibling to m_iters_conflicting here means that it doesn't count towards
-            // RBF Carve Out above. This is correct, since removing to-be-replaced transactions from
-            // the descendant count is done separately in SingleTRUCChecks for TRUC transactions.
-            ws.m_iters_conflicting.insert(m_pool.GetIter(err->second->GetHash()).value());
-            ws.m_sibling_eviction = true; 
-            // The sibling will be treated as part of the to-be-replaced set in ReplacementChecks.
-            // Note that we are not checking whether it opts in to replaceability via BIP125 or TRUC
-            // (which is normally done in PreChecks). However, the only way a TRUC transaction can
-            // have a non-TRUC and non-BIP125 descendant is due to a reorg.
-        } else {
-            return state.Invalid(TxValidationResult::TX_MEMPOOL_POLICY, "TRUC-violation", err->first);
+                // Potential sibling eviction. Add the sibling to our list of mempool conflicts to be
+                // included in RBF checks.
+                ws.m_conflicts.insert(err->second->GetHash());
+                // Adding the sibling to m_iters_conflicting here means that it doesn't count towards
+                // RBF Carve Out above. This is correct, since removing to-be-replaced transactions from
+                // the descendant count is done separately in SingleTRUCChecks for TRUC transactions.
+                ws.m_iters_conflicting.insert(m_pool.GetIter(err->second->GetHash()).value());
+                ws.m_sibling_eviction = true;
+                // The sibling will be treated as part of the to-be-replaced set in ReplacementChecks.
+                // Note that we are not checking whether it opts in to replaceability via BIP125 or TRUC
+                // (which is normally done in PreChecks). However, the only way a TRUC transaction can
+                // have a non-TRUC and non-BIP125 descendant is due to a reorg.
+            } else {
+                return state.Invalid(TxValidationResult::TX_MEMPOOL_POLICY, "TRUC-violation", err->first);
+            }
         }
     }
 
@@ -2574,7 +2573,7 @@ unsigned int GetBlockScriptFlags(const CBlockIndex& block_index, const Chainstat
     }
 
     
-    // Enforce OP_CAT, OP_CHECKTEMPLATEVERIFY, OP_INTERNALKEY, OP_CHECKSIGFROMSTACK, 64_BIT_INTEGERS
+    // Enforce OP_CAT, OP_CHECKTEMPLATEVERIFY, OP_INTERNALKEY, OP_CHECKSIGFROMSTACK
     if (DeploymentActiveAt(block_index, chainman, Consensus::DEPLOYMENT_OP_CAT)) {
         flags |= SCRIPT_VERIFY_OP_CAT;
         flags |= SCRIPT_VERIFY_DEFAULT_CHECK_TEMPLATE_VERIFY_HASH;
@@ -2767,12 +2766,6 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
     int nLockTimeFlags = 0;
     if (DeploymentActiveAt(*pindex, m_chainman, Consensus::DEPLOYMENT_CSV)) {
         nLockTimeFlags |= LOCKTIME_VERIFY_SEQUENCE;
-    }
-
-    if (wallet::DEFAULT_ADDRESS_TYPE_V2::isType(OutputType::LEGACY)) {
-        if(DeploymentActiveAt(*pindex, m_chainman, Consensus::DEPLOYMENT_SEGWIT)) {
-            wallet::DEFAULT_ADDRESS_TYPE_V2::set(OutputType::BECH32);
-        }
     }
 
     // Get the script flags for this block
@@ -4385,23 +4378,51 @@ static bool ContextualCheckBlockHeader(const CBlockHeader& block, BlockValidatio
         return state.Invalid(BlockValidationResult::BLOCK_TIME_FUTURE, "time-too-new", "block timestamp too far in the future");
     }
 
-    const auto& baseVer = block.GetBaseVersion();
-    // TODO: enable version check on historical blocks
+    const auto baseVer = block.GetBaseVersion();
 
-    // Reject blocks with outdated version
-    // if ((baseVer < 2 && DeploymentActiveAfter(pindexPrev, chainman, Consensus::DEPLOYMENT_HEIGHTINCB)) ||
-    //     (baseVer < 3 && DeploymentActiveAfter(pindexPrev, chainman, Consensus::DEPLOYMENT_DERSIG)) ||
-    //     (baseVer < 4 && DeploymentActiveAfter(pindexPrev, chainman, Consensus::DEPLOYMENT_CLTV))) {
-    //         return state.Invalid(BlockValidationResult::BLOCK_INVALID_HEADER, strprintf("bad-version(0x%08x)", baseVer),
-    //                              strprintf("rejected nVersion=0x%08x block", baseVer));
-    // }
+    LogPrint(BCLog::VALIDATION, "ContextualCheckBlockHeader: height=%d baseVer=%d nVersion=0x%08x legacy_allow=%d bip34_active=%d bip66_active=%d cltv_active=%d\n",
+              nHeight, baseVer, block.nVersion, consensusParams.AllowLegacyBlocks(nHeight),
+              DeploymentActiveAfter(pindexPrev, chainman, Consensus::DEPLOYMENT_HEIGHTINCB),
+              DeploymentActiveAfter(pindexPrev, chainman, Consensus::DEPLOYMENT_DERSIG),
+              DeploymentActiveAfter(pindexPrev, chainman, Consensus::DEPLOYMENT_CLTV));
 
-    const int32_t& nChainID = block.GetChainId();
-    if(nHeight > consensusParams.nAuxpowStartHeight)
-    {
-        if((!CPureBlockHeader::IsValidBaseVersion(baseVer) || (nChainID > 0 && nChainID != consensusParams.nAuxpowChainId)))
-                return state.Invalid(BlockValidationResult::BLOCK_INVALID_HEADER, strprintf("bad-version(0x%08x)", baseVer),
-                                    strprintf("rejected nVersion=0x%08x block", block.nVersion));
+    if (!consensusParams.AllowLegacyBlocks(nHeight) && block.IsLegacy()) {
+        return state.Invalid(BlockValidationResult::BLOCK_INVALID_HEADER,
+                             "bad-version-legacy",
+                             strprintf("rejected legacy nVersion=0x%08x block", block.nVersion));
+    }
+
+    const bool enforce_version_rules = !consensusParams.AllowLegacyBlocks(nHeight);
+
+    if (enforce_version_rules) {
+        if ((baseVer < 2 && DeploymentActiveAfter(pindexPrev, chainman, Consensus::DEPLOYMENT_HEIGHTINCB)) ||
+            (baseVer < 3 && DeploymentActiveAfter(pindexPrev, chainman, Consensus::DEPLOYMENT_DERSIG)) ||
+            (baseVer < 4 && DeploymentActiveAfter(pindexPrev, chainman, Consensus::DEPLOYMENT_CLTV))) {
+            return state.Invalid(BlockValidationResult::BLOCK_INVALID_HEADER,
+                                 strprintf("bad-version(0x%08x)", baseVer),
+                                 strprintf("rejected nVersion=0x%08x block", block.nVersion));
+        }
+
+        if (nHeight >= consensusParams.nAuxpowStartHeight) {
+            if (!CPureBlockHeader::IsValidBaseVersion(baseVer)) {
+                return state.Invalid(BlockValidationResult::BLOCK_INVALID_HEADER,
+                                     strprintf("bad-version(0x%08x)", baseVer),
+                                     strprintf("rejected nVersion=0x%08x block", block.nVersion));
+            }
+
+            const int32_t nChainID = block.GetChainId();
+            if (block.IsAuxpow()) {
+                if (nChainID != consensusParams.nAuxpowChainId) {
+                    return state.Invalid(BlockValidationResult::BLOCK_INVALID_HEADER,
+                                         "bad-auxpow-chainid",
+                                         strprintf("rejected nVersion=0x%08x block", block.nVersion));
+                }
+            } else if (nChainID != 0) {
+                return state.Invalid(BlockValidationResult::BLOCK_INVALID_HEADER,
+                                     "bad-nonauxpow-chainid",
+                                     strprintf("rejected nVersion=0x%08x block", block.nVersion));
+            }
+        }
     }
 
     return true;

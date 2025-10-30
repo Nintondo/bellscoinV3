@@ -372,6 +372,25 @@ class ZMQTest (BellscoinTestFramework):
         mempool_size_delta = mempool_size - len(self.nodes[0].getrawmempool())
         assert_equal(len(self.nodes[0].getblock(c_block)["tx"])-1, mempool_size_delta)
         seq_num += mempool_size_delta
+
+        # Check if mempools are in sync before sending the transaction
+        mempool_0 = set(self.nodes[0].getrawmempool())
+        mempool_1 = set(self.nodes[1].getrawmempool())
+        self.log.info(f"Mempool on node 0: {sorted(mempool_0)}")
+        self.log.info(f"Mempool on node 1: {sorted(mempool_1)}")
+        if mempool_0 == mempool_1:
+            self.log.info("Mempools are in sync.")
+        else:
+            self.log.warning("Mempools are NOT in sync!")
+            diff_0_only = mempool_0 - mempool_1
+            diff_1_only = mempool_1 - mempool_0
+            if diff_0_only:
+                self.log.warning(f"Transactions only in node 0: {sorted(diff_0_only)}")
+            if diff_1_only:
+                self.log.warning(f"Transactions only in node 1: {sorted(diff_1_only)}")
+
+        self.wallet.rescan_utxos()
+
         payment_txid_2 = self.wallet.send_self_transfer(from_node=self.nodes[1])['txid']
         self.sync_all()
         assert_equal((c_block, "C", None), seq.receive_sequence())
@@ -409,14 +428,15 @@ class ZMQTest (BellscoinTestFramework):
         self.generatetoaddress(self.nodes[1], 1, ADDRESS_BCRT1_UNSPENDABLE)
 
         self.log.info("Evict mempool transaction by block conflict")
-        orig_tx = self.wallet.send_self_transfer(from_node=self.nodes[0])
+        orig_tx = self.wallet.send_self_transfer(from_node=self.nodes[0], confirmed_only=True)
         orig_txid = orig_tx['txid']
 
         # More to be simply mined
         more_tx = []
         for _ in range(5):
-            more_tx.append(self.wallet.send_self_transfer(from_node=self.nodes[0]))
+            more_tx.append(self.wallet.send_self_transfer(from_node=self.nodes[0], confirmed_only=True))
 
+        self.wallet.rescan_utxos()
         orig_tx['tx'].vout[0].nValue -= 1000
         bump_txid = self.nodes[0].sendrawtransaction(orig_tx['tx'].serialize().hex())
         # Mine the pre-bump tx

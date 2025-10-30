@@ -77,6 +77,7 @@ def check_raw_estimates(node, fees_seen):
     delta = 1.0e-6  # account for rounding error
     for i in range(1, 26):
         for _, e in node.estimaterawfee(i).items():
+
             feerate = float(e["feerate"])
             assert_greater_than(feerate, 0)
 
@@ -178,7 +179,7 @@ class EstimateFeeTest(BellscoinTestFramework):
                     self.nodes[from_index],
                     self.confutxo,
                     self.memutxo,
-                    Decimal("0.005"),
+                    Decimal("0.0005"),
                     min_fee,
                     min_fee,
                     batch_sendtx_reqs,
@@ -255,6 +256,12 @@ class EstimateFeeTest(BellscoinTestFramework):
         # In sat/vb
         low_feerate = 1
         high_feerate = 10
+        assert len(utxos) > 0
+        # Filter out UTXOs that can't pay the replacement fee without falling below dust
+        tx_vsize = make_tx(self.wallet, utxos[0], low_feerate)["tx"].get_vsize()
+        dust_buffer_sats = 1000  # keep the RBF change comfortably above the dust threshold
+        min_value_sats = high_feerate * tx_vsize + dust_buffer_sats
+        utxos = [u for u in utxos if int(u["value"] * COIN) >= min_value_sats]
         # Cache the utxos of which to replace the spender after it failed to get
         # confirmed
         utxos_to_respend = []
@@ -398,12 +405,16 @@ class EstimateFeeTest(BellscoinTestFramework):
         self.start_node(0)
         self.connect_nodes(0, 1)
         self.connect_nodes(0, 2)
+        self.sync_blocks()
+        # Refresh MiniWallet view to drop any unconfirmed change created in previous phases
+        self.wallet = MiniWallet(self.nodes[0])
+        self.wallet.rescan_utxos(include_mempool=False)
         assert_equal(self.nodes[0].estimatesmartfee(1)["errors"], ["Insufficient data or no feerate found"])
 
     def broadcast_and_mine(self, broadcaster, miner, feerate, count):
         """Broadcast and mine some number of transactions with a specified fee rate."""
         for _ in range(count):
-            self.wallet.send_self_transfer(from_node=broadcaster, fee_rate=feerate)
+            self.wallet.send_self_transfer(from_node=broadcaster, fee_rate=feerate, confirmed_only=True)
         self.sync_mempools()
         self.generate(miner, 1)
 

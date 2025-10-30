@@ -95,9 +95,11 @@ class AssumeutxoTest(BellscoinTestFramework):
             f"Creating a UTXO snapshot at height {SNAPSHOT_BASE_HEIGHT}")
         dump_output = n0.dumptxoutset('utxos.dat')
 
+
+
         assert_equal(
             dump_output['txoutset_hash'],
-            "a4bf3407ccb2cc0145c49ebba8fa91199f8a3903daf0883875941497d2493c27")
+            "4899f07889bedd831b34cf83464303d99fe3c5b4ed88f43ae10c3ea3e974d34d")
         assert_equal(dump_output["nchaintx"], 334)
         assert_equal(n0.getblockchaininfo()["blocks"], SNAPSHOT_BASE_HEIGHT)
 
@@ -112,7 +114,9 @@ class AssumeutxoTest(BellscoinTestFramework):
 
         self.log.info(
             f"Loading snapshot into second node from {dump_output['path']}")
+
         loaded = n1.loadtxoutset(dump_output['path'])
+
         assert_equal(loaded['coins_loaded'], SNAPSHOT_BASE_HEIGHT)
         assert_equal(loaded['base_height'], SNAPSHOT_BASE_HEIGHT)
 

@@ -32,8 +32,13 @@ class RejectLowDifficultyHeadersTest(BellscoinTestFramework):
         self.rpc_timeout *= 4  # To avoid timeout when generating BLOCKS_TO_MINE
         self.setup_clean_chain = True
         self.num_nodes = 4
-        # Node0 has no required chainwork; node1 requires 15 blocks on top of the genesis block; node2 requires 2047
-        self.extra_args = [["-minimumchainwork=0x0", "-checkblockindex=0"], ["-minimumchainwork=0x1f", "-checkblockindex=0"], ["-minimumchainwork=0x1000", "-checkblockindex=0"], ["-minimumchainwork=0x1000", "-checkblockindex=0", "-whitelist=noban@127.0.0.1"]]
+        # Node0 has no required chainwork; node1 requires roughly 15 retarget blocks (chainwork≈0x110); node2 requires a much longer chain.
+        self.extra_args = [
+            ["-minimumchainwork=0x0", "-checkblockindex=0"],
+            ["-minimumchainwork=0x110", "-checkblockindex=0"],
+            ["-minimumchainwork=0x1000", "-checkblockindex=0"],
+            ["-minimumchainwork=0x1000", "-checkblockindex=0", "-whitelist=noban@127.0.0.1"],
+        ]
 
     def setup_network(self):
         self.setup_nodes()
@@ -56,6 +61,7 @@ class RejectLowDifficultyHeadersTest(BellscoinTestFramework):
 
     def test_chains_sync_when_long_enough(self):
         self.log.info("Generate blocks on the node with no required chainwork, and verify nodes 1 and 2 have no new headers in their headers tree")
+        genesis_hash = self.nodes[0].getblockhash(0)
         with self.nodes[1].assert_debug_log(expected_msgs=["[net] Ignoring low-work chain (height=14)"]), self.nodes[2].assert_debug_log(expected_msgs=["[net] Ignoring low-work chain (height=14)"]), self.nodes[3].assert_debug_log(expected_msgs=["Synchronizing blockheaders, height: 14"]):
             self.generate(self.nodes[0], NODE1_BLOCKS_REQUIRED-1, sync_fun=self.no_op)
 
@@ -79,7 +85,7 @@ class RejectLowDifficultyHeadersTest(BellscoinTestFramework):
             assert len(chaintips) == 1
             assert {
                 'height': 0,
-                'hash': '0f9188f13cb7b2c71f2a335e3a4fc328bf5beb436012afca590b1a11466e2206',
+                'hash': genesis_hash,
                 'branchlen': 0,
                 'status': 'active',
             } in chaintips
@@ -91,7 +97,7 @@ class RejectLowDifficultyHeadersTest(BellscoinTestFramework):
 
         assert {
             'height': 0,
-            'hash': '0f9188f13cb7b2c71f2a335e3a4fc328bf5beb436012afca590b1a11466e2206',
+            'hash': genesis_hash,
             'branchlen': 0,
             'status': 'active',
         } in self.nodes[2].getchaintips()

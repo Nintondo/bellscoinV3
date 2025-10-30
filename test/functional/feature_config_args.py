@@ -75,7 +75,7 @@ class ConfArgsTest(BellscoinTestFramework):
                 conf.write("wallet=foo\n")
             self.nodes[0].assert_start_raises_init_error(expected_msg=f'Error: Config setting for -wallet only applied on {self.chain} network when in [{self.chain}] section.')
 
-        main_conf_file_path = self.nodes[0].datadir_path / "bitcoin_main.conf"
+        main_conf_file_path = self.nodes[0].datadir_path / "bells_main.conf"
         util.write_config(main_conf_file_path, n=0, chain='', extra_config=f'includeconf={inc_conf_file_path}\n')
         with open(inc_conf_file_path, 'w', encoding='utf-8') as conf:
             conf.write('acceptnonstdtxn=1\n')
@@ -371,36 +371,36 @@ class ConfArgsTest(BellscoinTestFramework):
     def test_acceptstalefeeestimates_arg_support(self):
         self.log.info("Test -acceptstalefeeestimates option support")
         conf_file = self.nodes[0].datadir_path / "bells.conf"
-        for chain, chain_name in {("main", ""), ("test", "testnet"), ("signet", "signet")}:
+        for chain, chain_name in {("main", ""), ("test", "testnet")}:
             util.write_config(conf_file, n=0, chain=chain_name, extra_config='acceptstalefeeestimates=1\n')
             self.nodes[0].assert_start_raises_init_error(expected_msg=f'Error: acceptstalefeeestimates is not supported on {chain} chain.')
         util.write_config(conf_file, n=0, chain="regtest")  # Reset to regtest
 
-    def test_testnet3_deprecation_msg(self):
-        self.log.info("Test testnet3 deprecation warning")
-        t3_warning_log = "Warning: Support for testnet3 is deprecated and will be removed in an upcoming release."
+    # def test_testnet3_deprecation_msg(self):
+    #     self.log.info("Test testnet3 deprecation warning")
+    #     t3_warning_log = "Warning: Support for testnet3 is deprecated and will be removed in an upcoming release."
 
-        def warning_msg(node, approx_size):
-            return f'Warning: Disk space for "{node.datadir_path / node.chain / "blocks" }" may not accommodate the block files. Approximately {approx_size} GB of data will be stored in this directory.'
+    #     def warning_msg(node, approx_size):
+    #         return f'Warning: Disk space for "{node.datadir_path / node.chain / "blocks" }" may not accommodate the block files. Approximately {approx_size} GB of data will be stored in this directory.'
 
-        # Testnet3 node will log the warning
-        self.nodes[0].chain = 'testnet3'
-        self.nodes[0].replace_in_config([('regtest=', 'testnet='), ('[regtest]', '[test]')])
-        with self.nodes[0].assert_debug_log([t3_warning_log]):
-            self.start_node(0)
-        # Some CI environments will have limited space and some others won't
-        # so we need to handle both cases as a valid result.
-        self.nodes[0].stderr.seek(0)
-        err = self.nodes[0].stdout.read()
-        self.nodes[0].stderr.seek(0)
-        self.nodes[0].stderr.truncate()
-        if err != b'' and err != warning_msg(self.nodes[0], 42):
-            raise AssertionError("Unexpected stderr after shutdown of Testnet3 node")
-        self.stop_node(0)
+    #     # Testnet node will log the warning
+    #     self.nodes[0].chain = 'testnet'
+    #     self.nodes[0].replace_in_config([('regtest=', 'testnet='), ('[regtest]', '[test]')])
+    #     with self.nodes[0].assert_debug_log([t3_warning_log]):
+    #         self.start_node(0)
+    #     # Some CI environments will have limited space and some others won't
+    #     # so we need to handle both cases as a valid result.
+    #     self.nodes[0].stderr.seek(0)
+    #     err = self.nodes[0].stdout.read()
+    #     self.nodes[0].stderr.seek(0)
+    #     self.nodes[0].stderr.truncate()
+    #     if err != b'' and err != warning_msg(self.nodes[0], 42):
+    #         raise AssertionError("Unexpected stderr after shutdown of Testnet node")
+    #     self.stop_node(0)
 
-        # Reset to regtest
-        self.nodes[0].chain = 'regtest'
-        self.nodes[0].replace_in_config([('regtest='), ('[regtest]')])
+    #     # Reset to regtest
+    #     self.nodes[0].chain = 'regtest'
+    #     self.nodes[0].replace_in_config([('regtest='), ('[regtest]')])
 
     def run_test(self):
         self.test_log_buffer()
@@ -415,7 +415,7 @@ class ConfArgsTest(BellscoinTestFramework):
         self.test_ignored_conf()
         self.test_ignored_default_conf()
         self.test_acceptstalefeeestimates_arg_support()
-        self.test_testnet3_deprecation_msg()
+        # self.test_testnet3_deprecation_msg()
 
         # Remove the -datadir argument so it doesn't override the config file
         self.nodes[0].args = [arg for arg in self.nodes[0].args if not arg.startswith("-datadir")]

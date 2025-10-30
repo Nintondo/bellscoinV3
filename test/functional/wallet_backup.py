@@ -74,7 +74,7 @@ class WalletBackupTest(BellscoinTestFramework):
 
     def one_send(self, from_node, to_address):
         if (randint(1,2) == 1):
-            amount = Decimal(randint(1,10)) / Decimal(10)
+            amount = Decimal(randint(1,2)) / Decimal(10)
             self.nodes[from_node].sendtoaddress(to_address, amount)
 
     def do_one_round(self):
@@ -147,9 +147,9 @@ class WalletBackupTest(BellscoinTestFramework):
         self.generate(self.nodes[2], 1)
         self.generate(self.nodes[3], COINBASE_MATURITY)
 
-        assert_equal(self.nodes[0].getbalance(), 50)
-        assert_equal(self.nodes[1].getbalance(), 50)
-        assert_equal(self.nodes[2].getbalance(), 50)
+        assert_equal(self.nodes[0].getbalance(), 2)
+        assert_equal(self.nodes[1].getbalance(), 2)
+        assert_equal(self.nodes[2].getbalance(), 2)
         assert_equal(self.nodes[3].getbalance(), 0)
 
         self.log.info("Creating transactions")
@@ -179,9 +179,17 @@ class WalletBackupTest(BellscoinTestFramework):
         balance3 = self.nodes[3].getbalance()
         total = balance0 + balance1 + balance2 + balance3
 
-        # At this point, there are 214 blocks (103 for setup, then 10 rounds, then 101.)
-        # 114 are mature, so the sum of all wallets should be 114 * 50 = 5700.
-        assert_equal(total, 5700)
+        # Bells regtest specifics:
+        # - Coinbase maturity is 30 blocks (COINBASE_MATURITY = 30).
+        # - Subsidy is 2 coins per block for heights < 101 (this test stays below).
+        # Block counts in this test:
+        #   setup: 3 (nodes 0–2) + COINBASE_MATURITY (node 3)
+        #   rounds: 10 blocks mined by node 3 (5 + 5)
+        #   final: COINBASE_MATURITY + 1 blocks (node 3)
+        #   total blocks = 14 + 2*COINBASE_MATURITY = 14 + 60 = 74
+        # Matured coinbases at this point = total - COINBASE_MATURITY = 74 - 30 = 44
+        # Total matured coins = 44 * 2 = 88
+        assert_equal(total, 88)
 
         ##
         # Test restoring spender wallets from backups

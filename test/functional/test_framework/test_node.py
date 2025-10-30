@@ -129,22 +129,19 @@ class TestNode():
                          "--gen-suppressions=all", "--exit-on-first-error=yes",
                          "--error-exitcode=1", "--quiet"] + self.args
 
-        if self.version_is_at_least(190000):
-            self.args.append("-logthreadnames")
-        if self.version_is_at_least(219900):
-            self.args.append("-logsourcelocations")
-        if self.version_is_at_least(239000):
-            self.args.append("-loglevel=trace")
+
+        self.args.append("-logthreadnames")        
+        self.args.append("-logsourcelocations")
+        self.args.append("-loglevel=trace")
 
         # Default behavior from global -v2transport flag is added to args to persist it over restarts.
         # May be overwritten in individual tests, using extra_args.
         self.default_to_v2 = v2transport
-        if self.version_is_at_least(260000):
-            # 26.0 and later support v2transport
-            if v2transport:
-                self.args.append("-v2transport=1")
-            else:
-                self.args.append("-v2transport=0")
+
+        if v2transport:
+            self.args.append("-v2transport=1")
+        else:
+            self.args.append("-v2transport=0")
         # if v2transport is requested via global flag but not supported for node version, ignore it
 
         self.cli = TestNodeCLI(bells_cli, self.datadir_path)
@@ -410,11 +407,7 @@ class TestNode():
             return
         self.log.debug("Stopping node")
         try:
-            # Do not use wait argument when testing older nodes, e.g. in wallet_backwards_compatibility.py
-            if self.version_is_at_least(180000):
-                self.stop(wait=wait)
-            else:
-                self.stop()
+            self.stop(wait=wait)
         except http.client.CannotSendRequest:
             self.log.exception("Unable to stop node.")
 
@@ -914,7 +907,7 @@ class TestNodeCLI():
         return results
 
     def send_cli(self, clicommand=None, *args, **kwargs):
-        """Run bitcoin-cli command. Deserializes returned string as python object."""
+        """Run bells-cli command. Deserializes returned string as python object."""
         pos_args = [arg_to_cli(arg) for arg in args]
         named_args = [str(key) + "=" + arg_to_cli(value) for (key, value) in kwargs.items()]
         p_args = [self.binary, f"-datadir={self.datadir}"] + self.options
@@ -923,7 +916,7 @@ class TestNodeCLI():
         if clicommand is not None:
             p_args += [clicommand]
         p_args += pos_args + named_args
-        self.log.debug("Running bitcoin-cli {}".format(p_args[2:]))
+        self.log.debug("Running bells-cli {}".format(p_args[2:]))
         process = subprocess.Popen(p_args, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         cli_stdout, cli_stderr = process.communicate(input=self.input)
         returncode = process.poll()

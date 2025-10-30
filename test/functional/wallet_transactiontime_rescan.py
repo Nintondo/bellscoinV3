@@ -87,7 +87,8 @@ class TransactionTimeRescanTest(BellscoinTestFramework):
 
         # generate blocks and check blockcount
         self.generatetoaddress(minernode, COINBASE_MATURITY, m1)
-        assert_equal(minernode.getblockcount(), initial_mine + 300)
+        # After the first additional maturity window, height = 200 + initial_mine + COINBASE_MATURITY
+        assert_equal(minernode.getblockcount(), initial_mine + 200 + COINBASE_MATURITY)
 
         # synchronize nodes and time
         self.sync_all()
@@ -98,7 +99,8 @@ class TransactionTimeRescanTest(BellscoinTestFramework):
 
         # generate blocks and check blockcount
         self.generatetoaddress(minernode, COINBASE_MATURITY, m1)
-        assert_equal(minernode.getblockcount(), initial_mine + 400)
+        # After the second maturity window, height = 200 + initial_mine + 2 * COINBASE_MATURITY
+        assert_equal(minernode.getblockcount(), initial_mine + 200 + 2 * COINBASE_MATURITY)
 
         # synchronize nodes and time
         self.sync_all()
@@ -109,7 +111,8 @@ class TransactionTimeRescanTest(BellscoinTestFramework):
 
         # generate more blocks and check blockcount
         self.generatetoaddress(minernode, COINBASE_MATURITY, m1)
-        assert_equal(minernode.getblockcount(), initial_mine + 500)
+        # After the third maturity window, height = 200 + initial_mine + 3 * COINBASE_MATURITY
+        assert_equal(minernode.getblockcount(), initial_mine + 200 + 3 * COINBASE_MATURITY)
 
         self.log.info('Check user\'s final balance and transaction count')
         assert_equal(wo_wallet.getbalance(), 16)
@@ -150,7 +153,11 @@ class TransactionTimeRescanTest(BellscoinTestFramework):
 
         # proceed to rescan, first with an incomplete one, then with a full rescan
         self.log.info('Rescan last history part')
-        restorewo_wallet.rescanblockchain(initial_mine + 350)
+        # Start rescanning somewhere in the middle of the mined history region.
+        # For Bitcoin (COINBASE_MATURITY=100), this was initial_mine + 350.
+        # Generalize it to initial_mine + 200 + 1.5 * COINBASE_MATURITY.
+        partial_start = initial_mine + 200 + (COINBASE_MATURITY * 3) // 2
+        restorewo_wallet.rescanblockchain(partial_start)
         self.log.info('Rescan all history')
         restorewo_wallet.rescanblockchain()
 
@@ -202,7 +209,9 @@ class TransactionTimeRescanTest(BellscoinTestFramework):
             encrypted_wallet.sethdseed(seed=hd_seed)
 
             with concurrent.futures.ThreadPoolExecutor(max_workers=1) as thread:
-                with minernode.assert_debug_log(expected_msgs=["Rescan started from block 0f9188f13cb7b2c71f2a335e3a4fc328bf5beb436012afca590b1a11466e2206... (slow variant inspecting all blocks)"], timeout=5):
+                genesis_hash = minernode.getblockhash(0)
+                expected_msg = f"Rescan started from block {genesis_hash}... (slow variant inspecting all blocks)"
+                with minernode.assert_debug_log(expected_msgs=[expected_msg], timeout=5):
                     rescanning = thread.submit(encrypted_wallet.rescanblockchain)
 
                 # set the passphrase timeout to 1 to test that the wallet remains unlocked during the rescan
@@ -218,7 +227,10 @@ class TransactionTimeRescanTest(BellscoinTestFramework):
                 except JSONRPCException as e:
                     assert e.error["code"] == -4 and "Error: the wallet is currently being used to rescan the blockchain for related transactions. Please call `abortrescan` before changing the passphrase." in e.error["message"]
 
-                assert_equal(rescanning.result(), {"start_height": 0, "stop_height": 803})
+                # The stop height equals the current chain tip. Compute dynamically:
+                # tip = 200 (pre-mined) + (COINBASE_MATURITY + 1) + 3*COINBASE_MATURITY + 2*(COINBASE_MATURITY + 1)
+                expected_stop = 200 + (COINBASE_MATURITY + 1) + 3 * COINBASE_MATURITY + 2 * (COINBASE_MATURITY + 1)
+                assert_equal(rescanning.result(), {"start_height": 0, "stop_height": expected_stop})
 
             assert_equal(encrypted_wallet.getbalance(), temp_wallet.getbalance())
 

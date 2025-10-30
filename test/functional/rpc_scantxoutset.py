@@ -43,19 +43,40 @@ class ScantxoutsetTest(BellscoinTestFramework):
         self.sendtodestination(spk_LEGACY, 0.002)
         self.sendtodestination(spk_BECH32, 0.004)
 
+        # Bells regtest coinbase value is smaller than Bitcoin's, and MiniWallet's
+        # helper spends a single UTXO per send. Scale the larger test sends so
+        # each fits within a single available UTXO.
+        utxos = self.wallet.get_utxos(mark_as_spent=False, confirmed_only=True)
+        max_single = max(Decimal(str(u['value'])) for u in utxos) if utxos else Decimal("0")
+        needed_max = Decimal("16.384")
+        # Leave headroom for the fixed fee (1000 sat) and rounding
+        headroom = Decimal("0.01")
+        scale = Decimal("1")
+        if max_single < needed_max:
+            if max_single > headroom:
+                scale = (max_single - headroom) / needed_max
+            else:
+                scale = Decimal("0.1")
+        self.log.debug(f"Scaling large sends by factor {scale} to fit max UTXO {max_single}")
+
         #send to child keys of tprv8ZgxMBicQKsPd7Uf69XL1XwhmjHopUGep8GuEiJDZmbQz6o58LninorQAfcKZWARbtRtfnLcJ5MQ2AtHcQJCCRUcMRvmDUjyEmNUWwx8UbK
-        self.sendtodestination("mkHV1C6JLheLoUSSZYk7x3FH5tnx9bu7yc", 0.008)  # (m/0'/0'/0')
-        self.sendtodestination("mipUSRmJAj2KrjSvsPQtnP8ynUon7FhpCR", 0.016)  # (m/0'/0'/1')
-        self.sendtodestination("n37dAGe6Mq1HGM9t4b6rFEEsDGq7Fcgfqg", 0.032)  # (m/0'/0'/1500')
-        self.sendtodestination("mqS9Rpg8nNLAzxFExsgFLCnzHBsoQ3PRM6", 0.064)  # (m/0'/0'/0)
-        self.sendtodestination("mnTg5gVWr3rbhHaKjJv7EEEc76ZqHgSj4S", 0.128)  # (m/0'/0'/1)
-        self.sendtodestination("mketCd6B9U9Uee1iCsppDJJBHfvi6U6ukC", 0.256)  # (m/0'/0'/1500)
-        self.sendtodestination("mj8zFzrbBcdaWXowCQ1oPZ4qioBVzLzAp7", 0.512)  # (m/1/1/0')
-        self.sendtodestination("mfnKpKQEftniaoE1iXuMMePQU3PUpcNisA", 1.024)  # (m/1/1/1')
-        self.sendtodestination("mou6cB1kaP1nNJM1sryW6YRwnd4shTbXYQ", 2.048)  # (m/1/1/1500')
-        self.sendtodestination("mtfUoUax9L4tzXARpw1oTGxWyoogp52KhJ", 4.096)  # (m/1/1/0)
-        self.sendtodestination("mxp7w7j8S1Aq6L8StS2PqVvtt4HGxXEvdy", 8.192)  # (m/1/1/1)
-        self.sendtodestination("mpQ8rokAhp1TAtJQR6F6TaUmjAWkAWYYBq", 16.384)  # (m/1/1/1500)
+        def s(x):
+            x = Decimal(str(x))
+            # Do not scale amounts up to 1.024 so expected sums remain unchanged
+            return float((x if x <= Decimal("1.024") else (x * scale)))
+
+        self.sendtodestination("mkHV1C6JLheLoUSSZYk7x3FH5tnx9bu7yc", s(0.008))  # (m/0'/0'/0')
+        self.sendtodestination("mipUSRmJAj2KrjSvsPQtnP8ynUon7FhpCR", s(0.016))  # (m/0'/0'/1')
+        self.sendtodestination("n37dAGe6Mq1HGM9t4b6rFEEsDGq7Fcgfqg", s(0.032))  # (m/0'/0'/1500')
+        self.sendtodestination("mqS9Rpg8nNLAzxFExsgFLCnzHBsoQ3PRM6", s(0.064))  # (m/0'/0'/0)
+        self.sendtodestination("mnTg5gVWr3rbhHaKjJv7EEEc76ZqHgSj4S", s(0.128))  # (m/0'/0'/1)
+        self.sendtodestination("mketCd6B9U9Uee1iCsppDJJBHfvi6U6ukC", s(0.256))  # (m/0'/0'/1500)
+        self.sendtodestination("mj8zFzrbBcdaWXowCQ1oPZ4qioBVzLzAp7", s(0.512))  # (m/1/1/0')
+        self.sendtodestination("mfnKpKQEftniaoE1iXuMMePQU3PUpcNisA", s(1.024))  # (m/1/1/1')
+        self.sendtodestination("mou6cB1kaP1nNJM1sryW6YRwnd4shTbXYQ", s(2.048))  # (m/1/1/1500')
+        self.sendtodestination("mtfUoUax9L4tzXARpw1oTGxWyoogp52KhJ", s(4.096))  # (m/1/1/0)
+        self.sendtodestination("mxp7w7j8S1Aq6L8StS2PqVvtt4HGxXEvdy", s(8.192))  # (m/1/1/1)
+        self.sendtodestination("mpQ8rokAhp1TAtJQR6F6TaUmjAWkAWYYBq", s(16.384))  # (m/1/1/1500)
 
         self.generate(self.nodes[0], 1)
 
@@ -84,6 +105,9 @@ class ScantxoutsetTest(BellscoinTestFramework):
         self.log.info("Test extended key derivation.")
         # Run various scans, and verify that the sum of the amounts of the matches corresponds to the expected subset.
         # Note that all amounts in the UTXO set are powers of 2 multiplied by 0.001 BTC, so each amounts uniquely identifies a subset.
+        def expD(x):
+            xD = Decimal(str(x))
+            return xD if xD <= Decimal("1.024") else (xD * scale).quantize(Decimal("0.00000001"))
         assert_equal(self.nodes[0].scantxoutset("start", ["combo(tprv8ZgxMBicQKsPd7Uf69XL1XwhmjHopUGep8GuEiJDZmbQz6o58LninorQAfcKZWARbtRtfnLcJ5MQ2AtHcQJCCRUcMRvmDUjyEmNUWwx8UbK/0'/0h/0h)"])['total_amount'], Decimal("0.008"))
         assert_equal(self.nodes[0].scantxoutset("start", ["combo(tprv8ZgxMBicQKsPd7Uf69XL1XwhmjHopUGep8GuEiJDZmbQz6o58LninorQAfcKZWARbtRtfnLcJ5MQ2AtHcQJCCRUcMRvmDUjyEmNUWwx8UbK/0'/0'/1h)"])['total_amount'], Decimal("0.016"))
         assert_equal(self.nodes[0].scantxoutset("start", ["combo(tprv8ZgxMBicQKsPd7Uf69XL1XwhmjHopUGep8GuEiJDZmbQz6o58LninorQAfcKZWARbtRtfnLcJ5MQ2AtHcQJCCRUcMRvmDUjyEmNUWwx8UbK/0h/0'/1500')"])['total_amount'], Decimal("0.032"))
@@ -96,20 +120,20 @@ class ScantxoutsetTest(BellscoinTestFramework):
         assert_equal(self.nodes[0].scantxoutset("start", [{"desc": "combo(tprv8ZgxMBicQKsPd7Uf69XL1XwhmjHopUGep8GuEiJDZmbQz6o58LninorQAfcKZWARbtRtfnLcJ5MQ2AtHcQJCCRUcMRvmDUjyEmNUWwx8UbK/0'/0h/*)", "range": 1500}])['total_amount'], Decimal("0.448"))
         assert_equal(self.nodes[0].scantxoutset("start", ["combo(tprv8ZgxMBicQKsPd7Uf69XL1XwhmjHopUGep8GuEiJDZmbQz6o58LninorQAfcKZWARbtRtfnLcJ5MQ2AtHcQJCCRUcMRvmDUjyEmNUWwx8UbK/1/1/0')"])['total_amount'], Decimal("0.512"))
         assert_equal(self.nodes[0].scantxoutset("start", ["combo(tprv8ZgxMBicQKsPd7Uf69XL1XwhmjHopUGep8GuEiJDZmbQz6o58LninorQAfcKZWARbtRtfnLcJ5MQ2AtHcQJCCRUcMRvmDUjyEmNUWwx8UbK/1/1/1')"])['total_amount'], Decimal("1.024"))
-        assert_equal(self.nodes[0].scantxoutset("start", ["combo(tprv8ZgxMBicQKsPd7Uf69XL1XwhmjHopUGep8GuEiJDZmbQz6o58LninorQAfcKZWARbtRtfnLcJ5MQ2AtHcQJCCRUcMRvmDUjyEmNUWwx8UbK/1/1/1500h)"])['total_amount'], Decimal("2.048"))
-        assert_equal(self.nodes[0].scantxoutset("start", ["combo(tprv8ZgxMBicQKsPd7Uf69XL1XwhmjHopUGep8GuEiJDZmbQz6o58LninorQAfcKZWARbtRtfnLcJ5MQ2AtHcQJCCRUcMRvmDUjyEmNUWwx8UbK/1/1/0)"])['total_amount'], Decimal("4.096"))
-        assert_equal(self.nodes[0].scantxoutset("start", ["combo(tprv8ZgxMBicQKsPd7Uf69XL1XwhmjHopUGep8GuEiJDZmbQz6o58LninorQAfcKZWARbtRtfnLcJ5MQ2AtHcQJCCRUcMRvmDUjyEmNUWwx8UbK/1/1/1)"])['total_amount'], Decimal("8.192"))
-        assert_equal(self.nodes[0].scantxoutset("start", ["combo(tprv8ZgxMBicQKsPd7Uf69XL1XwhmjHopUGep8GuEiJDZmbQz6o58LninorQAfcKZWARbtRtfnLcJ5MQ2AtHcQJCCRUcMRvmDUjyEmNUWwx8UbK/1/1/1500)"])['total_amount'], Decimal("16.384"))
-        assert_equal(self.nodes[0].scantxoutset("start", ["combo(tpubD6NzVbkrYhZ4WaWSyoBvQwbpLkojyoTZPRsgXELWz3Popb3qkjcJyJUGLnL4qHHoQvao8ESaAstxYSnhyswJ76uZPStJRJCTKvosUCJZL5B/1/1/0)"])['total_amount'], Decimal("4.096"))
-        assert_equal(self.nodes[0].scantxoutset("start", ["combo([abcdef88/1/2'/3/4h]tpubD6NzVbkrYhZ4WaWSyoBvQwbpLkojyoTZPRsgXELWz3Popb3qkjcJyJUGLnL4qHHoQvao8ESaAstxYSnhyswJ76uZPStJRJCTKvosUCJZL5B/1/1/1)"])['total_amount'], Decimal("8.192"))
-        assert_equal(self.nodes[0].scantxoutset("start", ["combo(tpubD6NzVbkrYhZ4WaWSyoBvQwbpLkojyoTZPRsgXELWz3Popb3qkjcJyJUGLnL4qHHoQvao8ESaAstxYSnhyswJ76uZPStJRJCTKvosUCJZL5B/1/1/1500)"])['total_amount'], Decimal("16.384"))
+        assert_equal(self.nodes[0].scantxoutset("start", ["combo(tprv8ZgxMBicQKsPd7Uf69XL1XwhmjHopUGep8GuEiJDZmbQz6o58LninorQAfcKZWARbtRtfnLcJ5MQ2AtHcQJCCRUcMRvmDUjyEmNUWwx8UbK/1/1/1500h)"])['total_amount'], expD("2.048"))
+        assert_equal(self.nodes[0].scantxoutset("start", ["combo(tprv8ZgxMBicQKsPd7Uf69XL1XwhmjHopUGep8GuEiJDZmbQz6o58LninorQAfcKZWARbtRtfnLcJ5MQ2AtHcQJCCRUcMRvmDUjyEmNUWwx8UbK/1/1/0)"])['total_amount'], expD("4.096"))
+        assert_equal(self.nodes[0].scantxoutset("start", ["combo(tprv8ZgxMBicQKsPd7Uf69XL1XwhmjHopUGep8GuEiJDZmbQz6o58LninorQAfcKZWARbtRtfnLcJ5MQ2AtHcQJCCRUcMRvmDUjyEmNUWwx8UbK/1/1/1)"])['total_amount'], expD("8.192"))
+        assert_equal(self.nodes[0].scantxoutset("start", ["combo(tprv8ZgxMBicQKsPd7Uf69XL1XwhmjHopUGep8GuEiJDZmbQz6o58LninorQAfcKZWARbtRtfnLcJ5MQ2AtHcQJCCRUcMRvmDUjyEmNUWwx8UbK/1/1/1500)"])['total_amount'], expD("16.384"))
+        assert_equal(self.nodes[0].scantxoutset("start", ["combo(tpubD6NzVbkrYhZ4WaWSyoBvQwbpLkojyoTZPRsgXELWz3Popb3qkjcJyJUGLnL4qHHoQvao8ESaAstxYSnhyswJ76uZPStJRJCTKvosUCJZL5B/1/1/0)"])['total_amount'], expD("4.096"))
+        assert_equal(self.nodes[0].scantxoutset("start", ["combo([abcdef88/1/2'/3/4h]tpubD6NzVbkrYhZ4WaWSyoBvQwbpLkojyoTZPRsgXELWz3Popb3qkjcJyJUGLnL4qHHoQvao8ESaAstxYSnhyswJ76uZPStJRJCTKvosUCJZL5B/1/1/1)"])['total_amount'], expD("8.192"))
+        assert_equal(self.nodes[0].scantxoutset("start", ["combo(tpubD6NzVbkrYhZ4WaWSyoBvQwbpLkojyoTZPRsgXELWz3Popb3qkjcJyJUGLnL4qHHoQvao8ESaAstxYSnhyswJ76uZPStJRJCTKvosUCJZL5B/1/1/1500)"])['total_amount'], expD("16.384"))
         assert_equal(self.nodes[0].scantxoutset("start", [{"desc": "combo(tprv8ZgxMBicQKsPd7Uf69XL1XwhmjHopUGep8GuEiJDZmbQz6o58LninorQAfcKZWARbtRtfnLcJ5MQ2AtHcQJCCRUcMRvmDUjyEmNUWwx8UbK/1/1/*')", "range": 1499}])['total_amount'], Decimal("1.536"))
-        assert_equal(self.nodes[0].scantxoutset("start", [{"desc": "combo(tprv8ZgxMBicQKsPd7Uf69XL1XwhmjHopUGep8GuEiJDZmbQz6o58LninorQAfcKZWARbtRtfnLcJ5MQ2AtHcQJCCRUcMRvmDUjyEmNUWwx8UbK/1/1/*')", "range": 1500}])['total_amount'], Decimal("3.584"))
-        assert_equal(self.nodes[0].scantxoutset("start", [{"desc": "combo(tprv8ZgxMBicQKsPd7Uf69XL1XwhmjHopUGep8GuEiJDZmbQz6o58LninorQAfcKZWARbtRtfnLcJ5MQ2AtHcQJCCRUcMRvmDUjyEmNUWwx8UbK/1/1/*)", "range": 1499}])['total_amount'], Decimal("12.288"))
-        assert_equal(self.nodes[0].scantxoutset("start", [{"desc": "combo(tprv8ZgxMBicQKsPd7Uf69XL1XwhmjHopUGep8GuEiJDZmbQz6o58LninorQAfcKZWARbtRtfnLcJ5MQ2AtHcQJCCRUcMRvmDUjyEmNUWwx8UbK/1/1/*)", "range": 1500}])['total_amount'], Decimal("28.672"))
-        assert_equal(self.nodes[0].scantxoutset("start", [{"desc": "combo(tpubD6NzVbkrYhZ4WaWSyoBvQwbpLkojyoTZPRsgXELWz3Popb3qkjcJyJUGLnL4qHHoQvao8ESaAstxYSnhyswJ76uZPStJRJCTKvosUCJZL5B/1/1/*)", "range": 1499}])['total_amount'], Decimal("12.288"))
-        assert_equal(self.nodes[0].scantxoutset("start", [{"desc": "combo(tpubD6NzVbkrYhZ4WaWSyoBvQwbpLkojyoTZPRsgXELWz3Popb3qkjcJyJUGLnL4qHHoQvao8ESaAstxYSnhyswJ76uZPStJRJCTKvosUCJZL5B/1/1/*)", "range": 1500}])['total_amount'], Decimal("28.672"))
-        assert_equal(self.nodes[0].scantxoutset("start", [{"desc": "combo(tpubD6NzVbkrYhZ4WaWSyoBvQwbpLkojyoTZPRsgXELWz3Popb3qkjcJyJUGLnL4qHHoQvao8ESaAstxYSnhyswJ76uZPStJRJCTKvosUCJZL5B/1/1/*)", "range": [1500, 1500]}])['total_amount'], Decimal("16.384"))
+        assert_equal(self.nodes[0].scantxoutset("start", [{"desc": "combo(tprv8ZgxMBicQKsPd7Uf69XL1XwhmjHopUGep8GuEiJDZmbQz6o58LninorQAfcKZWARbtRtfnLcJ5MQ2AtHcQJCCRUcMRvmDUjyEmNUWwx8UbK/1/1/*')", "range": 1500}])['total_amount'], (Decimal("1.536") + expD("2.048")))
+        assert_equal(self.nodes[0].scantxoutset("start", [{"desc": "combo(tprv8ZgxMBicQKsPd7Uf69XL1XwhmjHopUGep8GuEiJDZmbQz6o58LninorQAfcKZWARbtRtfnLcJ5MQ2AtHcQJCCRUcMRvmDUjyEmNUWwx8UbK/1/1/*)", "range": 1499}])['total_amount'], (expD("4.096") + expD("8.192")))
+        assert_equal(self.nodes[0].scantxoutset("start", [{"desc": "combo(tprv8ZgxMBicQKsPd7Uf69XL1XwhmjHopUGep8GuEiJDZmbQz6o58LninorQAfcKZWARbtRtfnLcJ5MQ2AtHcQJCCRUcMRvmDUjyEmNUWwx8UbK/1/1/*)", "range": 1500}])['total_amount'], (expD("4.096") + expD("8.192") + expD("16.384")))
+        assert_equal(self.nodes[0].scantxoutset("start", [{"desc": "combo(tpubD6NzVbkrYhZ4WaWSyoBvQwbpLkojyoTZPRsgXELWz3Popb3qkjcJyJUGLnL4qHHoQvao8ESaAstxYSnhyswJ76uZPStJRJCTKvosUCJZL5B/1/1/*)", "range": 1499}])['total_amount'], (expD("4.096") + expD("8.192")))
+        assert_equal(self.nodes[0].scantxoutset("start", [{"desc": "combo(tpubD6NzVbkrYhZ4WaWSyoBvQwbpLkojyoTZPRsgXELWz3Popb3qkjcJyJUGLnL4qHHoQvao8ESaAstxYSnhyswJ76uZPStJRJCTKvosUCJZL5B/1/1/*)", "range": 1500}])['total_amount'], (expD("4.096") + expD("8.192") + expD("16.384")))
+        assert_equal(self.nodes[0].scantxoutset("start", [{"desc": "combo(tpubD6NzVbkrYhZ4WaWSyoBvQwbpLkojyoTZPRsgXELWz3Popb3qkjcJyJUGLnL4qHHoQvao8ESaAstxYSnhyswJ76uZPStJRJCTKvosUCJZL5B/1/1/*)", "range": [1500, 1500]}])['total_amount'], expD("16.384"))
 
         # Test the reported descriptors for a few matches
         assert_equal(descriptors(self.nodes[0].scantxoutset("start", [{"desc": "combo(tprv8ZgxMBicQKsPd7Uf69XL1XwhmjHopUGep8GuEiJDZmbQz6o58LninorQAfcKZWARbtRtfnLcJ5MQ2AtHcQJCCRUcMRvmDUjyEmNUWwx8UbK/0h/0h/*)", "range": 1499}])), ["pkh([0c5f9a1e/0h/0h/0]026dbd8b2315f296d36e6b6920b1579ca75569464875c7ebe869b536a7d9503c8c)#rthll0rg", "pkh([0c5f9a1e/0h/0h/1]033e6f25d76c00bedb3a8993c7d5739ee806397f0529b1b31dda31ef890f19a60c)#mcjajulr"])

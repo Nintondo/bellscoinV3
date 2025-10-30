@@ -16,6 +16,7 @@ import time
 
 from test_framework.authproxy import JSONRPCException
 from test_framework.blocktools import COINBASE_MATURITY
+from test_framework.messages import COIN
 from test_framework.test_framework import BellscoinTestFramework
 from test_framework.test_node import ErrorMatch
 from test_framework.util import (
@@ -197,7 +198,10 @@ class MultiWalletTest(BellscoinTestFramework):
         assert_equal(set(node.listwallets()), {"w4", "w5"})
         w5 = wallet("w5")
         w5_info = w5.getwalletinfo()
-        assert_equal(w5_info['immature_balance'], 50)
+        # The subsidy is chain-dependent; derive it from the last mined block height (avoid CLI string arg issues)
+        last_height = self.nodes[0].getblockcount()
+        last_subsidy = Decimal(self.nodes[0].getblockstats(last_height)["subsidy"]) / Decimal(COIN)
+        assert_equal(w5_info['immature_balance'], last_subsidy)
 
         competing_wallet_dir = os.path.join(self.options.tmpdir, 'competing_walletdir')
         os.mkdir(competing_wallet_dir)
@@ -220,9 +224,13 @@ class MultiWalletTest(BellscoinTestFramework):
 
         # check wallet names and balances
         self.generatetoaddress(node, nblocks=1, address=wallets[0].getnewaddress(), sync_fun=self.no_op)
+        # Record the subsidy of the just-mined block for later maturity checks (use height to be CLI-friendly)
+        w1_first_height = self.nodes[0].getblockcount()
+        w1_first_subsidy = Decimal(self.nodes[0].getblockstats(w1_first_height)["subsidy"]) / Decimal(COIN)
         for wallet_name, wallet in zip(wallet_names, wallets):
             info = wallet.getwalletinfo()
-            assert_equal(info['immature_balance'], 50 if wallet is wallets[0] else 0)
+            expected_immature = w1_first_subsidy if wallet is wallets[0] else Decimal("0")
+            assert_equal(info['immature_balance'], expected_immature)
             assert_equal(info['walletname'], wallet_name)
 
         # accessing invalid wallet fails
@@ -233,18 +241,29 @@ class MultiWalletTest(BellscoinTestFramework):
 
         w1, w2, w3, w4, *_ = wallets
         self.generatetoaddress(node, nblocks=COINBASE_MATURITY + 1, address=w1.getnewaddress(), sync_fun=self.no_op)
-        assert_equal(w1.getbalance(), 100)
+        # After COINBASE_MATURITY+1 blocks mined to w1, two coinbases should be mature:
+        # 1) the single block mined earlier to w1, and
+        # 2) the earliest block from the just-mined batch (at height best-COINBASE_MATURITY).
+        best_height = self.nodes[0].getblockcount()
+        earliest_matured_height = best_height - COINBASE_MATURITY
+        earliest_matured_subsidy = Decimal(self.nodes[0].getblockstats(earliest_matured_height)["subsidy"]) / Decimal(COIN)
+        assert_equal(w1.getbalance(), w1_first_subsidy + earliest_matured_subsidy)
         assert_equal(w2.getbalance(), 0)
         assert_equal(w3.getbalance(), 0)
         assert_equal(w4.getbalance(), 0)
 
-        w1.sendtoaddress(w2.getnewaddress(), 1)
-        w1.sendtoaddress(w3.getnewaddress(), 2)
-        w1.sendtoaddress(w4.getnewaddress(), 3)
+        # Choose send amounts based on available matured balance to avoid chain-specific subsidy assumptions
+        matured_total = w1.getbalance()
+        send1 = (matured_total / Decimal(7)).quantize(Decimal("0.00000001"))
+        send2 = (matured_total / Decimal(7)).quantize(Decimal("0.00000001"))
+        send3 = (matured_total / Decimal(7)).quantize(Decimal("0.00000001"))
+        w1.sendtoaddress(w2.getnewaddress(), send1)
+        w1.sendtoaddress(w3.getnewaddress(), send2)
+        w1.sendtoaddress(w4.getnewaddress(), send3)
         self.generatetoaddress(node, nblocks=1, address=w1.getnewaddress(), sync_fun=self.no_op)
-        assert_equal(w2.getbalance(), 1)
-        assert_equal(w3.getbalance(), 2)
-        assert_equal(w4.getbalance(), 3)
+        assert_equal(w2.getbalance(), send1)
+        assert_equal(w3.getbalance(), send2)
+        assert_equal(w4.getbalance(), send3)
 
         batch = w1.batch([w1.getblockchaininfo.get_request(), w1.getwalletinfo.get_request()])
         assert_equal(batch[0]["result"]["chain"], self.chain)

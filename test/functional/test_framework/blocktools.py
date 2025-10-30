@@ -17,16 +17,20 @@ from .address import (
 )
 from .messages import (
     CBlock,
+    CBlockHeader,
+    CAuxPow,
     COIN,
     COutPoint,
     CTransaction,
     CTxIn,
     CTxInWitness,
     CTxOut,
+    CHAIN_ID,
     SEQUENCE_FINAL,
     hash256,
     ser_uint256,
     tx_from_hex,
+    uint256_from_compact,
     uint256_from_str,
     WITNESS_SCALE_FACTOR,
 )
@@ -51,12 +55,12 @@ MAX_BLOCK_SIGOPS_WEIGHT = MAX_BLOCK_SIGOPS * WITNESS_SCALE_FACTOR
 MAX_STANDARD_TX_WEIGHT = 400000
 
 # Genesis block time (regtest)
-TIME_GENESIS_BLOCK = 1296688602
+TIME_GENESIS_BLOCK = 1383509530
 
 MAX_FUTURE_BLOCK_TIME = 2 * 60 * 60
 
 # Coinbase transaction outputs can only be spent after this number of new blocks (network rule)
-COINBASE_MATURITY = 100
+COINBASE_MATURITY = 30
 
 # From BIP141
 WITNESS_COMMITMENT_HEADER = b"\xaa\x21\xa9\xed"
@@ -66,7 +70,7 @@ VERSIONBITS_LAST_OLD_BLOCK_VERSION = 4
 MIN_BLOCKS_TO_KEEP = 288
 
 
-def create_block(hashprev=None, coinbase=None, ntime=None, *, version=None, tmpl=None, txlist=None):
+def create_block(hashprev=None, coinbase=None, ntime=None, *, version=None, tmpl=None, txlist=None, use_auxpow=False, chain_id=CHAIN_ID):
     """Create a block (with regtest difficulty)."""
     block = CBlock()
     if tmpl is None:
@@ -87,8 +91,56 @@ def create_block(hashprev=None, coinbase=None, ntime=None, *, version=None, tmpl
                 tx = tx_from_hex(tx)
             block.vtx.append(tx)
     block.hashMerkleRoot = block.calc_merkle_root()
-    block.calc_sha256()
+    if use_auxpow:
+        _apply_auxpow(block, chain_id)
+    else:
+        block.solve()
     return block
+
+
+def _apply_auxpow(block, chain_id):
+    block.set_auxpow_version(True, chain_id)
+    block.rehash()
+    target_int = uint256_from_compact(block.nBits)
+
+    block_hash_be = bytes.fromhex(block.hash)
+    merged_mining_header = b"\xfa\xbe" + b"m" * 2
+    aux_payload = merged_mining_header + block_hash_be + b"\x01" + b"\x00" * 7
+
+    coinbase_tx = CTransaction()
+    vin = CTxIn()
+    vin.prevout = COutPoint(0, 0xffffffff)
+    vin.scriptSig = CScript([aux_payload])
+    vin.nSequence = 0xffffffff
+    coinbase_tx.vin = [vin]
+    coinbase_tx.vout = []
+    coinbase_tx.calc_sha256()
+
+    auxpow_obj = CAuxPow()
+    auxpow_obj.coinbase_tx = coinbase_tx
+    auxpow_obj.vMerkleBranch = []
+    auxpow_obj.vChainMerkleBranch = []
+    auxpow_obj.nChainIndex = 0
+
+    parent = CBlockHeader()
+    parent.set_null()
+    parent.nVersion = 1
+    parent.hashPrevBlock = 0
+    parent.hashMerkleRoot = coinbase_tx.sha256
+    parent.nTime = 0
+    parent.nBits = 0
+    parent.nNonce = 0
+
+    while True:
+        parent.rehash()
+        if parent.scrypt256 <= target_int:
+            break
+        parent.nNonce = (parent.nNonce + 1) & 0xffffffff
+        if parent.nNonce == 0:
+            parent.nTime += 1
+
+    auxpow_obj.parent_block = parent
+    block.auxpow = auxpow_obj
 
 def get_witness_script(witness_root, witness_nonce):
     witness_commitment = uint256_from_str(hash256(ser_uint256(witness_root) + ser_uint256(witness_nonce)))
@@ -123,7 +175,7 @@ def script_BIP34_coinbase_height(height):
     return CScript([CScriptNum(height)])
 
 
-def create_coinbase(height, pubkey=None, *, script_pubkey=None, extra_output_script=None, fees=0, nValue=50):
+def create_coinbase(height, pubkey=None, *, script_pubkey=None, extra_output_script=None, fees=0, nValue=2):
     """Create a coinbase transaction.
 
     If pubkey is passed in, the coinbase output will be a P2PK output;
@@ -135,10 +187,7 @@ def create_coinbase(height, pubkey=None, *, script_pubkey=None, extra_output_scr
     coinbase.vin.append(CTxIn(COutPoint(0, 0xffffffff), script_BIP34_coinbase_height(height), SEQUENCE_FINAL))
     coinbaseoutput = CTxOut()
     coinbaseoutput.nValue = nValue * COIN
-    if nValue == 50:
-        halvings = int(height / 150)  # regtest
-        coinbaseoutput.nValue >>= halvings
-        coinbaseoutput.nValue += fees
+    coinbaseoutput.nValue += fees
     if pubkey is not None:
         coinbaseoutput.scriptPubKey = key_to_p2pk_script(pubkey)
     elif script_pubkey is not None:

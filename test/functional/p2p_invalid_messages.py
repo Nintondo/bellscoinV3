@@ -21,6 +21,7 @@ from test_framework.messages import (
     msg_ping,
     msg_version,
     ser_string,
+    uint256_from_compact,
 )
 from test_framework.p2p import (
     P2PDataStore,
@@ -31,7 +32,13 @@ from test_framework.util import (
     assert_equal,
 )
 
-VALID_DATA_LIMIT = MAX_PROTOCOL_MESSAGE_LENGTH - 5  # Account for the 5-byte length prefix
+# The C++ MAX_SIZE limit still applies to payloads even if the protocol length
+# constant is larger.
+MAX_MESSAGE_PAYLOAD = min(MAX_PROTOCOL_MESSAGE_LENGTH, 0x02000000)
+VALID_DATA_LIMIT = MAX_MESSAGE_PAYLOAD - 5  # Account for the 5-byte length prefix
+RESOURCE_MSG_SERIALIZED_LIMIT = min(MAX_MESSAGE_PAYLOAD, 4_000_000)
+RESOURCE_DATA_LIMIT = RESOURCE_MSG_SERIALIZED_LIMIT - 5
+V2_PACKET_OVERHEAD = 1 + 12  # long type prefix + command string
 
 
 class msg_unrecognized:
@@ -142,9 +149,10 @@ class InvalidMessagesTest(BellscoinTestFramework):
     def test_size(self):
         self.log.info("Test message with oversized payload disconnects peer")
         conn = self.nodes[0].add_p2p_connection(P2PDataStore())
+        oversized_payload_len = MAX_MESSAGE_PAYLOAD + 1
         error_msg = (
-            ['V2 transport error: packet too large (4000014 bytes)'] if self.options.v2transport
-            else ['Header error: Size too large (badmsg, 4000001 bytes)']
+            [f'V2 transport error: packet too large ({oversized_payload_len + V2_PACKET_OVERHEAD} bytes)'] if self.options.v2transport
+            else [f'Header error: Size too large (badmsg, {oversized_payload_len} bytes)']
         )
         with self.nodes[0].assert_debug_log(error_msg):
             msg = msg_unrecognized(str_data="d" * (VALID_DATA_LIMIT + 1))
@@ -289,7 +297,8 @@ class InvalidMessagesTest(BellscoinTestFramework):
         blockheader.nTime = int(time.time())
         blockheader.nBits = blockheader_tip.nBits
         blockheader.rehash()
-        while not blockheader.hash.startswith('0'):
+        target = uint256_from_compact(blockheader.nBits)
+        while blockheader.scrypt256 > target:
             blockheader.nNonce += 1
             blockheader.rehash()
         peer = self.nodes[0].add_p2p_connection(P2PInterface())
@@ -299,12 +308,15 @@ class InvalidMessagesTest(BellscoinTestFramework):
         assert_equal(chaintips[0]['status'], 'headers-only')
         assert_equal(chaintips[0]['hash'], blockheader.hash)
 
-        # invalidate PoW
-        while not blockheader.hash.startswith('f'):
-            blockheader.nNonce += 1
-            blockheader.rehash()
+        # Invalidate PoW by choosing a nonce that produces a hash above target.
+        bad_header = CBlockHeader(blockheader)
+        bad_header.nNonce += 1
+        bad_header.rehash()
+        while bad_header.scrypt256 <= target:
+            bad_header.nNonce += 1
+            bad_header.rehash()
         with self.nodes[0].assert_debug_log(['Misbehaving', 'header with invalid proof of work']):
-            peer.send_message(msg_headers([blockheader]))
+            peer.send_message(msg_headers([bad_header]))
             peer.wait_for_disconnect()
 
     def test_noncontinuous_headers_msg(self):
@@ -333,10 +345,11 @@ class InvalidMessagesTest(BellscoinTestFramework):
         # the large messages
         conn = self.nodes[0].add_p2p_connection(P2PDataStore(), supports_v2_p2p=False)
         conn2 = self.nodes[0].add_p2p_connection(P2PDataStore(), supports_v2_p2p=False)
-        msg_at_size = msg_unrecognized(str_data="b" * VALID_DATA_LIMIT)
-        assert len(msg_at_size.serialize()) == MAX_PROTOCOL_MESSAGE_LENGTH
+        msg_at_size = msg_unrecognized(str_data="b" * RESOURCE_DATA_LIMIT)
+        assert len(msg_at_size.serialize()) == RESOURCE_MSG_SERIALIZED_LIMIT
 
-        self.log.info("(a) Send 80 messages, each of maximum valid data size (4MB)")
+        human_size_mb = RESOURCE_MSG_SERIALIZED_LIMIT / (1024 * 1024)
+        self.log.info(f"(a) Send 80 messages, each of size {human_size_mb:.2f} MB")
         for _ in range(80):
             conn.send_message(msg_at_size)
 

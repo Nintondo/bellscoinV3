@@ -182,7 +182,7 @@ class MempoolCoinbaseTest(BellscoinTestFramework):
         assert_equal(set(self.nodes[0].getrawmempool()), {spend_1_id, spend_2_1_id, spend_3_1_id})
 
         self.log.info("Use invalidateblock to re-org back and make all those coinbase spends immature/invalid")
-        b = self.nodes[0].getblockhash(first_block + 100)
+        b = self.nodes[0].getblockhash(first_block + 30)
         for node in self.nodes:
             node.invalidateblock(b)
 

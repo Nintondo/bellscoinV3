@@ -75,7 +75,8 @@ class AuxpowInvalidPoWTest (BellscoinTestFramework):
     time = bestBlock["time"] + 1
 
     block = create_block (tip, create_coinbase (height), time)
-    block.mark_auxpow ()
+    # Mark block as auxpow by setting the auxpow version flag
+    block.set_auxpow_version(True)
     block.rehash ()
     newHash = "%064x" % block.sha256
 
@@ -96,4 +97,4 @@ class AuxpowInvalidPoWTest (BellscoinTestFramework):
     return block
 
 if __name__ == '__main__':
-  AuxpowInvalidPoWTest ().main ()
+  AuxpowInvalidPoWTest(__file__).main()

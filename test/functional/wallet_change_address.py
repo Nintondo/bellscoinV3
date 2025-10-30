@@ -51,7 +51,7 @@ class WalletChangeAddressTest(BellscoinTestFramework):
     def run_test(self):
         self.log.info("Setting up")
         # Mine some coins
-        self.generate(self.nodes[0], COINBASE_MATURITY + 1)
+        self.generate(self.nodes[0], COINBASE_MATURITY + 100)
 
         # Get some addresses from the two nodes
         addr1 = [self.nodes[1].getnewaddress() for _ in range(3)]

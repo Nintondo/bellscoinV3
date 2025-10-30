@@ -24,7 +24,9 @@ import time
 # COINBASE_MATURITY (100) blocks. Therefore, after mining 101 blocks we expect
 # node 0 to have a balance of (BLOCKS - COINBASE_MATURITY) * 50 BTC/block.
 BLOCKS = COINBASE_MATURITY + 1
-BALANCE = (BLOCKS - 100) * 50
+# Upstream assumes maturity=100 and subsidy=50 BTC. Bells regtest uses COINBASE_MATURITY=30
+# and an initial block subsidy defined by consensus (2 BEL for early blocks). Compute the
+# expected balance dynamically in run_test based on the actual subsidy at height 1.
 
 JSON_PARSING_ERROR = 'error: Error parsing JSON: foo'
 BLOCKS_VALUE_OF_ZERO = 'error: the first argument (number of blocks to generate, default: 1) must be an integer value greater than zero'
@@ -81,6 +83,12 @@ class TestBitcoinCli(BellscoinTestFramework):
     def run_test(self):
         """Main test logic"""
         self.generate(self.nodes[0], BLOCKS)
+
+        # Compute expected balance dynamically: matured blocks times the actual
+        # chain subsidy at height 1. getblockstats returns satoshis.
+        subsidy_sats = self.nodes[0].getblockstats(1)['subsidy']
+        first_subsidy = Decimal(subsidy_sats) / Decimal(1e8)
+        expected_balance = Decimal(BLOCKS - COINBASE_MATURITY) * first_subsidy
 
         self.log.info("Compare responses from getblockchaininfo RPC and `bitcoin-cli getblockchaininfo`")
         cli_response = self.nodes[0].cli.getblockchaininfo()
@@ -203,18 +211,20 @@ class TestBitcoinCli(BellscoinTestFramework):
             # Explicitly set the output type in order to have consistent tx vsize / fees
             # for both legacy and descriptor wallets (disables the change address type detection algorithm)
             self.restart_node(0, extra_args=["-addresstype=bech32", "-changetype=bech32"])
-            assert_equal(Decimal(cli_get_info['Balance']), BALANCE)
+            assert_equal(Decimal(cli_get_info['Balance']), expected_balance)
             assert 'Balances' not in cli_get_info_string
             wallet_info = self.nodes[0].getwalletinfo()
             assert_equal(int(cli_get_info['Keypool size']), wallet_info['keypoolsize'])
             assert_equal(int(cli_get_info['Unlocked until']), wallet_info['unlocked_until'])
-            assert_equal(Decimal(cli_get_info['Transaction fee rate (-paytxfee) (BTC/kvB)']), wallet_info['paytxfee'])
-            assert_equal(Decimal(cli_get_info['Min tx relay fee rate (BTC/kvB)']), network_info['relayfee'])
+            assert_equal(Decimal(cli_get_info['Transaction fee rate (-paytxfee) (BEL/kvB)']), wallet_info['paytxfee'])
+            assert_equal(Decimal(cli_get_info['Min tx relay fee rate (BEL/kvB)']), network_info['relayfee'])
             assert_equal(self.nodes[0].cli.getwalletinfo(), wallet_info)
 
             # Setup to test -getinfo, -generate, and -rpcwallet= with multiple wallets.
             wallets = [self.default_wallet_name, 'Encrypted', 'secret']
-            amounts = [BALANCE + Decimal('9.999928'), Decimal(9), Decimal(31)]
+            # Choose send amounts that fit within the matured balance on Bells regtest.
+            send1 = min(Decimal('0.9'), expected_balance / Decimal(2))
+            send2 = min(Decimal('1.1'), expected_balance / Decimal(2))
             self.nodes[0].createwallet(wallet_name=wallets[1])
             self.nodes[0].createwallet(wallet_name=wallets[2])
             w1 = self.nodes[0].get_wallet_rpc(wallets[0])
@@ -224,19 +234,25 @@ class TestBitcoinCli(BellscoinTestFramework):
             rpcwallet3 = f'-rpcwallet={wallets[2]}'
             w1.walletpassphrase(password, self.rpc_timeout)
             w2.encryptwallet(password)
-            w1.sendtoaddress(w2.getnewaddress(), amounts[1])
-            w1.sendtoaddress(w3.getnewaddress(), amounts[2])
+            w1.sendtoaddress(w2.getnewaddress(), send1)
+            w1.sendtoaddress(w3.getnewaddress(), send2)
 
             # Mine a block to confirm; adds a block reward (50 BTC) to the default wallet.
             self.generate(self.nodes[0], 1)
 
             self.log.info("Test -getinfo with multiple wallets and -rpcwallet returns specified wallet balance")
+            # Compute expected balances after confirmation
+            expected_default_after = w1.getbalance()
+            expected_w2_after = send1
+            expected_w3_after = send2
+            expected_amounts = [expected_default_after, expected_w2_after, expected_w3_after]
+
             for i in range(len(wallets)):
                 cli_get_info_string = self.nodes[0].cli('-getinfo', f'-rpcwallet={wallets[i]}').send_cli()
                 cli_get_info = cli_get_info_string_to_dict(cli_get_info_string)
                 assert 'Balances' not in cli_get_info_string
                 assert_equal(cli_get_info["Wallet"], wallets[i])
-                assert_equal(Decimal(cli_get_info['Balance']), amounts[i])
+                assert_equal(Decimal(cli_get_info['Balance']), expected_amounts[i])
 
             self.log.info("Test -getinfo with multiple wallets and -rpcwallet=non-existing-wallet returns no balances")
             cli_get_info_string = self.nodes[0].cli('-getinfo', '-rpcwallet=does-not-exist').send_cli()
@@ -248,7 +264,7 @@ class TestBitcoinCli(BellscoinTestFramework):
             cli_get_info_string = self.nodes[0].cli('-getinfo').send_cli()
             cli_get_info = cli_get_info_string_to_dict(cli_get_info_string)
             assert 'Balance' not in cli_get_info
-            for k, v in zip(wallets, amounts):
+            for k, v in zip(wallets, expected_amounts):
                 assert_equal(Decimal(cli_get_info['Balances'][k]), v)
 
             # Unload the default wallet and re-verify.
@@ -258,7 +274,7 @@ class TestBitcoinCli(BellscoinTestFramework):
             cli_get_info = cli_get_info_string_to_dict(cli_get_info_string)
             assert 'Balance' not in cli_get_info
             assert 'Balances' in cli_get_info_string
-            for k, v in zip(wallets[1:], amounts[1:]):
+            for k, v in zip(wallets[1:], expected_amounts[1:]):
                 assert_equal(Decimal(cli_get_info['Balances'][k]), v)
             assert wallets[0] not in cli_get_info
 
@@ -269,14 +285,14 @@ class TestBitcoinCli(BellscoinTestFramework):
             cli_get_info = cli_get_info_string_to_dict(cli_get_info_string)
             assert 'Balances' not in cli_get_info_string
             assert_equal(cli_get_info['Wallet'], wallets[1])
-            assert_equal(Decimal(cli_get_info['Balance']), amounts[1])
+            assert_equal(Decimal(cli_get_info['Balance']), expected_amounts[1])
 
             self.log.info("Test -getinfo with -rpcwallet=remaining-non-default-wallet returns only its balance")
             cli_get_info_string = self.nodes[0].cli('-getinfo', rpcwallet2).send_cli()
             cli_get_info = cli_get_info_string_to_dict(cli_get_info_string)
             assert 'Balances' not in cli_get_info_string
             assert_equal(cli_get_info['Wallet'], wallets[1])
-            assert_equal(Decimal(cli_get_info['Balance']), amounts[1])
+            assert_equal(Decimal(cli_get_info['Balance']), expected_amounts[1])
 
             self.log.info("Test -getinfo with -rpcwallet=unloaded wallet returns no balances")
             cli_get_info_string = self.nodes[0].cli('-getinfo', rpcwallet3).send_cli()

@@ -25,6 +25,7 @@ from io import BytesIO
 import math
 import random
 import socket
+import struct
 import time
 import unittest
 import ltc_scrypt
@@ -43,7 +44,7 @@ MAX_MONEY = 92000000 * COIN
 MAX_BIP125_RBF_SEQUENCE = 0xfffffffd  # Sequence number that is rbf-opt-in (BIP 125) and csv-opt-out (BIP 68)
 SEQUENCE_FINAL = 0xffffffff  # Sequence number that disables nLockTime if set for every input of a tx
 
-MAX_PROTOCOL_MESSAGE_LENGTH = 4000000  # Maximum length of incoming protocol messages
+MAX_PROTOCOL_MESSAGE_LENGTH = 4 * 1024 * 1024  # Matches CMessageHeader::MaxPayloadLength()
 MAX_HEADERS_RESULTS = 2000  # Number of headers sent in one getheaders result
 MAX_INV_SIZE = 50000  # Maximum number of entries in an 'inv' protocol message
 
@@ -69,6 +70,7 @@ VERSION_AUXPOW = (1 << 8)
 VERSION_START_BIT = 16
 VERSION_CHAIN_START = (1 << VERSION_START_BIT)
 VERSIONAUXPOW_TOP_MASK = (1 << 28) + (1 << 29) + (1 << 30)
+MASK_AUXPOW_CHAINID_SHIFTED = 0x001f << VERSION_START_BIT
 CHAIN_ID = 16
 
 FILTER_TYPE_BASIC = 0
@@ -83,10 +85,11 @@ MAX_OP_RETURN_RELAY = 100_000
 DEFAULT_MEMPOOL_EXPIRY_HOURS = 336  # hours
 
 MAGIC_BYTES = {
-    "mainnet": b"\xf9\xbe\xb4\xd9",   # mainnet
-    "testnet3": b"\x0b\x11\x09\x07",  # testnet3
-    "regtest": b"\xfa\xbf\xb5\xda",   # regtest
-    "signet": b"\x0a\x03\xcf\x40",    # signet
+    "mainnet": b"\xc0\xc0\xc0\xc0",   # Bells mainnet
+    "testnet": b"\xc3\xc3\xc3\xc3",   # Bells testnet
+    "regtest": b"\xfa\xbf\xb5\xda",   # Regtest (unchanged)
+    "signet": b"\x0a\x03\xcf\x40",    # Signet default (may be overridden per challenge)
+    "testnet3": b"\x0b\x11\x09\x07",  # Legacy Bitcoin testnet (for compatibility)
 }
 
 def sha256(s):
@@ -580,7 +583,7 @@ class CTransaction:
             self.sha256 = None
             self.hash = None
         else:
-            self.version = tx.nVersion
+            self.version = tx.version
             self.vin = copy.deepcopy(tx.vin)
             self.vout = copy.deepcopy(tx.vout)
             self.nLockTime = tx.nLockTime
@@ -648,6 +651,20 @@ class CTransaction:
 
     def getwtxid(self):
         return hash256(self.serialize())[::-1].hex()
+    
+    def get_standard_template_hash(self, nIn):
+        r = b""
+        r += self.version.to_bytes(4, "little", signed=True)
+        r += self.nLockTime.to_bytes(4, "little")
+        if any(inp.scriptSig for inp in self.vin):
+            r += sha256(b"".join(ser_string(inp.scriptSig) for inp in self.vin))
+        r += len(self.vin).to_bytes(4, "little")
+        r += sha256(b"".join(inp.nSequence.to_bytes(4, "little") for inp in self.vin))
+        r += len(self.vout).to_bytes(4, "little")
+        r += sha256(b"".join(out.serialize() for out in self.vout))
+        r += nIn.to_bytes(4, "little")
+        return sha256(r)
+    
 
     # Recalculate the txid (transaction hash without witness)
     def rehash(self):
@@ -687,10 +704,52 @@ class CTransaction:
         return "CTransaction(version=%i vin=%s vout=%s wit=%s nLockTime=%i)" \
             % (self.version, repr(self.vin), repr(self.vout), repr(self.wit), self.nLockTime)
 
+    # Provide compatibility with legacy attribute name
+    @property
+    def nVersion(self):
+        return self.version
+
+    @nVersion.setter
+    def nVersion(self, value):
+        self.version = value
+
+
+class CAuxPow:
+    __slots__ = ("coinbase_tx", "vMerkleBranch", "vChainMerkleBranch", "nChainIndex", "parent_block")
+
+    def __init__(self):
+        self.coinbase_tx = CTransaction()
+        self.vMerkleBranch = []
+        self.vChainMerkleBranch = []
+        self.nChainIndex = 0
+        self.parent_block = CBlockHeader()
+
+    def serialize(self):
+        r = b""
+        r += self.coinbase_tx.serialize()
+        r += ser_uint256(0)
+        r += ser_uint256_vector(self.vMerkleBranch)
+        r += struct.pack("<i", 0)
+        r += ser_uint256_vector(self.vChainMerkleBranch)
+        r += struct.pack("<i", self.nChainIndex)
+        r += self.parent_block.serialize()
+        return r
+
+    def deserialize(self, f):
+        self.coinbase_tx = CTransaction()
+        self.coinbase_tx.deserialize(f)
+        _hash_block = deser_uint256(f)
+        self.vMerkleBranch = deser_uint256_vector(f)
+        _n_index = struct.unpack("<i", f.read(4))[0]
+        self.vChainMerkleBranch = deser_uint256_vector(f)
+        self.nChainIndex = struct.unpack("<i", f.read(4))[0]
+        self.parent_block = CBlockHeader()
+        self.parent_block.deserialize(f)
+
 
 class CBlockHeader:
     __slots__ = ("hash", "hashMerkleRoot", "hashPrevBlock", "nBits", "nNonce",
-                 "nTime", "nVersion", "sha256", "scrypt256")
+                 "nTime", "nVersion", "sha256", "scrypt256", "auxpow")
 
     def __init__(self, header=None):
         if header is None:
@@ -705,6 +764,7 @@ class CBlockHeader:
             self.sha256 = header.sha256
             self.hash = header.hash
             self.scrypt256 = header.scrypt256
+            self.auxpow = copy.deepcopy(header.auxpow) if getattr(header, "auxpow", None) else None
             self.calc_sha256()
 
     def set_null(self):
@@ -717,6 +777,7 @@ class CBlockHeader:
         self.sha256 = None
         self.hash = None
         self.scrypt256 = None
+        self.auxpow = None
 
     def deserialize(self, f):
         self.nVersion = int.from_bytes(f.read(4), "little", signed=True)
@@ -728,6 +789,10 @@ class CBlockHeader:
         self.sha256 = None
         self.hash = None
         self.scrypt256 = None
+        self.auxpow = None
+        if self.is_auxpow():
+            self.auxpow = CAuxPow()
+            self.auxpow.deserialize(f)
 
     def serialize(self):
         r = b""
@@ -737,7 +802,23 @@ class CBlockHeader:
         r += self.nTime.to_bytes(4, "little")
         r += self.nBits.to_bytes(4, "little")
         r += self.nNonce.to_bytes(4, "little")
+        if self.is_auxpow():
+            if self.auxpow is None:
+                raise ValueError("Auxpow flag set but no auxpow data present")
+            r += self.auxpow.serialize()
         return r
+
+    def is_auxpow(self):
+        return (self.nVersion & VERSION_AUXPOW) != 0
+
+    def set_auxpow_version(self, flag, chain_id=CHAIN_ID):
+        if flag:
+            self.nVersion |= VERSION_AUXPOW
+            self.nVersion &= ~MASK_AUXPOW_CHAINID_SHIFTED
+            self.nVersion |= (chain_id & 0x1F) << VERSION_START_BIT
+        else:
+            self.nVersion &= ~VERSION_AUXPOW
+            self.nVersion &= ~MASK_AUXPOW_CHAINID_SHIFTED
 
     def calc_sha256(self):
         if self.sha256 is None:

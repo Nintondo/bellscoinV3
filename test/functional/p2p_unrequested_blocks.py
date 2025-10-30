@@ -67,7 +67,13 @@ class AcceptBlockTest(BellscoinTestFramework):
     def set_test_params(self):
         self.setup_clean_chain = True
         self.num_nodes = 2
-        self.extra_args = [[], ["-minimumchainwork=0x10"]]
+        # Use a minimum chain work threshold that is above the work of a few
+        # initial regtest blocks but below the final chain work in this test,
+        # so node1 will skip low‑work unrequested blocks initially, yet still
+        # be able to sync later.
+        # For regtest here, per‑block work is 0x11; height~2 => ~0x22, while
+        # later we reach ~290 blocks => ~0x1342. Pick 0x1000 as a safe middle.
+        self.extra_args = [[], ["-minimumchainwork=0x1000"]]
 
     def setup_network(self):
         self.setup_nodes()

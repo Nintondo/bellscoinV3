@@ -37,7 +37,7 @@ from test_framework.util import (
 from test_framework.wallet import MiniWallet
 
 
-DIFFICULTY_ADJUSTMENT_INTERVAL = 144
+DIFFICULTY_ADJUSTMENT_INTERVAL = 240
 MAX_FUTURE_BLOCK_TIME = 2 * 3600
 MAX_TIMEWARP = 600
 VERSIONBITS_TOP_BITS = 0x20000000
@@ -73,7 +73,7 @@ class MiningTest(BellscoinTestFramework):
         assert_equal(mining_info['currentblockweight'], 4000)
 
         self.log.info('test blockversion')
-        self.restart_node(0, extra_args=[f'-mocktime={t}', '-blockversion=1337'])
+        self.restart_node(0, extra_args=[f'-mocktime={t}', '-blockversion=1237'])
         self.connect_nodes(0, 1)
         # BELLSCOIN
         assert_equal(1237, self.nodes[0].getblocktemplate(NORMAL_GBT_REQUEST_PARAMS)['version'])
@@ -190,8 +190,8 @@ class MiningTest(BellscoinTestFramework):
         assert_equal(mining_info['chain'], self.chain)
         assert 'currentblocktx' not in mining_info
         assert 'currentblockweight' not in mining_info
-        assert_equal(mining_info['difficulty'], Decimal('4.656542373906925E-10'))
-        assert_equal(mining_info['networkhashps'], Decimal('0.003333333333333334'))
+        assert_equal(mining_info['difficulty'], Decimal('3.958060781902051E-9'))
+        assert_equal(mining_info['networkhashps'], Decimal('0.02833333333333333'))
         assert_equal(mining_info['pooledtx'], 0)
 
         self.log.info("getblocktemplate: Test default witness commitment")

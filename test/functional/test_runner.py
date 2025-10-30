@@ -115,6 +115,7 @@ BASE_SCRIPTS = [
     'feature_segwit.py --legacy-wallet',
     'feature_segwit.py --descriptors --v1transport',
     'feature_segwit.py --descriptors --v2transport',
+    'feature_checktemplateverify.py',
     'p2p_tx_download.py',
     'wallet_avoidreuse.py --legacy-wallet',
     'wallet_avoidreuse.py --descriptors',
@@ -188,8 +189,9 @@ BASE_SCRIPTS = [
     'tool_wallet.py --legacy-wallet --bdbro',
     'tool_wallet.py --legacy-wallet --bdbro --swap-bdb-endian',
     'tool_wallet.py --descriptors',
-    'tool_signet_miner.py --legacy-wallet',
-    'tool_signet_miner.py --descriptors',
+    'auxpow_mining.py',
+    'auxpow_invalidpow.py',
+    'auxpow_zerohash.py',
     'wallet_txn_clone.py',
     'wallet_txn_clone.py --segwit',
     'rpc_getchaintips.py',
@@ -270,8 +272,6 @@ BASE_SCRIPTS = [
     'wallet_txn_doublespend.py --legacy-wallet',
     'wallet_multisig_descriptor_psbt.py --descriptors',
     'wallet_txn_doublespend.py --descriptors',
-    'wallet_backwards_compatibility.py --legacy-wallet',
-    'wallet_backwards_compatibility.py --descriptors',
     'wallet_txn_clone.py --mineblock',
     'feature_notifications.py',
     'rpc_getblockfilter.py',
@@ -307,10 +307,8 @@ BASE_SCRIPTS = [
     'mempool_expiry.py',
     'wallet_import_with_label.py --legacy-wallet',
     'wallet_importdescriptors.py --descriptors',
-    'wallet_upgradewallet.py --legacy-wallet',
     'wallet_crosschain.py',
     'mining_basic.py',
-    'feature_signet.py',
     'p2p_mutated_blocks.py',
     'wallet_implicitsegwit.py --legacy-wallet',
     'rpc_named_arguments.py',
@@ -344,7 +342,6 @@ BASE_SCRIPTS = [
     'wallet_sendmany.py --descriptors',
     'wallet_sendmany.py --legacy-wallet',
     'wallet_create_tx.py --descriptors',
-    'wallet_inactive_hdchains.py --legacy-wallet',
     'wallet_spend_unconfirmed.py',
     'wallet_rescan_unconfirmed.py --descriptors',
     'p2p_fingerprint.py',
@@ -367,7 +364,6 @@ BASE_SCRIPTS = [
     'feature_fastprune.py',
     'feature_framework_miniwallet.py',
     'mempool_unbroadcast.py',
-    'mempool_compatibility.py',
     'mempool_accept_wtxid.py',
     'mempool_dust.py',
     'mempool_sigoplimit.py',
@@ -378,7 +374,6 @@ BASE_SCRIPTS = [
     'rpc_scanblocks.py',
     'p2p_sendtxrcncl.py',
     'rpc_scantxoutset.py',
-    'feature_unsupported_utxo_db.py',
     'feature_logging.py',
     'feature_anchors.py',
     'mempool_datacarrier.py',
@@ -843,7 +838,8 @@ class TestResult():
 def check_script_prefixes():
     """Check that test scripts start with one of the allowed name prefixes."""
 
-    good_prefixes_re = re.compile("^(example|feature|interface|mempool|mining|p2p|rpc|wallet|tool)_")
+    # Allow project-specific test prefixes in addition to upstream ones
+    good_prefixes_re = re.compile("^(example|feature|interface|mempool|mining|p2p|rpc|wallet|tool|auxpow)_")
     bad_script_names = [script for script in ALL_SCRIPTS if good_prefixes_re.match(script) is None]
 
     if bad_script_names:
