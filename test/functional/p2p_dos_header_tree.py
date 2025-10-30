@@ -27,7 +27,7 @@ class RejectLowDifficultyHeadersTest(BellscoinTestFramework):
     def add_options(self, parser):
         parser.add_argument(
             '--datafile',
-            default='data/blockheader_testnet.hex',
+            default='data/blockheader_bells_testnet.hex',
             help='Test data file (default: %(default)s)',
         )
 
@@ -51,7 +51,7 @@ class RejectLowDifficultyHeadersTest(BellscoinTestFramework):
         peer_checkpoint.send_and_ping(msg_headers(self.headers))
         assert {
             'height': 546,
-            'hash': '000000002a936ca763904c3c35fce2f3556c559c0214345d31b1bcebf76acb70',
+            'hash': '6957c03b49190a7c703d20e21cf05a4c34a0937072f27f5e1074f33e360f362c',
             'branchlen': 546,
             'status': 'headers-only',
         } in self.nodes[0].getchaintips()
@@ -68,7 +68,7 @@ class RejectLowDifficultyHeadersTest(BellscoinTestFramework):
         peer_no_checkpoint.send_and_ping(msg_headers(self.headers_fork))
         assert {
             "height": 2,
-            "hash": "00000000b0494bd6c3d5ff79c497cfce40831871cbf39b1bc28bd1dac817dc39",
+            "hash": "bcaffdedf9a6cf679267f3385cc6073358e9a07253c816ecb6c39c8ede674d3e",
             "branchlen": 2,
             "status": "headers-only",
         } in self.nodes[0].getchaintips()
@@ -78,7 +78,7 @@ class RejectLowDifficultyHeadersTest(BellscoinTestFramework):
         peer_before_checkpoint.send_and_ping(msg_headers(self.headers_fork))
         assert {
             "height": 2,
-            "hash": "00000000b0494bd6c3d5ff79c497cfce40831871cbf39b1bc28bd1dac817dc39",
+            "hash": "bcaffdedf9a6cf679267f3385cc6073358e9a07253c816ecb6c39c8ede674d3e",
             "branchlen": 2,
             "status": "headers-only",
         } in self.nodes[1].getchaintips()

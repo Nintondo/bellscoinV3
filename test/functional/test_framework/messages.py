@@ -85,10 +85,11 @@ MAX_OP_RETURN_RELAY = 100_000
 DEFAULT_MEMPOOL_EXPIRY_HOURS = 336  # hours
 
 MAGIC_BYTES = {
-    "mainnet": b"\xf9\xbe\xb4\xd9",   # mainnet
-    "testnet3": b"\x0b\x11\x09\x07",  # testnet3
-    "regtest": b"\xfa\xbf\xb5\xda",   # regtest
-    "signet": b"\x0a\x03\xcf\x40",    # signet
+    "mainnet": b"\xc0\xc0\xc0\xc0",   # Bells mainnet
+    "testnet": b"\xc3\xc3\xc3\xc3",   # Bells testnet
+    "regtest": b"\xfa\xbf\xb5\xda",   # Regtest (unchanged)
+    "signet": b"\x0a\x03\xcf\x40",    # Signet default (may be overridden per challenge)
+    "testnet3": b"\x0b\x11\x09\x07",  # Legacy Bitcoin testnet (for compatibility)
 }
 
 def sha256(s):

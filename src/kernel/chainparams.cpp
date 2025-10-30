@@ -203,20 +203,9 @@ public:
 
         checkpointData = {
             {
-                { 0, uint256S("0xe5be24df57c43a82d15c2f06bda961296948f8f8eb48501bed1efb929afe0698")},
-                { 1000, uint256S("0x35668ee4f0fc1334849813c8a8e583814e9b22bfe5dc5a2bd2ded2b3aeec6643")},
                 {10000, uint256S("0x2c05ea6918e28ca2d216c6518940c8782c09bebfe705d792155465662e275351")},
-                {20000, uint256S("0xe705ee3c0097e6466155f8eea44a813f4f3e0774f1336ab20da1e7076dcc36d9")},
-                {30000, uint256S("0x22b2474f45c8d29f31e9caeb6bcccc68f583e2d40afb782e10ad19b63ff47f84")},
-                {40000, uint256S("0x50c259c50c5c2ab235f2ceb45da49f7c046f0411667c00d81cb8165f2b843ea1")},
-                {50000, uint256S("0x2136303371cbd258bad2099dc8336fead30a4fabe48738ebaea3ca9f66259580")},
                 {100000, uint256S("0xa68c0093873f2b4f056be2c09afb021f15209a272f7c15a60d06aa680138cc6f")},
-                {150000, uint256S("0xc9b633488a9605a3f4fb0e9446b91087720223e48be82ee182d6e4a02a8bdbbb")},
-                {200000, uint256S("0x08ec87a4d262a48170cae397bc60dcc493ca24de1dd7773fb4b5f5f82197c5fd")},
                 {250000, uint256S("0x6ddb13850ae6b0f45b4eac4bb628ec6781402d0c6b54e5be2e45c81e1854cff1")},
-                {300000, uint256S("0x10d74ee0071ded725305a6eb4d4f37ebc6b6ecedd47d125d9f99495816944df9")},
-                {350000, uint256S("0xa23717b53d902d8ffe998a1f86d8203a76c502ec06de565e957407213f0d128d")},
-                {400000, uint256S("0xd9ade3b52896a9e68080f62bddd5f6365c1dcb1dbf041e4b699415811f53a43b")},
                 {550000, uint256S("0xf5f8b98bfd8ad9293e588b04bc030e75eab5f7aafe956c10e165d06c8277ebcd")},
             }
         };
@@ -245,7 +234,7 @@ public:
         consensus.signet_challenge.clear();
         consensus.nSubsidyHalvingInterval = 100000;
         consensus.BIP34Height = 1;
-        //consensus.BIP34Hash = uint256S("0x0000000023b3a96d3484e5abb3755c413e7d41500f8e2a5c3f0dd01299cd8ef8");
+        consensus.BIP34Hash = uint256S("0x122a09a8adfe47e0789226e54e5076b1235185ef6f55331825bf8ef594cf2434");
         consensus.BIP65Height = 1; // 00000000007f6655f22f98e72ed80d8b06dc761d5da09df0fa1dc4be4f861eb6
         consensus.BIP66Height = 1; // 000000002104c8c45e99a8853285a3b592602a3ccde2b832481da85e9e4ba182
         consensus.CSVHeight = 1; // 00000000025e930139bac5c6c31a403776da130831ab85be56578f3fa75369bb
@@ -318,7 +307,7 @@ public:
 
         checkpointData = {
             {
-                //{546, uint256S("000000002a936ca763904c3c35fce2f3556c559c0214345d31b1bcebf76acb70")},
+                {546, uint256S("6957c03b49190a7c703d20e21cf05a4c34a0937072f27f5e1074f33e360f362c")},
             }
         };
 
@@ -333,9 +322,9 @@ public:
 
         chainTxData = ChainTxData{
             // Data from RPC: getchaintxstats 4096 0000000000000093bcb68c03a9a168ae252572d348a2eaeba2cdf9231d73206f
-            // .nTime    = 1694733634,
-            // .nTxCount = 66484552,
-            // .dTxRate  = 0.1804908356632494,
+            .nTime    = 1761594475,
+            .tx_count = 749599,
+            .dTxRate  = 0.01067370011565121,
         };
     }
 };
