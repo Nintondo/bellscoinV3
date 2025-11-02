@@ -49,7 +49,7 @@ body:
       description: |
         Please copy and paste any relevant log output or attach a debug log file.
 
-        You can find the debug.log in your [data dir.](https://github.com/Nintondo/bellscoinV3/blob/master/doc/files.md#data-directory-location)
+        You can find the debug.log in your [data dir.](https://github.com/Nintondo/bellscoinV3/blob/main/doc/files.md#data-directory-location)
 
         Please be aware that the debug log might contain personally identifying information.
     validations:
@@ -70,7 +70,7 @@ body:
     attributes:
       label: What version of Bells Core are you using?
       description: Run `bellsd --version` or in Bells-QT use `Help > About Bells Core`
-      placeholder: e.g. v3.0 or master@e1bf547
+      placeholder: e.g. v3.1 or master@e1bf547
     validations:
       required: true
   - type: input

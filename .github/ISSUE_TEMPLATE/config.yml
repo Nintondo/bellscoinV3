@@ -1,8 +1,8 @@
 blank_issues_enabled: true
 contact_links:
-  - name: Bitcoin Core Security Policy
-    url: https://github.com/bitcoin/bitcoin/blob/master/SECURITY.md
+  - name: Bells Core Security Policy
+    url: https://github.com/Nintondo/bellscoinV3/blob/main/SECURITY.md
     about: View security policy
-  - name: Bitcoin Core Developers
-    url: https://bitcoincore.org
-    about: Bitcoin Core homepage
+  - name: Bellscoi Developers
+    url: https://bellscoin.com
+    about: Bellscoin homepage

@@ -8,16 +8,16 @@ thread queue, wallet balance.
 Running
 ---------------------
 
-For benchmarking, you only need to compile `bitcoin_bench`.  The bench runner
+For benchmarking, you only need to compile `bells_bench`.  The bench runner
 warns if you configure with `--enable-debug`, but consider if building without
 it will impact the benchmark(s) you are interested in by unlatching log printers
 and lock analysis.
 
-    make -C src bitcoin_bench
+    make -C src bells_bench
 
-After compiling bitcoin-core, the benchmarks can be run with:
+After compiling bells-core, the benchmarks can be run with:
 
-    src/bench/bench_bitcoin
+    src/bench/bench_bells
 
 The output will look similar to:
 ```
@@ -39,7 +39,7 @@ The output will look similar to:
 Help
 ---------------------
 
-    src/bench/bench_bitcoin -?
+    src/bench/bench_bells -?
 
 To print the various options, like listing the benchmarks without running them
 or using a regex filter to only run certain benchmarks.
@@ -53,9 +53,3 @@ More benchmarks are needed for, in no particular order:
 - Cuckoo Cache
 - P2P throughput
 
-Going Further
---------------------
-
-To monitor Bitcoin Core performance more in depth (like reindex or IBD): https://github.com/chaincodelabs/bitcoinperf
-
-To generate Flame Graphs for Bitcoin Core: https://github.com/eklitzke/bitcoin/blob/flamegraphs/doc/flamegraphs.md

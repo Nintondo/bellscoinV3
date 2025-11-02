@@ -3,40 +3,40 @@
 # backward compatibility for existing gentoo layout 
 #
 if [ -d "/var/lib/bells/.bells" ]; then
-	BITCOIND_DEFAULT_DATADIR="/var/lib/bells/.bells"
+	BELLSD_DEFAULT_DATADIR="/var/lib/bells/.bells"
 else
-	BITCOIND_DEFAULT_DATADIR="/var/lib/bellsd"
+	BELLSD_DEFAULT_DATADIR="/var/lib/bellsd"
 fi
 
-BITCOIND_CONFIGFILE=${BITCOIND_CONFIGFILE:-/etc/bells/bells.conf}
-BITCOIND_PIDDIR=${BITCOIND_PIDDIR:-/var/run/bellsd}
-BITCOIND_PIDFILE=${BITCOIND_PIDFILE:-${BITCOIND_PIDDIR}/bellsd.pid}
-BITCOIND_DATADIR=${BITCOIND_DATADIR:-${BITCOIND_DEFAULT_DATADIR}}
-BITCOIND_USER=${BITCOIND_USER:-${BITCOIN_USER:-bells}}
-BITCOIND_GROUP=${BITCOIND_GROUP:-bells}
-BITCOIND_BIN=${BITCOIND_BIN:-/usr/bin/bellsd}
-BITCOIND_NICE=${BITCOIND_NICE:-${NICELEVEL:-0}}
-BITCOIND_OPTS="${BITCOIND_OPTS:-${BITCOIN_OPTS}}"
+BELLSD_CONFIGFILE=${BELLSD_CONFIGFILE:-/etc/bells/bells.conf}
+BELLSD_PIDDIR=${BELLSD_PIDDIR:-/var/run/bellsd}
+BELLSD_PIDFILE=${BELLSD_PIDFILE:-${BELLSD_PIDDIR}/bellsd.pid}
+BELLSD_DATADIR=${BELLSD_DATADIR:-${BELLSD_DEFAULT_DATADIR}}
+BELLSD_USER=${BELLSD_USER:-${BITCOIN_USER:-bells}}
+BELLSD_GROUP=${BELLSD_GROUP:-bells}
+BELLSD_BIN=${BELLSD_BIN:-/usr/bin/bellsd}
+BELLSD_NICE=${BELLSD_NICE:-${NICELEVEL:-0}}
+BELLSD_OPTS="${BELLSD_OPTS:-${BITCOIN_OPTS}}"
 
 name="Bells Core Daemon"
 description="Bells cryptocurrency P2P network daemon"
 
 command="/usr/bin/bellsd"
-command_args="-pid=\"${BITCOIND_PIDFILE}\" \
-		-conf=\"${BITCOIND_CONFIGFILE}\" \
-		-datadir=\"${BITCOIND_DATADIR}\" \
+command_args="-pid=\"${BELLSD_PIDFILE}\" \
+		-conf=\"${BELLSD_CONFIGFILE}\" \
+		-datadir=\"${BELLSD_DATADIR}\" \
 		-daemon \
-		${BITCOIND_OPTS}"
+		${BELLSD_OPTS}"
 
-required_files="${BITCOIND_CONFIGFILE}"
-start_stop_daemon_args="-u ${BITCOIND_USER} \
-			-N ${BITCOIND_NICE} -w 2000"
-pidfile="${BITCOIND_PIDFILE}"
+required_files="${BELLSD_CONFIGFILE}"
+start_stop_daemon_args="-u ${BELLSD_USER} \
+			-N ${BELLSD_NICE} -w 2000"
+pidfile="${BELLSD_PIDFILE}"
 
 # The retry schedule to use when stopping the daemon. Could be either
 # a timeout in seconds or multiple signal/timeout pairs (like
 # "SIGKILL/180 SIGTERM/300")
-retry="${BITCOIND_SIGTERM_TIMEOUT}"
+retry="${BELLSD_SIGTERM_TIMEOUT}"
 
 depend() {
 	need localmount net
@@ -50,30 +50,30 @@ start_pre() {
 	checkpath \
 	-d \
 	--mode 0750 \
-	--owner "${BITCOIND_USER}:${BITCOIND_GROUP}" \
-	"${BITCOIND_DATADIR}"
+	--owner "${BELLSD_USER}:${BELLSD_GROUP}" \
+	"${BELLSD_DATADIR}"
 
 	checkpath \
 	-d \
 	--mode 0755 \
-	--owner "${BITCOIND_USER}:${BITCOIND_GROUP}" \
-	"${BITCOIND_PIDDIR}"
+	--owner "${BELLSD_USER}:${BELLSD_GROUP}" \
+	"${BELLSD_PIDDIR}"
 
 	checkpath -f \
-	-o "${BITCOIND_USER}:${BITCOIND_GROUP}" \
+	-o "${BELLSD_USER}:${BELLSD_GROUP}" \
 	-m 0660 \
-	"${BITCOIND_CONFIGFILE}"
+	"${BELLSD_CONFIGFILE}"
 
 	checkconfig || return 1
 }
 
 checkconfig()
 {
-	if grep -qs '^rpcuser=' "${BITCOIND_CONFIGFILE}" && \
-		! grep -qs '^rpcpassword=' "${BITCOIND_CONFIGFILE}" ; then
+	if grep -qs '^rpcuser=' "${BELLSD_CONFIGFILE}" && \
+		! grep -qs '^rpcpassword=' "${BELLSD_CONFIGFILE}" ; then
 		eerror ""
 		eerror "ERROR: You must set a secure rpcpassword to run bellsd."
-		eerror "The setting must appear in ${BITCOIND_CONFIGFILE}"
+		eerror "The setting must appear in ${BELLSD_CONFIGFILE}"
 		eerror ""
 		eerror "This password is security critical to securing wallets "
 		eerror "and must not be the same as the rpcuser setting."
