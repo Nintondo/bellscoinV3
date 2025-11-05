@@ -7,7 +7,7 @@ Release Process
 
 * Update release candidate version in `configure.ac` (`CLIENT_VERSION_RC`).
 * Update manpages (after rebuilding the binaries), see [gen-manpages.py].
-* Update bitcoin.conf and commit changes if they exist, see [gen-bells-conf.sh].
+* Update bells.conf and commit changes if they exist, see [gen-bells-conf.sh].
 
 ### Before every major and minor release
 

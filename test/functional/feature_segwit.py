@@ -85,6 +85,9 @@ def find_spendable_utxo(node, min_value, max_value=None):
     for utxo in node.listunspent():
         if not utxo.get("spendable", False):
             continue
+        if utxo["txid"] in txs_mined:
+            # Keep previously generated test outputs untouched until explicitly spent
+            continue
         amount = Decimal(str(utxo["amount"]))
         if amount < min_value:
             continue

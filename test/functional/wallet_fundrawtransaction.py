@@ -96,6 +96,20 @@ class RawTransactionsTest(BellscoinTestFramework):
         wallet.lockunspent(True)
         wallet.lockunspent(False, to_keep)
 
+    def lock_all_but(self, wallet, allowed_prevouts):
+        """
+        Temporarily lock every spendable UTXO whose outpoint is not in allowed_prevouts.
+        """
+        to_lock = []
+        for utxo in wallet.listunspent():
+            if not utxo.get("spendable", False):
+                continue
+            prevout = (utxo["txid"], utxo["vout"])
+            if prevout not in allowed_prevouts:
+                to_lock.append({"txid": utxo["txid"], "vout": utxo["vout"]})
+        if to_lock:
+            wallet.lockunspent(False, to_lock)
+
     def run_test(self):
         self.watchonly_utxo = None
         self.log.info("Connect nodes, set fees, generate blocks, and sync")
@@ -448,11 +462,15 @@ class RawTransactionsTest(BellscoinTestFramework):
     def test_fee_p2pkh(self):
         """Compare fee of a standard pubkeyhash transaction."""
         self.log.info("Test fundrawtxn p2pkh fee")
+        self.unlock_utxos(self.nodes[0])
         self.lock_outputs_type(self.nodes[0], "p2pkh")
         inputs = []
         outputs = {self.nodes[1].getnewaddress():1.1}
         rawtx = self.nodes[0].createrawtransaction(inputs, outputs)
         fundedTx = self.nodes[0].fundrawtransaction(rawtx)
+        funded_tx = self.nodes[0].decoderawtransaction(fundedTx['hex'])
+        selected_prevouts = {(vin['txid'], vin['vout']) for vin in funded_tx.get('vin', [])}
+        self.lock_all_but(self.nodes[0], selected_prevouts)
 
         # Create same transaction over sendtoaddress.
         txId = self.nodes[0].sendtoaddress(self.nodes[1].getnewaddress(), 1.1)
@@ -468,6 +486,7 @@ class RawTransactionsTest(BellscoinTestFramework):
     def test_fee_p2pkh_multi_out(self):
         """Compare fee of a standard pubkeyhash transaction with multiple outputs."""
         self.log.info("Test fundrawtxn p2pkh fee with multiple outputs")
+        self.unlock_utxos(self.nodes[0])
         self.lock_outputs_type(self.nodes[0], "p2pkh")
         inputs = []
         outputs = {
@@ -480,6 +499,9 @@ class RawTransactionsTest(BellscoinTestFramework):
         }
         rawtx = self.nodes[0].createrawtransaction(inputs, outputs)
         fundedTx = self.nodes[0].fundrawtransaction(rawtx)
+        funded_tx = self.nodes[0].decoderawtransaction(fundedTx['hex'])
+        selected_prevouts = {(vin['txid'], vin['vout']) for vin in funded_tx.get('vin', [])}
+        self.lock_all_but(self.nodes[0], selected_prevouts)
 
         # Create same transaction over sendtoaddress.
         txId = self.nodes[0].sendmany("", outputs)
@@ -493,6 +515,7 @@ class RawTransactionsTest(BellscoinTestFramework):
 
     def test_fee_p2sh(self):
         """Compare fee of a 2-of-2 multisig p2sh transaction."""
+        self.unlock_utxos(self.nodes[0])
         self.lock_outputs_type(self.nodes[0], "p2pkh")
         # Create 2-of-2 addr.
         addr1 = self.nodes[1].getnewaddress()
@@ -507,6 +530,9 @@ class RawTransactionsTest(BellscoinTestFramework):
         outputs = {mSigObj:1.1}
         rawtx = self.nodes[0].createrawtransaction(inputs, outputs)
         fundedTx = self.nodes[0].fundrawtransaction(rawtx)
+        funded_tx = self.nodes[0].decoderawtransaction(fundedTx['hex'])
+        selected_prevouts = {(vin['txid'], vin['vout']) for vin in funded_tx.get('vin', [])}
+        self.lock_all_but(self.nodes[0], selected_prevouts)
 
         # Create same transaction over sendtoaddress.
         txId = self.nodes[0].sendtoaddress(mSigObj, 1.1)
@@ -521,6 +547,7 @@ class RawTransactionsTest(BellscoinTestFramework):
     def test_fee_4of5(self):
         """Compare fee of a standard pubkeyhash transaction."""
         self.log.info("Test fundrawtxn fee with 4-of-5 addresses")
+        self.unlock_utxos(self.nodes[0])
         self.lock_outputs_type(self.nodes[0], "p2pkh")
 
         # Create 4-of-5 addr.
@@ -551,14 +578,23 @@ class RawTransactionsTest(BellscoinTestFramework):
         outputs = {mSigObj:1.1}
         rawtx = self.nodes[0].createrawtransaction(inputs, outputs)
         fundedTx = self.nodes[0].fundrawtransaction(rawtx)
-
-        # Create same transaction over sendtoaddress.
-        txId = self.nodes[0].sendtoaddress(mSigObj, 1.1)
-        signedFee = self.nodes[0].getmempoolentry(txId)['fees']['base']
+        signed = self.nodes[0].signrawtransactionwithwallet(fundedTx['hex'])
+        assert signed['complete']
+        signed_tx = self.nodes[0].decoderawtransaction(signed['hex'])
 
         # Compare fee.
-        feeDelta = Decimal(fundedTx['fee']) - Decimal(signedFee)
+        input_total = Decimal("0")
+        for vin in signed_tx.get("vin", []):
+            prev = self.nodes[0].gettxout(vin['txid'], vin['vout'])
+            assert prev is not None
+            input_total += Decimal(str(prev['value']))
+        output_total = sum(Decimal(str(vout['value'])) for vout in signed_tx.get("vout", []))
+        actual_fee = input_total - output_total
+        assert actual_fee >= 0
+        feeDelta = Decimal(fundedTx['fee']) - actual_fee
         assert feeDelta >= 0 and feeDelta <= self.fee_tolerance
+        txId = self.nodes[0].sendtoaddress(mSigObj, 1.1)
+        self.nodes[0].getmempoolentry(txId)
 
         self.unlock_utxos(self.nodes[0])
 
