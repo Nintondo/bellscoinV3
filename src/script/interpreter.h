@@ -150,24 +150,17 @@ enum : uint32_t {
     // discourage upgradable OP_CHECKTEMPLATEVERIFY hashes
     SCRIPT_VERIFY_DISCOURAGE_UPGRADABLE_CHECK_TEMPLATE_VERIFY_HASH = (1U << 22),
 
-    // discourage OP_CHECKTEMPLATEVERIFY
-    SCRIPT_VERIFY_DISCOURAGE_CHECK_TEMPLATE_VERIFY_HASH = (1U << 23),
-    
     // Support OP_CAT in tapscript
-    SCRIPT_VERIFY_OP_CAT = (1U << 24),
-    SCRIPT_VERIFY_DISCOURAGE_OP_CAT = (1U << 25),
+    SCRIPT_VERIFY_OP_CAT = (1U << 23),
 
     // Executing OP_INTERNALKEY
-    SCRIPT_VERIFY_INTERNALKEY = (1U << 26),
-
-    // Making OP_INTERNALKEY non-standard
-    SCRIPT_VERIFY_DISCOURAGE_INTERNALKEY = (1U << 27),
+    SCRIPT_VERIFY_INTERNALKEY = (1U << 24),
 
     // Validating OP_CHECKSIGFROMSTACK
-    SCRIPT_VERIFY_CHECKSIGFROMSTACK = (1U << 28),
+    SCRIPT_VERIFY_CHECKSIGFROMSTACK = (1U << 25),
 
-    // Making OP_CHECKSIGFROMSTACK non-standard
-    SCRIPT_VERIFY_DISCOURAGE_CHECKSIGFROMSTACK = (1U << 29),
+    // Keep op_cat_deployment (CAT, INTERNALKEY, CHECKSIGFROMSTACK, CTV) non-standard
+    SCRIPT_VERIFY_DISCOURAGE_OP_CAT_DEPLOYMENT = (1U << 26),
 
     // Constants to point to the highest flag in use. Add new flags above this line.
     //

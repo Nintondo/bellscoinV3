@@ -2540,9 +2540,9 @@
     ],
     "",
     "0x51 0x20 #TAPROOTOUTPUT#",
-    "P2SH,WITNESS,TAPROOT,DISCOURAGE_OP_CAT,OP_CAT",
+    "P2SH,WITNESS,TAPROOT,DISCOURAGE_OP_CAT_DEPLOYMENT,OP_CAT",
     "DISCOURAGE_OP_CAT",
-    "TAPSCRIPT test of DISCOURAGE_OP_CAT flag by calling CAT on two elements. OP_CAT verify flag is set however OP_CAT is not executed due to DISCOURAGE_OP_CAT."
+    "TAPSCRIPT test of DISCOURAGE_OP_CAT_DEPLOYMENT flag by calling CAT on two elements. OP_CAT verify flag is set however OP_CAT is not executed due to DISCOURAGE_OP_CAT_DEPLOYMENT."
 ],
 [
     [
@@ -2554,9 +2554,9 @@
     ],
     "",
     "0x51 0x20 #TAPROOTOUTPUT#",
-    "P2SH,WITNESS,TAPROOT,DISCOURAGE_OP_CAT",
+    "P2SH,WITNESS,TAPROOT,DISCOURAGE_OP_CAT_DEPLOYMENT",
     "DISCOURAGE_OP_CAT",
-    "TAPSCRIPT test of DISCOURAGE_OP_CAT flag by calling CAT on two elements. OP_CAT verify flag is not set and OP_CAT is not executed due to DISCOURAGE_OP_CAT."
+    "TAPSCRIPT test of DISCOURAGE_OP_CAT_DEPLOYMENT flag by calling CAT on two elements. OP_CAT verify flag is not set and OP_CAT is not executed due to DISCOURAGE_OP_CAT_DEPLOYMENT."
 ],
 [
     [
@@ -2566,9 +2566,9 @@
     ],
     "",
     "0x51 0x20 #TAPROOTOUTPUT#",
-    "P2SH,WITNESS,TAPROOT,DISCOURAGE_OP_CAT",
+    "P2SH,WITNESS,TAPROOT,DISCOURAGE_OP_CAT_DEPLOYMENT",
     "DISCOURAGE_OP_CAT",
-    "TAPSCRIPT test of DISCOURAGE_OP_CAT flag by calling CAT on a empty stack. Ordinarily this would be INVALID_STACK_OPERATION however due to DISCOURAGE_OP_CAT the script will throw before execution."
+    "TAPSCRIPT test of DISCOURAGE_OP_CAT_DEPLOYMENT flag by calling CAT on a empty stack. Ordinarily this would be INVALID_STACK_OPERATION however due to DISCOURAGE_OP_CAT_DEPLOYMENT the script will throw before execution."
 ],
 [
     [
@@ -2578,9 +2578,9 @@
     ],
     "",
     "0x51 0x20 #TAPROOTOUTPUT#",
-    "P2SH,WITNESS,TAPROOT,DISCOURAGE_OP_CAT",
+    "P2SH,WITNESS,TAPROOT,DISCOURAGE_OP_CAT_DEPLOYMENT",
     "OK",
-    "TAPSCRIPT test of a valid script executed with DISCOURAGE_OP_CAT. This tests demonstrates that DISCOURAGE_OP_CAT has no affect when CAT is not used."
+    "TAPSCRIPT test of a valid script executed with DISCOURAGE_OP_CAT_DEPLOYMENT. This tests demonstrates that DISCOURAGE_OP_CAT_DEPLOYMENT has no affect when CAT is not used."
 ],
 [
     [
@@ -2590,9 +2590,9 @@
     ],
     "",
     "0x51 0x20 #TAPROOTOUTPUT#",
-    "P2SH,WITNESS,TAPROOT,DISCOURAGE_OP_CAT,DISCOURAGE_OP_SUCCESS",
+    "P2SH,WITNESS,TAPROOT,DISCOURAGE_OP_CAT_DEPLOYMENT,DISCOURAGE_OP_SUCCESS",
     "DISCOURAGE_OP_CAT",
-    "TAPSCRIPT test of a invalid script (CAT called with empty stack) executed with DISCOURAGE_OP_CAT and DISCOURAGE_OP_SUCCESS flags enabled. This tests demonstrates that DISCOURAGE_OP_CAT will take priority over the OP_SUCCESS discourage flag and OP_CAT is never exectuted"
+    "TAPSCRIPT test of a invalid script (CAT called with empty stack) executed with DISCOURAGE_OP_CAT_DEPLOYMENT and DISCOURAGE_OP_SUCCESS flags enabled. This tests demonstrates that DISCOURAGE_OP_CAT_DEPLOYMENT will take priority over the OP_SUCCESS discourage flag and OP_CAT is never exectuted"
 ],
 [
     [

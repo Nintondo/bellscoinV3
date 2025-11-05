@@ -652,7 +652,7 @@ bool EvalScript(std::vector<std::vector<unsigned char>>& stack, const CScript& s
                     break;
                 }
                 case OP_CHECKTEMPLATEVERIFY: {
-                    if (flags & SCRIPT_VERIFY_DISCOURAGE_CHECK_TEMPLATE_VERIFY_HASH) {
+                    if (flags & SCRIPT_VERIFY_DISCOURAGE_OP_CAT_DEPLOYMENT) {
                         return set_error(serror, SCRIPT_ERR_DISCOURAGE_UPGRADABLE_NOPS);
                     }
 
@@ -1253,7 +1253,7 @@ bool EvalScript(std::vector<std::vector<unsigned char>>& stack, const CScript& s
                 case OP_CHECKSIGFROMSTACK:
                 case OP_CHECKSIGFROMSTACKVERIFY: {
                     if (opcode == OP_CHECKSIGFROMSTACKVERIFY) {
-                        if (flags & SCRIPT_VERIFY_DISCOURAGE_CHECKSIGFROMSTACK)
+                        if (flags & SCRIPT_VERIFY_DISCOURAGE_OP_CAT_DEPLOYMENT)
                             return set_error(serror, SCRIPT_ERR_DISCOURAGE_UPGRADABLE_NOPS);
                         // if flag not enabled; treat OP_CHECKSIGFROMSTACKVERIFY as a NOP5
                         if (!(flags & SCRIPT_VERIFY_CHECKSIGFROMSTACK)) break;
@@ -1963,18 +1963,18 @@ std::optional<bool> CheckTapscriptOpSuccess(const CScript& exec_script, unsigned
 
         if (IsOpSuccess(opcode)) {
             if (opcode == OP_CAT) {
-                if (flags & SCRIPT_VERIFY_DISCOURAGE_OP_CAT) {
+                if (flags & SCRIPT_VERIFY_DISCOURAGE_OP_CAT_DEPLOYMENT) {
                     return set_error(serror, SCRIPT_ERR_DISCOURAGE_OP_CAT);
                 } else if (!(flags & SCRIPT_VERIFY_OP_CAT)) {
                     return set_success(serror);
                 }
             } else if (opcode == OP_INTERNALKEY) {
-                if (flags & SCRIPT_VERIFY_DISCOURAGE_INTERNALKEY)
+                if (flags & SCRIPT_VERIFY_DISCOURAGE_OP_CAT_DEPLOYMENT)
                     return set_error(serror, SCRIPT_ERR_DISCOURAGE_OP_SUCCESS);
                 if (flags & SCRIPT_VERIFY_INTERNALKEY) continue;
                 return set_success(serror);
             } else if (opcode == OP_CHECKSIGFROMSTACK) {
-                if (flags & SCRIPT_VERIFY_DISCOURAGE_CHECKSIGFROMSTACK)
+                if (flags & SCRIPT_VERIFY_DISCOURAGE_OP_CAT_DEPLOYMENT)
                     return set_error(serror, SCRIPT_ERR_DISCOURAGE_OP_SUCCESS);
                 if (flags & SCRIPT_VERIFY_CHECKSIGFROMSTACK) continue;
                 return set_success(serror);

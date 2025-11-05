@@ -1251,7 +1251,7 @@ bool MemPoolAccept::PolicyScriptChecks(const ATMPArgs& args, Workspace& ws)
 
     const unsigned int scriptVerifyFlags = STANDARD_SCRIPT_VERIFY_FLAGS |
         DepDiscourageFlags(m_active_chainstate.m_chain.Tip(), m_active_chainstate.m_chainman, {
-            { Consensus::DEPLOYMENT_OP_CAT, SCRIPT_VERIFY_DISCOURAGE_OP_CAT | SCRIPT_VERIFY_DISCOURAGE_CHECK_TEMPLATE_VERIFY_HASH | SCRIPT_VERIFY_DISCOURAGE_INTERNALKEY | SCRIPT_VERIFY_DISCOURAGE_CHECKSIGFROMSTACK},
+            { Consensus::DEPLOYMENT_OP_CAT, SCRIPT_VERIFY_DISCOURAGE_OP_CAT_DEPLOYMENT},
     });
 
     // Check input scripts and signatures.
