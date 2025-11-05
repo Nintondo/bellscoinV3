@@ -36,7 +36,7 @@ Release Process
   - The following updates should be reviewed with `reindex-chainstate` and `assumevalid=0` to catch any defect
     that causes rejection of blocks in the past history.
   - `chainTxData` with statistics about the transaction count and rate. Use the output of the `getchaintxstats` RPC with an
-    `nBlocks` of 4096 (28 days) and a `bestblockhash` of RPC `getbestblockhash`;
+    `nBlocks` of 40320 (28 days) and a `bestblockhash` of RPC `getbestblockhash`;
      Reviewers can verify the results by running
     `getchaintxstats <window_block_count> <window_final_block_hash>` with the `window_block_count` and `window_final_block_hash` from your output.
   - `defaultAssumeValid` with the output of RPC `getblockhash` using the `height` of `window_final_block_height` above

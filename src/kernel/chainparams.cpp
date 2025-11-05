@@ -159,8 +159,8 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_OP_CAT].min_activation_height = 500000;
 
 
-        consensus.nMinimumChainWork = uint256S("0x0000000000000000000000000000000000000000000000000000000000100010");
-        consensus.defaultAssumeValid = uint256S("0xf5f8b98bfd8ad9293e588b04bc030e75eab5f7aafe956c10e165d06c8277ebcd"); // 550000
+        consensus.nMinimumChainWork = uint256S("0x000000000000000000000000000000000000000000000fba441d3034461e8eb4");
+        consensus.defaultAssumeValid = uint256S("0xce239a6ef11816534978c769e0a308e4fb1dd2a35257c9766e9e8833b7c923bc"); // 781888
 
         /**
          * The message start string is designed to be unlikely to occur in normal data.
@@ -173,8 +173,8 @@ public:
         pchMessageStart[3] = 0xc0;
         nDefaultPort = 19919;
         nPruneAfterHeight = 100000;
-        m_assumed_blockchain_size = 8;
-        m_assumed_chain_state_size = 9;
+        m_assumed_blockchain_size = 420;
+        m_assumed_chain_state_size = 35;
 
         genesis = CreateGenesisBlock(1383509530, 44481, 0x1e0ffff0, 1, 88 * COIN);
         consensus.hashGenesisBlock = genesis.GetHash();
@@ -211,14 +211,19 @@ public:
         };
 
         m_assumeutxo_data = {
-            // TODO to be specified in a future patch.
+            {
+                .height = 781'902,
+                .hash_serialized = AssumeutxoHash{uint256{"8850a1faf8bc3d9b242b474d77c37e2f78a2eb4529860805f74735192956931a"}},
+                .m_chain_tx_count = 1'406'382'686,
+                .blockhash = consteval_ctor(uint256{"9f127e2b3d6ed4d66437456346d633947c51afdbe04a785ce7a7139d90b899eb"}),
+            },
         };
 
         chainTxData = ChainTxData{
-            // Data from RPC: getchaintxstats 4096 00000000000000000001a0a448d6cf2546b06801389cc030b2b18c6491266815
-            .nTime    = 1741097476,
-            .tx_count = 798547107,
-            .dTxRate  = 20.3725986080964,
+            // Data from RPC: getchaintxstats 40320 7aba31517c58595373faf8b6baf51c6f74845a4cdbd8fa25b1c8b820a2d7e73b
+            .nTime    = 1762358636,
+            .tx_count = 1406382673,
+            .dTxRate  = 45.33270639016964,
         };
     }
 };
@@ -235,11 +240,11 @@ public:
         consensus.nSubsidyHalvingInterval = 100000;
         consensus.BIP34Height = 1;
         consensus.BIP34Hash = uint256S("0x122a09a8adfe47e0789226e54e5076b1235185ef6f55331825bf8ef594cf2434");
-        consensus.BIP65Height = 1; // 00000000007f6655f22f98e72ed80d8b06dc761d5da09df0fa1dc4be4f861eb6
-        consensus.BIP66Height = 1; // 000000002104c8c45e99a8853285a3b592602a3ccde2b832481da85e9e4ba182
-        consensus.CSVHeight = 1; // 00000000025e930139bac5c6c31a403776da130831ab85be56578f3fa75369bb
+        consensus.BIP65Height = 1;
+        consensus.BIP66Height = 1;
+        consensus.CSVHeight = 1;
         consensus.nLegacyBlocksBefore = consensus.BIP34Height;
-        consensus.SegwitHeight = 20; // 00000000002b980fcd729daaa248fd9316a5200e9b367f4ff2c42453e84201ca
+        consensus.SegwitHeight = 20;
         consensus.MinBIP9WarningHeight = 720; // taproot activation height + miner confirmation window
         consensus.nAuxpowStartHeight = 15;
         consensus.nBlockAfterAuxpowRewardThreshold = 5;
@@ -271,8 +276,8 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_OP_CAT].min_activation_height = 360000;
 
 
-        consensus.nMinimumChainWork = uint256S("0000000000000000000000000000000000000000000000000000000000100010");
-        consensus.defaultAssumeValid = uint256S("0xe5be24df57c43a82d15c2f06bda961296948f8f8eb48501bed1efb929afe0698"); // genesis
+        consensus.nMinimumChainWork = uint256S("0000000000000000000000000000000000000000000000000081344733b462c7");
+        consensus.defaultAssumeValid = uint256S("0x45b5f584778036f9c7c2ea44f7a09e1dd7df0dc07ba61f47ab79065e03012975"); // 532646
 
         pchMessageStart[0] = 0xc3;
         pchMessageStart[1] = 0xc3;
@@ -280,7 +285,7 @@ public:
         pchMessageStart[3] = 0xc3;
         nDefaultPort = 29919;
         nPruneAfterHeight = 1000;
-        m_assumed_blockchain_size = 1;
+        m_assumed_blockchain_size = 2;
         m_assumed_chain_state_size = 1;
 
         genesis = CreateGenesisBlock(1383509530, 44481, 0x1e0ffff0, 1, 88 * COIN);
@@ -313,18 +318,18 @@ public:
 
         m_assumeutxo_data = {
             {
-                // .height = 2'500'000,
-                // .hash_serialized = AssumeutxoHash{uint256S("0xf841584909f68e47897952345234e37fcd9128cd818f41ee6c3ca68db8071be7")},
-                // .nChainTx = 66484552,
-                // .blockhash = uint256S("0x0000000000000093bcb68c03a9a168ae252572d348a2eaeba2cdf9231d73206f")
-            }
+                .height = 532'658,
+                .hash_serialized = AssumeutxoHash{uint256{"30867ade42553d4542a4e5d3bb79defac894e1592e1095e7d5d81d5ce54df94c"}},
+                .m_chain_tx_count = 760'649,
+                .blockhash = consteval_ctor(uint256{"26d7f174e3a70398f38bfe15f245a8791493080d3bed0e34024d65c1152b47e6"}),
+            },
         };
 
         chainTxData = ChainTxData{
-            // Data from RPC: getchaintxstats 4096 0000000000000093bcb68c03a9a168ae252572d348a2eaeba2cdf9231d73206f
-            .nTime    = 1761594475,
-            .tx_count = 749599,
-            .dTxRate  = 0.01067370011565121,
+            // Data from RPC: getchaintxstats 40320 45b5f584778036f9c7c2ea44f7a09e1dd7df0dc07ba61f47ab79065e03012975
+            .nTime    = 1762364260,
+            .tx_count = 760637,
+            .dTxRate  = 0.009960166201399528,
         };
     }
 };
