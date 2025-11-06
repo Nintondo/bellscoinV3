@@ -237,58 +237,106 @@ unsigned int CalculateNextWorkRequiredOld(const CBlockIndex* pindexLast, int64_t
 // or decrease beyond the permitted limits.
 bool PermittedDifficultyTransition(const Consensus::Params& params, int64_t height, uint32_t old_nbits, uint32_t new_nbits)
 {
-    if (params.fPowAllowMinDifficultyBlocks)
-    {
+    // Allow everything when min-difficulty is allowed (regtest/test modes).
+    if (params.fPowAllowMinDifficultyBlocks) {
         return true;
-    } 
-
-    if (height % params.DifficultyAdjustmentInterval() == 0) {
-        int64_t smallest_timespan = params.nPowTargetTimespan/4;
-        int64_t largest_timespan = params.nPowTargetTimespan*4;
-
-        const arith_uint256 pow_limit = UintToArith256(params.powLimit);
-        arith_uint256 observed_new_target;
-        observed_new_target.SetCompact(new_nbits);
-
-        // Calculate the largest difficulty value possible:
-        arith_uint256 largest_difficulty_target;
-        largest_difficulty_target.SetCompact(old_nbits);
-        largest_difficulty_target *= largest_timespan;
-        largest_difficulty_target /= params.nPowTargetTimespan;
-
-        if (largest_difficulty_target > pow_limit) {
-            largest_difficulty_target = pow_limit;
-        }
-
-        // Round and then compare this new calculated value to what is
-        // observed.
-        arith_uint256 maximum_new_target;
-        maximum_new_target.SetCompact(largest_difficulty_target.GetCompact());
-        if (maximum_new_target < observed_new_target)
-        {
-            return false;
-        } 
-        // Calculate the smallest difficulty value possible:
-        arith_uint256 smallest_difficulty_target;
-        smallest_difficulty_target.SetCompact(old_nbits);
-        smallest_difficulty_target *= smallest_timespan;
-        smallest_difficulty_target /= params.nPowTargetTimespan;
-
-        if (smallest_difficulty_target > pow_limit) {
-            smallest_difficulty_target = pow_limit;
-        }
-
-        // Round and then compare this new calculated value to what is
-        // observed.
-        arith_uint256 minimum_new_target;
-        minimum_new_target.SetCompact(smallest_difficulty_target.GetCompact());
-        if (minimum_new_target > observed_new_target)
-        {
-            return false;
-        }
-    } else if (old_nbits != new_nbits) {
-        return false;
     }
+
+    // Legacy rule (pre per-block retarget): nBits may only change at
+    // DifficultyAdjustmentInterval() boundaries. Retain the prior logic
+    // exactly for blocks up to and including the activation height so older
+    // ranges are protected as before.
+    if (height <= params.nNewPowDiffHeight) {
+        if (height % params.DifficultyAdjustmentInterval() == 0) {
+            int64_t smallest_timespan = params.nPowTargetTimespan / 4;
+            int64_t largest_timespan = params.nPowTargetTimespan * 4;
+
+            const arith_uint256 pow_limit = UintToArith256(params.powLimit);
+            arith_uint256 observed_new_target;
+            observed_new_target.SetCompact(new_nbits);
+
+            // Calculate the largest difficulty value possible (easiest target).
+            arith_uint256 largest_difficulty_target;
+            largest_difficulty_target.SetCompact(old_nbits);
+            largest_difficulty_target *= largest_timespan;
+            largest_difficulty_target /= params.nPowTargetTimespan;
+            if (largest_difficulty_target > pow_limit) largest_difficulty_target = pow_limit;
+
+            // Round to compact form before comparison (matches consensus rounding).
+            arith_uint256 maximum_new_target;
+            maximum_new_target.SetCompact(largest_difficulty_target.GetCompact());
+            if (maximum_new_target < observed_new_target) return false;
+
+            // Calculate the smallest difficulty value possible (hardest target).
+            arith_uint256 smallest_difficulty_target;
+            smallest_difficulty_target.SetCompact(old_nbits);
+            smallest_difficulty_target *= smallest_timespan;
+            smallest_difficulty_target /= params.nPowTargetTimespan;
+            if (smallest_difficulty_target > pow_limit) smallest_difficulty_target = pow_limit;
+
+            // Round to compact form before comparison (matches consensus rounding).
+            arith_uint256 minimum_new_target;
+            minimum_new_target.SetCompact(smallest_difficulty_target.GetCompact());
+            if (minimum_new_target > observed_new_target) return false;
+        } else if (old_nbits != new_nbits) {
+            // No change permitted between retargets in legacy regime.
+            return false;
+        }
+        return true;
+    }
+
+    // Post-activation (per-block retargeting): apply a bounded envelope to
+    // successive targets to keep DoS resistance while avoiding false
+    // positives. Use consensus percentages for max up/down adjustment and
+    // compare in target space (larger target = easier work).
+    const arith_uint256 pow_limit = UintToArith256(params.powLimit);
+
+    arith_uint256 old_target;
+    old_target.SetCompact(old_nbits);
+
+    arith_uint256 observed_new_target;
+    observed_new_target.SetCompact(new_nbits);
+
+    // Compute bounds: [min_allowed_target, max_allowed_target]
+    // - Max allowed (easier) target grows by at most nPowMaxAdjustDown percent.
+    // - Min allowed (harder) target shrinks by at most nPowMaxAdjustUp percent.
+    // The percentages are defined as integers (e.g. 32 for +32%).
+    const int64_t up_pct = std::max<int64_t>(0, params.nPowMaxAdjustUp);       // difficulty increase (target decrease)
+    const int64_t down_pct = std::max<int64_t>(0, params.nPowMaxAdjustDown);   // difficulty decrease (target increase)
+
+    // Largest/easiest allowed target (cap by pow_limit). Use a compounded
+    // envelope to account for divergence between old_target and the averaging
+    // window used by the per-block algorithm.
+    const int64_t up_num_sq = (100LL - up_pct) * (100LL - up_pct);
+    const int64_t down_num_sq = (100LL + down_pct) * (100LL + down_pct);
+
+    arith_uint256 largest_difficulty_target = old_target;
+    largest_difficulty_target *= down_num_sq;   // (1 + down_pct)^2
+    largest_difficulty_target /= 10000LL;
+    if (largest_difficulty_target > pow_limit) largest_difficulty_target = pow_limit;
+
+    // Smallest/hardest allowed target.
+    arith_uint256 smallest_difficulty_target = old_target;
+    smallest_difficulty_target *= up_num_sq;    // (1 - up_pct)^2
+    smallest_difficulty_target /= 10000LL;
+
+    // Round bounds to compact equivalence to account for compact rounding,
+    // then slightly widen by one unit to avoid off-by-one rejects.
+    arith_uint256 maximum_new_target; // upper bound
+    maximum_new_target.SetCompact(largest_difficulty_target.GetCompact());
+    maximum_new_target += 2; // widen upper bound by a small slack (2 ULP)
+
+    arith_uint256 minimum_new_target; // lower bound
+    minimum_new_target.SetCompact(smallest_difficulty_target.GetCompact());
+    if (minimum_new_target > 1) {
+        minimum_new_target -= 2; // widen lower bound (2 ULP)
+    } else if (minimum_new_target > 0) {
+        minimum_new_target -= 1;
+    }
+
+    if (observed_new_target < minimum_new_target) return false;
+    if (observed_new_target > maximum_new_target) return false;
+
     return true;
 }
 

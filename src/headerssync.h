@@ -16,6 +16,7 @@
 
 #include <deque>
 #include <vector>
+#include <cstdint>
 
 // A compressed CBlockHeader, which leaves out the prevhash
 struct CompressedHeader {
@@ -191,6 +192,26 @@ private:
      * memory), and mark this object as no longer usable.
      */
     void Finalize();
+
+    // --- Window-aware PoW retarget helpers (post-switch) ---
+    static constexpr int MTP_SPAN{11};
+    // Recent compact targets (nBits) for averaging window
+    std::deque<uint32_t> m_recent_nbits;
+    // Recent per-header MedianTimePast values aligned to m_recent_nbits
+    std::deque<int64_t> m_recent_mtp;
+    // Rolling buffer of the last 11 raw times to compute MTP quickly
+    std::deque<int64_t> m_last11_times;
+
+    // Seed buffers from the current last header (m_last_header_received)
+    void SeedRetargetBuffersFromLastHeader();
+    // Reset buffers to chain start (used when switching to REDOWNLOAD)
+    void ResetRetargetBuffersToChainStart();
+    // Compute MTP when appending a new timestamp; updates m_last11_times and returns MTP
+    int64_t ComputeMtpForNewTime(int64_t new_time);
+    // Push a (nBits, mtp) sample, keeping buffer sizes bounded
+    void PushRetargetSample(uint32_t nbits, int64_t mtp);
+    // Window-aware check for next header's nBits using averaging window + MTP
+    bool CheckWindowAwareRetarget(uint32_t prev_nbits, uint32_t next_nbits, int64_t next_time, int64_t prev_time, int64_t next_height) const;
 
     /**
      *  Only called in PRESYNC.

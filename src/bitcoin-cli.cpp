@@ -860,8 +860,8 @@ static UniValue CallRPC(BaseRequestHandler* rh, const std::string& strMethod, co
             responseErrorMessage = strprintf(" (error code %d - \"%s\")", response.error, http_errorstring(response.error));
         }
         throw CConnectionFailed(strprintf("Could not connect to the server %s:%d%s\n\n"
-                    "Make sure the bellscoind server is running and that you are connecting to the correct RPC port.\n"
-                    "Use \"bellscoin-cli -help\" for more info.",
+                    "Make sure the bellsd server is running and that you are connecting to the correct RPC port.\n"
+                    "Use \"bells-cli -help\" for more info.",
                     host, port, responseErrorMessage));
     } else if (response.status == HTTP_UNAUTHORIZED) {
         if (failedToGetAuthCookie) {
