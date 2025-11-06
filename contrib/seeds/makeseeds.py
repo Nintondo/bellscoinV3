@@ -26,30 +26,13 @@ MAX_SEEDS_PER_ASN = {
     'ipv6': 10,
 }
 
-MIN_BLOCKS = 840000
+MIN_BLOCKS = 780000
 
 PATTERN_IPV4 = re.compile(r"^((\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})):(\d+)$")
 PATTERN_IPV6 = re.compile(r"^\[([0-9a-z:]+)\]:(\d+)$")
 PATTERN_ONION = re.compile(r"^([a-z2-7]{56}\.onion):(\d+)$")
 PATTERN_I2P = re.compile(r"^([a-z2-7]{52}\.b32.i2p):(\d+)$")
-PATTERN_AGENT = re.compile(
-    r"^/Satoshi:("
-    r"0.14.(0|1|2|3|99)|"
-    r"0.15.(0|1|2|99)|"
-    r"0.16.(0|1|2|3|99)|"
-    r"0.17.(0|0.1|1|2|99)|"
-    r"0.18.(0|1|99)|"
-    r"0.19.(0|1|2|99)|"
-    r"0.20.(0|1|2|99)|"
-    r"0.21.(0|1|2|99)|"
-    r"22.(0|1|99).0|"
-    r"23.(0|1|99).0|"
-    r"24.(0|1|2|99).(0|1)|"
-    r"25.(0|1|2|99).0|"
-    r"26.(0|1|99).0|"
-    r"27.(0|1|99).0|"
-    r"28.(0|99).0|"
-    r")")
+PATTERN_AGENT = re.compile(r"^/Bells:(3\.0\.[0-9]+|3\.[1-9]\.[0-9]+|[4-9]\.[0-9]+\.[0-9]+)/")
 
 def parseline(line: str) -> Union[dict, None]:
     """ Parses a line from `seeds_main.txt` into a dictionary of details for that line.
@@ -247,7 +230,7 @@ def main():
     ips.sort(key=lambda x: (x['uptime'], x['lastsuccess'], x['ip']), reverse=True)
     # Filter out hosts with multiple bitcoin ports, these are likely abusive
     ips = filtermultiport(ips)
-    print(f'{ip_stats(ips):s} Filter out hosts with multiple bitcoin ports', file=sys.stderr)
+    print(f'{ip_stats(ips):s} Filter out hosts with multiple bellscoin ports', file=sys.stderr)
     # Look up ASNs and limit results, both per ASN and globally.
     ips = filterbyasn(asmap, ips, MAX_SEEDS_PER_ASN, NSEEDS)
     print(f'{ip_stats(ips):s} Look up ASNs and limit results per ASN and per net', file=sys.stderr)
