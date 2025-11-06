@@ -154,9 +154,9 @@ public:
 
         // Deployment of OP_CAT, OP_CHECKTEMPLATEVERIFY, OP_INTERNALKEY, OP_CHECKSIGFROMSTACK
         consensus.vDeployments[Consensus::DEPLOYMENT_OP_CAT].bit = 2;
-        consensus.vDeployments[Consensus::DEPLOYMENT_OP_CAT].nStartTime = 1749945600; // 2025-07-15 00:00:00
-        consensus.vDeployments[Consensus::DEPLOYMENT_OP_CAT].nTimeout = 1772658000; // 2026-06-15 00:00:00
-        consensus.vDeployments[Consensus::DEPLOYMENT_OP_CAT].min_activation_height = 500000;
+        consensus.vDeployments[Consensus::DEPLOYMENT_OP_CAT].nStartTime = 1766620800; // 2025-12-25 00:00:00
+        consensus.vDeployments[Consensus::DEPLOYMENT_OP_CAT].nTimeout = 1798156800; // 2026-12-25 00:00:00
+        consensus.vDeployments[Consensus::DEPLOYMENT_OP_CAT].min_activation_height = 871000;
 
 
         consensus.nMinimumChainWork = uint256S("0x000000000000000000000000000000000000000000000fba441d3034461e8eb4");
@@ -187,6 +187,7 @@ public:
         // service bits we want, but we should get them updated to support all service bits wanted by any
         // release ASAP to avoid it where possible.
         vSeeds.emplace_back("bdnsseeder.quark.blue.");
+        vSeeds.emplace_back("seed.letitring.lol.");
 
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,25);
         base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,30);
