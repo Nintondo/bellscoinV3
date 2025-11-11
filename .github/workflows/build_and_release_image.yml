@@ -2,32 +2,51 @@ name: Build and release Docker image
 
 on:
   workflow_dispatch:
+    inputs:
+      sha:
+        description: 'Commit SHA for build (default: latest in branch)'
+        required: false
+        default: ''
 
 jobs:
   build:
     runs-on: self-hosted
 
     steps:
-    - uses: actions/checkout@v4
-      with:
-        ref: dev
+    - name:  Determine commit SHA
+      run: |
+        if [ -n "${{ github.event.inputs.sha }}" ]; then
+          echo "SERVICE_TAG=${{ github.event.inputs.sha }}" >> $GITHUB_ENV
+        else
+          echo "SERVICE_TAG=${{ github.sha }}" >> $GITHUB_ENV
+        fi
 
-    - name: Set up Buildx
+    - name: Log SERVICE_TAG
+      run: |
+        echo "Deploying image with tag: ${{ env.SERVICE_TAG }}"
+
+    - name: Checkout repository at selected commit
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ github.event.inputs.sha || github.sha }}
+
+    - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
 
-    - name: Log in to registry
+    - name: Log in to Docker Registry
       uses: docker/login-action@v2
       with:
         registry: ${{ secrets.CI_REGISTRY }}
         username: ${{ secrets.CI_REGISTRY_USER }}
         password: ${{ secrets.CI_REGISTRY_PASSWORD }}
 
-    - name: Build & push dev image
+    - name: Build and release Docker image
       uses: docker/build-push-action@v5
       with:
-        context: .
+        context: ./
         file: ./Dockerfile
         push: true
+        no-cache: true
         tags: |
-          ${{ secrets.CI_REGISTRY }}/${{ secrets.CI_REGISTRY_REPO }}/bellscoin-v3:dev
-          ${{ secrets.CI_REGISTRY }}/${{ secrets.CI_REGISTRY_REPO }}/bellscoin-v3:${{ github.sha }}
+          ${{ secrets.CI_REGISTRY }}/${{ secrets.CI_REGISTRY_REPO }}/${{ vars.SERVICE_NAME }}-${{ github.ref_name }}:${{ env.SERVICE_TAG }}
+          ${{ secrets.CI_REGISTRY }}/${{ secrets.CI_REGISTRY_REPO }}/${{ vars.SERVICE_NAME }}-${{ github.ref_name }}:latest
