@@ -28,7 +28,8 @@ RUN if [ "${BUILD_JOBS}" = "0" ] || [ -z "${BUILD_JOBS}" ]; then BUILD_JOBS="$(n
     mkdir build && cd depends && make -j"${BUILD_JOBS}" && \
     cd .. && \
     ./autogen.sh && \
-    ./configure --prefix="${PREFIX}" && \
+    CONFIG_SITE="$PWD/depends/x86_64-pc-linux-gnu/share/config.site" \
+    ./configure --prefix="${PREFIX}" --with-boost="$PWD/depends/x86_64-pc-linux-gnu" && \
     make -j"${BUILD_JOBS}"
 
 RUN if [ "$RUN_TESTS" = "1" ]; then make check; fi
@@ -59,7 +60,7 @@ COPY --from=builder /build/opt/bellscoin/bin/ /app/
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
-VOLUME ["/data"]
+EXPOSE 19918
 
 ENTRYPOINT ["/usr/bin/tini", "--", "/entrypoint.sh"]
 CMD ["/app/bellsd"]
