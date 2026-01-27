@@ -1,6 +1,8 @@
 FROM mcr.microsoft.com/devcontainers/cpp:ubuntu-22.04
 
-ARG REINSTALL_CMAKE_VERSION_FROM_SOURCE="none"
+ARG REINSTALL_CMAKE_VERSION_FROM_SOURCE=none
+ARG BUILD_JOBS=0
+ARG RUN_TESTS=0
 
 # Optionally install the cmake for vcpkg
 COPY ./reinstall-cmake.sh /tmp/

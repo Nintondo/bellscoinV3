@@ -1,8 +1,12 @@
+# Build stage
+FROM debian:trixie AS builder
 
-# Set up base image for builder
-FROM ubuntu:22.04 AS builder
+ARG BUILD_JOBS=0
+ARG RUN_TESTS=0
+ARG PREFIX=/opt/bellscoin
 
-# Install dependencies
+WORKDIR /usr/src/app
+
 RUN apt-get update && apt-get install -y --no-install-recommends \
         build-essential libtool autotools-dev automake pkg-config \
         bsdmainutils curl ca-certificates ccache rsync git procps \
@@ -12,9 +16,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-# Set working directory
-WORKDIR /bellscoin
-
 # Download, extract, and clean up Bellscoin source
 RUN curl -o bellscoin.tar.gz -Lk "https://github.com/Nintondo/bellscoinV3/archive/refs/heads/dev.tar.gz" && \
     tar -xf bellscoin.tar.gz && \
@@ -23,26 +24,42 @@ RUN curl -o bellscoin.tar.gz -Lk "https://github.com/Nintondo/bellscoinV3/archiv
     rm -f bellscoin.tar.gz
 
 # Build dependencies, build bellscoin, run tests
-RUN mkdir build && cd depends && make -j8 && \
+RUN if [ "${BUILD_JOBS}" = "0" ] || [ -z "${BUILD_JOBS}" ]; then BUILD_JOBS="$(nproc)"; fi && \
+    mkdir build && cd depends && make -j"${BUILD_JOBS}" && \
     cd .. && \
     ./autogen.sh && \
-    ./configure --prefix=$PWD/depends/x86_64-pc-linux-gnu && \
-    make -j8 && \
-    make DESTDIR=/bellscoin/build install && \
-    make check
+    ./configure --prefix="${PREFIX}" && \
+    make -j"${BUILD_JOBS}"
 
-# Set up base image for runner
-FROM debian:bookworm-slim AS runer
+RUN if [ "$RUN_TESTS" = "1" ]; then make check; fi
 
-# Install dependencies
-RUN apt-get update && apt-get install -y libc6 libgcc-s1 curl && \
+RUN mkdir -p /build && \
+    make DESTDIR=/build install
+
+# Runtime stage
+FROM debian:trixie-slim AS runner
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        ca-certificates \
+        curl \
+        gosu \
+        libc6 \
+        libgcc-s1 \
+        tini && \
     rm -rf /var/lib/apt/lists/*
 
-# Set working directory
-WORKDIR /bellscoin
+RUN groupadd --system --gid 1001 appuser && \
+    useradd --system --uid 1001 --gid appuser --home /home/appuser --shell /usr/sbin/nologin appuser && \
+    mkdir -p /home/appuser/.cache /data && \
+    chown -R 1001:1001 /home/appuser /data
 
-# Copy binary files from builder to runner
-COPY --from=builder /bellscoin/build/bellscoin/depends/x86_64-pc-linux-gnu/bin ./
+WORKDIR /app
 
-# Entrypoint
-ENTRYPOINT ["./bellsd"]
+COPY --from=builder /build/opt/bellscoin/bin/ /app/
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+VOLUME ["/data"]
+
+ENTRYPOINT ["/usr/bin/tini", "--", "/entrypoint.sh"]
+CMD ["/app/bellsd"]
