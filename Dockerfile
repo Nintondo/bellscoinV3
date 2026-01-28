@@ -56,7 +56,11 @@ RUN groupadd --system --gid 1001 appuser && \
 
 WORKDIR /app
 
-COPY --from=builder /build/opt/bellscoin/bin/ /app/
+COPY --from=builder /build/opt/bellscoin/bin/bellsd /app/
+COPY --from=builder /build/opt/bellscoin/bin/bells-cli /app/
+COPY --from=builder /build/opt/bellscoin/bin/bells-qt /app/
+COPY --from=builder /build/opt/bellscoin/bin/bells-util /app/
+COPY --from=builder /build/opt/bellscoin/bin/bells-wallet /app/
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
