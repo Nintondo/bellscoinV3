@@ -1,0 +1,137 @@
+name: Repository dispatch
+description: Send a repository_dispatch event with jq-safe JSON, retry on 5xx/429/network errors, and structured error handling.
+inputs:
+  token:
+    description: GitHub token with repo:dispatch permission.
+    required: true
+  repository:
+    description: Target repository in owner/name form.
+    required: true
+  event_type:
+    description: repository_dispatch event-type.
+    required: true
+  client_payload:
+    description: JSON object (string) for client_payload. Must be valid JSON.
+    required: false
+    default: "{}"
+  max_attempts:
+    description: Maximum number of attempts (including the first).
+    required: false
+    default: "5"
+  initial_backoff_seconds:
+    description: Initial backoff delay before second attempt.
+    required: false
+    default: "2"
+  connect_timeout_seconds:
+    description: TCP connect timeout per attempt.
+    required: false
+    default: "10"
+  max_time_seconds:
+    description: Total request timeout per attempt.
+    required: false
+    default: "30"
+runs:
+  using: composite
+  steps:
+    - name: Dispatch repository event
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+        REPO: ${{ inputs.repository }}
+        EVENT_TYPE: ${{ inputs.event_type }}
+        CLIENT_PAYLOAD: ${{ inputs.client_payload }}
+        MAX_ATTEMPTS: ${{ inputs.max_attempts }}
+        INITIAL_BACKOFF: ${{ inputs.initial_backoff_seconds }}
+        CONNECT_TIMEOUT: ${{ inputs.connect_timeout_seconds }}
+        MAX_TIME: ${{ inputs.max_time_seconds }}
+      run: |
+        set -euo pipefail
+
+        for tool in curl jq; do
+          if ! command -v "$tool" >/dev/null 2>&1; then
+            echo "::error::Required tool '$tool' is not installed on the runner."
+            exit 2
+          fi
+        done
+
+        # Build payload safely via jq. --argjson parses CLIENT_PAYLOAD as JSON
+        # and refuses to proceed if it isn't valid; this prevents broken
+        # injections from shell substitution mistakes.
+        if ! payload=$(jq -cn \
+              --arg event_type "$EVENT_TYPE" \
+              --argjson client_payload "$CLIENT_PAYLOAD" \
+              '{event_type:$event_type, client_payload:$client_payload}'); then
+          echo "::error::Invalid client_payload JSON. Provided value:"
+          printf '%s\n' "$CLIENT_PAYLOAD"
+          exit 1
+        fi
+
+        echo "Dispatching event_type=$EVENT_TYPE to $REPO"
+        echo "Payload: $payload"
+
+        tmp_body=$(mktemp)
+        tmp_headers=$(mktemp)
+        trap 'rm -f "$tmp_body" "$tmp_headers"' EXIT
+
+        url="https://api.github.com/repos/${REPO}/dispatches"
+        attempt=0
+        backoff="$INITIAL_BACKOFF"
+
+        while :; do
+          attempt=$((attempt + 1))
+
+          set +e
+          http_code=$(curl --silent --show-error \
+            --output "$tmp_body" \
+            --dump-header "$tmp_headers" \
+            --write-out '%{http_code}' \
+            --connect-timeout "$CONNECT_TIMEOUT" \
+            --max-time "$MAX_TIME" \
+            --request POST \
+            --header "Authorization: Bearer ${GH_TOKEN}" \
+            --header "Accept: application/vnd.github+json" \
+            --header "X-GitHub-Api-Version: 2022-11-28" \
+            --header "Content-Type: application/json" \
+            --data-binary "@-" \
+            "$url" <<<"$payload")
+          curl_rc=$?
+          set -e
+
+          # On network/timeout errors curl returns non-zero and http_code is empty.
+          if [ "$curl_rc" -ne 0 ] || [ -z "$http_code" ]; then
+            http_code="000"
+          fi
+
+          request_id=$(awk -F': ' 'tolower($1)=="x-github-request-id"{print $2}' \
+            "$tmp_headers" 2>/dev/null | tr -d '\r' | head -n1 || true)
+
+          case "$http_code" in
+            204)
+              echo "Dispatched successfully (HTTP 204) request_id=${request_id:-n/a}"
+              exit 0
+              ;;
+            400|401|403|404|422)
+              echo "::error::Non-retriable HTTP $http_code from GitHub API. request_id=${request_id:-n/a}"
+              echo "Response body:"
+              cat "$tmp_body" || true
+              exit 1
+              ;;
+            408|425|429|500|502|503|504|000)
+              if [ "$attempt" -ge "$MAX_ATTEMPTS" ]; then
+                echo "::error::Failed after ${attempt} attempts (last HTTP ${http_code}). request_id=${request_id:-n/a}"
+                cat "$tmp_body" || true
+                exit 1
+              fi
+              jitter=$(( RANDOM % 3 ))
+              wait_for=$(( backoff + jitter ))
+              echo "::warning::Attempt ${attempt}/${MAX_ATTEMPTS} got HTTP ${http_code} (curl_rc=${curl_rc}). Retrying in ${wait_for}s..."
+              sleep "$wait_for"
+              backoff=$(( backoff * 2 ))
+              ;;
+            *)
+              echo "::error::Unexpected HTTP $http_code from GitHub API. request_id=${request_id:-n/a}"
+              cat "$tmp_body" || true
+              exit 1
+              ;;
+          esac
+        done

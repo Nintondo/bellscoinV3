@@ -1,0 +1,44 @@
+name: Check image exists
+description: Verify that a Docker image exists in the registry.
+inputs:
+  registry:
+    description: Container registry host.
+    required: true
+  registry_repo:
+    description: Container registry repository or namespace.
+    required: true
+  service_name:
+    description: Docker service name.
+    required: true
+  service_tag:
+    description: Image tag to check.
+    required: true
+  image_name:
+    description: Optional image name override (defaults to service_name).
+    required: false
+    default: ""
+runs:
+  using: composite
+  steps:
+    - name: Check image exists
+      shell: bash
+      env:
+        CI_REGISTRY: ${{ inputs.registry }}
+        CI_REGISTRY_REPO: ${{ inputs.registry_repo }}
+        SERVICE_NAME: ${{ inputs.service_name }}
+        SERVICE_TAG: ${{ inputs.service_tag }}
+        IMAGE_NAME_OVERRIDE: ${{ inputs.image_name }}
+      run: |
+        set -euo pipefail
+        IMAGE_NAME="${IMAGE_NAME_OVERRIDE}"
+        if [ -z "${IMAGE_NAME}" ]; then
+          IMAGE_NAME="${SERVICE_NAME}"
+        fi
+
+        IMAGE="${CI_REGISTRY}/${CI_REGISTRY_REPO}/${IMAGE_NAME}:${SERVICE_TAG}"
+        if docker manifest inspect "$IMAGE" > /dev/null; then
+          echo "Image exists: $IMAGE"
+        else
+          echo "Image does not exist: $IMAGE"
+          exit 1
+        fi

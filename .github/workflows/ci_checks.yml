@@ -1,0 +1,99 @@
+name: CI Checks
+
+on:
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: 'Commit SHA for checks (default: latest in branch)'
+        required: false
+        default: ''
+  pull_request:
+    branches:
+      - main
+      - dev
+  push:
+    branches:
+      - main
+      - dev
+
+jobs:
+  semgrep-ci:
+    runs-on: self-hosted
+    permissions:
+      contents: read
+
+    steps:
+      - name: Determine commit SHA
+        shell: bash
+        env:
+          INPUT_SHA: ${{ github.event.inputs.sha }}
+          GITHUB_SHA_REF: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          if [ -n "$INPUT_SHA" ]; then
+            echo "SCAN_REF=$INPUT_SHA" >> "$GITHUB_ENV"
+          else
+            echo "SCAN_REF=$GITHUB_SHA_REF" >> "$GITHUB_ENV"
+          fi
+
+      - name: Checkout repository at selected commit
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ env.SCAN_REF }}
+
+      - name: Install Semgrep
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y python3-pip pipx
+          pipx ensurepath
+          pipx install semgrep || pipx upgrade semgrep
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Report all (non-blocking)
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          semgrep --config p/ci .
+
+  build-check:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Build dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd depends
+          make -j"$(nproc)"
+
+      - name: Install build libraries
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y \
+            libxcb-xinerama0 libxcb-icccm4-dev libxcb-image0-dev \
+            libxcb-keysyms1-dev libxcb-render-util0 libxcb-shape0 \
+            libxcb-xkb1 libxkbcommon-x11-0
+
+      - name: Configure and build
+        shell: bash
+        run: |
+          set -euo pipefail
+          ./autogen.sh
+          ./configure --prefix="$PWD/depends/x86_64-pc-linux-gnu"
+          make -j"$(nproc)"
+
+      - name: Check unit tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          make check

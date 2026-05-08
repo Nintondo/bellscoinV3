@@ -1,0 +1,21 @@
+version: "3.9"
+
+services:
+  ${COMPOSE_SERVICE_NAME}:
+    image: ${IMAGE}
+    container_name: ${CONTAINER_NAME}
+    restart: always
+    volumes:
+      - ./${CONFIG_RELATIVE_PATH}:${CONFIG_CONTAINER_PATH}:ro
+      - ./${DATA_RELATIVE_PATH}:${DATA_CONTAINER_PATH}:rw
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        compress: "true"
+    ports:
+${PORTS_BLOCK}
+${EXPOSE_BLOCK}
+    command: ["/app/bellsd", "-datadir=${DATA_CONTAINER_PATH}", "-conf=${CONFIG_CONTAINER_PATH}", "-printtoconsole"${COMMAND_EXTRA}]
+    stop_grace_period: 10m
