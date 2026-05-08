@@ -1,0 +1,63 @@
+name: Wipe service
+run-name: "Wipe → bells-${{ inputs.network }}"
+
+permissions:
+  contents: read
+
+on:
+  workflow_dispatch:
+    inputs:
+      network:
+        description: Network
+        required: true
+        type: choice
+        options:
+          - testnet
+          - mainnet
+      confirm_wipe:
+        description: 'Type WIPE_TESTNET (testnet) or WIPE_MAINNET (mainnet) to confirm'
+        required: true
+        default: ''
+
+concurrency:
+  group: wipe-${{ inputs.network }}
+  cancel-in-progress: false
+
+jobs:
+  wipe:
+    runs-on: self-hosted
+    environment: ${{ inputs.network }}
+
+    steps:
+      - name: Validate explicit wipe confirmation
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${{ inputs.network }}" = "mainnet" ]; then
+            EXPECTED="WIPE_MAINNET"
+          else
+            EXPECTED="WIPE_TESTNET"
+          fi
+          if [ "${{ inputs.confirm_wipe }}" != "$EXPECTED" ]; then
+            echo "Wipe requires explicit confirmation."
+            echo "Re-run workflow_dispatch and set confirm_wipe=$EXPECTED"
+            exit 1
+          fi
+
+      - name: Checkout repository for local actions
+        uses: actions/checkout@v5
+
+      - name: Wipe service
+        uses: ./.github/actions/wipe-over-ssh
+        with:
+          host: ${{ secrets.HOST_1 }}
+          username: ${{ secrets.HOST_1_USERNAME }}
+          ssh_private_key: ${{ secrets.SSH_PRIVATE_KEY }}
+          service_name: ${{ vars.SERVICE_NAME }}
+          service_dirs: ${{ vars.SERVICE_DIR_1 }}
+          coin: ${{ vars.COIN }}
+          network: ${{ vars.NETWORK }}
+          container_name: ${{ vars.CONTAINER_NAME }}
+          compose_service_name: ${{ vars.COMPOSE_SERVICE_NAME }}
+          post_wipe_sleep_seconds: "10"
+          reload_nginx: "true"

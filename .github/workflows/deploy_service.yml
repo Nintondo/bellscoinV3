@@ -1,0 +1,237 @@
+name: Deploy service
+run-name: >-
+  Deploy → bells-${{
+    github.event_name == 'workflow_dispatch'
+      && inputs.network
+      || github.event.client_payload.network
+  }} ${{ github.event_name == 'workflow_dispatch' && '(manual)' || '(auto)' }}
+
+permissions:
+  contents: read
+
+on:
+  workflow_dispatch:
+    inputs:
+      network:
+        description: Network
+        required: true
+        type: choice
+        options:
+          - testnet
+          - mainnet
+      sha:
+        description: Commit SHA for deploy/rollback (default latest in branch)
+        required: false
+        default: ''
+      confirm_mainnet:
+        description: Type DEPLOY_MAINNET to confirm mainnet rollout (required only for mainnet)
+        required: false
+        default: ''
+  repository_dispatch:
+    types:
+      - deploy
+
+concurrency:
+  group: deploy-${{ github.event_name == 'workflow_dispatch' && inputs.network || github.event.client_payload.network }}
+  cancel-in-progress: false
+
+jobs:
+  deployment:
+    runs-on: self-hosted
+    environment: ${{ github.event_name == 'workflow_dispatch' && inputs.network || github.event.client_payload.network }}
+
+    steps:
+      - name: Block mainnet via repository_dispatch
+        if: github.event_name == 'repository_dispatch' && github.event.client_payload.network == 'mainnet'
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "Mainnet deploys must be triggered manually via workflow_dispatch."
+          exit 1
+
+      - name: Validate explicit mainnet confirmation
+        if: github.event_name == 'workflow_dispatch' && inputs.network == 'mainnet'
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${{ inputs.confirm_mainnet }}" != "DEPLOY_MAINNET" ]; then
+            echo "Mainnet deploy requires explicit confirmation."
+            echo "Re-run workflow_dispatch and set confirm_mainnet=DEPLOY_MAINNET"
+            exit 1
+          fi
+
+      - name: Checkout repository for local actions
+        uses: actions/checkout@v5
+
+      - name: Resolve SERVICE_TAG
+        uses: ./.github/actions/resolve-service-tag
+
+      - name: Resolve deploy image
+        shell: bash
+        env:
+          IMAGE_NAME: ${{ vars.IMAGE_NAME }}
+          DISPATCH_IMAGE_NAME: ${{ github.event.client_payload.image_name }}
+          CI_REGISTRY: ${{ secrets.CI_REGISTRY }}
+          CI_REGISTRY_REPO: ${{ secrets.CI_REGISTRY_REPO }}
+        run: |
+          set -euo pipefail
+          if [ -n "$DISPATCH_IMAGE_NAME" ]; then
+            IMAGE_NAME="$DISPATCH_IMAGE_NAME"
+          fi
+          IMAGE="${CI_REGISTRY}/${CI_REGISTRY_REPO}/${IMAGE_NAME}:${SERVICE_TAG}"
+          echo "IMAGE_NAME=$IMAGE_NAME" >> "$GITHUB_ENV"
+          echo "IMAGE=$IMAGE" >> "$GITHUB_ENV"
+
+      - name: Log SERVICE_TAG
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "Deploying image ${{ env.IMAGE }} with SHA ${{ env.SERVICE_TAG }}"
+
+      - name: Log in to Docker Registry
+        shell: bash
+        env:
+          CI_REGISTRY: ${{ secrets.CI_REGISTRY }}
+          CI_REGISTRY_USER: ${{ secrets.CI_REGISTRY_USER }}
+          CI_REGISTRY_PASSWORD: ${{ secrets.CI_REGISTRY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          printf '%s' "$CI_REGISTRY_PASSWORD" \
+            | docker login "$CI_REGISTRY" -u "$CI_REGISTRY_USER" --password-stdin
+
+      - name: Check if image exists
+        uses: ./.github/actions/check-image-exists
+        with:
+          registry: ${{ secrets.CI_REGISTRY }}
+          registry_repo: ${{ secrets.CI_REGISTRY_REPO }}
+          service_name: ${{ vars.SERVICE_NAME }}
+          service_tag: ${{ env.SERVICE_TAG }}
+          image_name: ${{ env.IMAGE_NAME }}
+
+      - name: Prepare rendered template blocks
+        shell: bash
+        env:
+          PORT_MAPPINGS: ${{ vars.PORT_MAPPINGS }}
+          EXPOSE_PORTS: ${{ vars.EXPOSE_PORTS }}
+          COMMAND_TESTNET_ARG: ${{ vars.COMMAND_TESTNET_ARG }}
+          BELLS_MAX_FEE_RATE: ${{ vars.BELLS_MAX_FEE_RATE }}
+          BELLS_BLOCKSXOR: ${{ vars.BELLS_BLOCKSXOR }}
+          BELLS_WALLET: ${{ vars.BELLS_WALLET }}
+        run: |
+          set -euo pipefail
+
+          {
+            echo "PORTS_BLOCK<<EOF"
+            for mapping in $PORT_MAPPINGS; do
+              echo "      - \"${mapping}\""
+            done
+            echo "EOF"
+          } >> "$GITHUB_ENV"
+
+          {
+            echo "EXPOSE_BLOCK<<EOF"
+            if [ -n "$EXPOSE_PORTS" ]; then
+              echo "    expose:"
+              for port in $EXPOSE_PORTS; do
+                echo "      - \"${port}\""
+              done
+            fi
+            echo "EOF"
+          } >> "$GITHUB_ENV"
+
+          if [ -n "$COMMAND_TESTNET_ARG" ]; then
+            echo "COMMAND_EXTRA=, \"${COMMAND_TESTNET_ARG}\"" >> "$GITHUB_ENV"
+          else
+            echo "COMMAND_EXTRA=" >> "$GITHUB_ENV"
+          fi
+
+          {
+            echo "BELLS_CONFIG_EXTRA<<EOF"
+            if [ -n "$BELLS_MAX_FEE_RATE" ]; then
+              echo "maxfeerate=${BELLS_MAX_FEE_RATE}"
+            fi
+            if [ -n "$BELLS_BLOCKSXOR" ]; then
+              echo "blocksxor=${BELLS_BLOCKSXOR}"
+            fi
+            echo "EOF"
+          } >> "$GITHUB_ENV"
+
+          {
+            echo "BELLS_TEST_CONFIG_EXTRA<<EOF"
+            if [ -n "$BELLS_MAX_FEE_RATE" ]; then
+              echo "maxfeerate=${BELLS_MAX_FEE_RATE}"
+            fi
+            if [ -n "$BELLS_BLOCKSXOR" ]; then
+              echo "blocksxor=${BELLS_BLOCKSXOR}"
+            fi
+            if [ -n "$BELLS_WALLET" ]; then
+              echo "wallet=${BELLS_WALLET}"
+            fi
+            echo "EOF"
+          } >> "$GITHUB_ENV"
+
+      - name: Render service templates
+        shell: bash
+        env:
+          COMPOSE_SERVICE_NAME: ${{ vars.COMPOSE_SERVICE_NAME }}
+          CONTAINER_NAME: ${{ vars.CONTAINER_NAME }}
+          CONFIG_RELATIVE_PATH: ${{ vars.CONFIG_RELATIVE_PATH }}
+          CONFIG_CONTAINER_PATH: ${{ vars.CONFIG_CONTAINER_PATH }}
+          DATA_RELATIVE_PATH: ${{ vars.DATA_RELATIVE_PATH }}
+          DATA_CONTAINER_PATH: ${{ vars.DATA_CONTAINER_PATH }}
+          BELLS_MAX_CONNECTIONS: ${{ vars.BELLS_MAX_CONNECTIONS }}
+          BELLS_RPC_PORT: ${{ vars.BELLS_RPC_PORT }}
+          BELLS_RPC_USER: ${{ vars.BELLS_RPC_USER }}
+          BELLS_RPC_PASSWORD: ${{ secrets.BELLS_RPC_PASSWORD }}
+          BELLS_RPC_BIND: ${{ vars.BELLS_RPC_BIND }}
+          BELLS_RPC_THREADS: ${{ vars.BELLS_RPC_THREADS }}
+          BELLS_RPC_ALLOWIP: ${{ vars.BELLS_RPC_ALLOWIP }}
+        run: |
+          set -euo pipefail
+          if ! command -v envsubst >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y gettext-base
+          fi
+          envsubst < .github/templates/bellscoin.yml.template > bellscoin.yml.updated
+          envsubst < .github/templates/bellscoin.conf.template > bellscoin.conf.updated
+
+      - name: Copy rendered templates to server
+        uses: appleboy/scp-action@v1.0.0
+        with:
+          host: ${{ secrets.HOST_1 }}
+          username: ${{ secrets.HOST_1_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "bellscoin.yml.updated,bellscoin.conf.updated"
+          target: "/opt/${{ vars.COIN }}-${{ vars.NETWORK }}/services/${{ vars.SERVICE_NAME }}"
+
+      - name: Deploy service
+        uses: ./.github/actions/deploy-over-ssh
+        with:
+          host: ${{ secrets.HOST_1 }}
+          username: ${{ secrets.HOST_1_USERNAME }}
+          ssh_private_key: ${{ secrets.SSH_PRIVATE_KEY }}
+          registry: ${{ secrets.CI_REGISTRY }}
+          registry_repo: ${{ secrets.CI_REGISTRY_REPO }}
+          service_name: ${{ vars.SERVICE_NAME }}
+          service_tag: ${{ env.SERVICE_TAG }}
+          docker_compose_file: ${{ vars.DOCKER_COMPOSE_FILE }}
+          coin: ${{ vars.COIN }}
+          network: ${{ vars.NETWORK }}
+          image_name: ${{ env.IMAGE_NAME }}
+          container_name: ${{ vars.CONTAINER_NAME }}
+          compose_service_name: ${{ vars.COMPOSE_SERVICE_NAME }}
+          compose_updated_file: bellscoin.yml.updated
+          config_updated_file: bellscoin.conf.updated
+          config_target_file: ${{ vars.CONFIG_RELATIVE_PATH }}
+          post_deploy_sleep_seconds: "10"
+          reload_nginx: "true"
+
+      - name: Docker logout
+        if: always()
+        shell: bash
+        env:
+          CI_REGISTRY: ${{ secrets.CI_REGISTRY }}
+        run: |
+          set +e
+          docker logout "$CI_REGISTRY"
+          exit 0
